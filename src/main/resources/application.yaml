@@ -1,0 +1,28 @@
+logging:
+  level:
+    ROOT: INFO
+    com:
+      llandaeta: INFO
+
+
+spring:
+  h2:
+    console:
+      enabled: true
+  datasource:
+    password: ${DATABASE_PASS:}
+    username: ${DATABASE_USER:sa}
+    url: ${DATABASE_URL:jdbc:h2:mem:testdb}
+    driver-class-name: org.h2.Driver
+  flyway:
+    enabled: true
+    locations: filesystem:src/main/resources/db/migration
+    schemas: test
+    baseline-on-migrate: true
+    sql-migration-separator: _
+  jpa:
+    hibernate.ddl-auto: none
+    show-sql: true
+
+server:
+  max-http-header-size: 102400
