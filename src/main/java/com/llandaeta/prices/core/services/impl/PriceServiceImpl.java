@@ -11,9 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -24,25 +22,11 @@ public class PriceServiceImpl implements PriceService{
     private final PriceEntityModelConverter priceEntityModelConverter;
 
     @Override
-    public PriceModel searchPriceToApply(int brandId, int productId, LocalDateTime startDate, LocalDateTime endDate){
-
+    public PriceModel searchPriceToApply(final int brandId, final int productId, final LocalDateTime startDate, final LocalDateTime endDate){
         Optional<PriceEntity> optionalPrice = priceRepository.findFirstByBrandIdAndProductIdAndStartDateIsLessThanEqualAndEndDateGreaterThanEqualOrderByPriorityDesc(brandId, productId, startDate, endDate);
 
         return optionalPrice
                 .map(priceEntityModelConverter::convert)
                 .orElseThrow(() -> new NoPriceFoundException("No  price found to the brand"));
     }
-
-    @Override
-    public List<PriceModel> searchAllPrices(){
-
-        Optional<List<PriceEntity>> priceEntityList = Optional.of(priceRepository.findAll());
-
-        return priceEntityList.stream()
-                .flatMap(entity -> entity.stream()
-                        .map(priceEntityModelConverter::convert))
-                .collect(Collectors.toList());
-
-    }
-
 }

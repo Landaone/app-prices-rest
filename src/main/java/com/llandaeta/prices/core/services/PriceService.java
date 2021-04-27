@@ -9,5 +9,4 @@ public interface PriceService{
 
     PriceModel searchPriceToApply(int brandId, int productId, LocalDateTime startDate, LocalDateTime endDate);
 
-    List<PriceModel> searchAllPrices();
 }
