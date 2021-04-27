@@ -28,7 +28,5 @@ public class PriceController{
         var applicationDateTime = LocalDateTime.parse(applicationDate, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
         return priceService.searchPriceToApply(brandId, productId, applicationDateTime, applicationDateTime);
-
-
     }
 }
