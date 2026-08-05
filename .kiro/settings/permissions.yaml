@@ -1,0 +1,40 @@
+rules:
+  - capability: fs_read
+    match:
+      - "./**"
+    effect: allow
+  - capability: shell
+    match:
+      - "command -v openspec"
+      - "npm root -g"
+      - "openspec --version"
+      - "openspec --help"
+      - "openspec doctor"
+      - "openspec doctor *"
+      - "openspec context"
+      - "openspec context *"
+      - "openspec schemas"
+      - "openspec schemas *"
+      - "openspec templates"
+      - "openspec templates *"
+      - "codegraph explore *"
+      - "git status"
+      - "git status *"
+      - "git -C * status *"
+      - "git diff"
+      - "git diff *"
+      - "git rev-parse *"
+      - "find . *"
+      - "ls *"
+      - "grep *"
+      - "rg *"
+      - "head *"
+      - "tail *"
+      - "wc *"
+      - "readlink *"
+      - "sed -n *"
+    effect: allow
+  - capability: mcp
+    match:
+      - "codegraph/codegraph_explore"
+    effect: allow

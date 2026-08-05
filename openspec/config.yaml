@@ -1,0 +1,55 @@
+schema: spec-driven
+
+# Project context: shown to AI when creating artifacts.
+# Primary source of project rules is docs/base-standards.md; see it and the
+# referenced standards docs for full detail - this is a pointer, not a copy.
+context: |
+  Primary rules: docs/base-standards.md (source of truth for all AI agents on
+  this project - core principles, language standard, skills, symlink policy).
+  Backend standards: docs/backend-standards.md.
+  Frontend standards: docs/frontend-standards.md (Not Applicable - this repo
+  is a backend-only Spring Boot service; no frontend code exists).
+  Documentation standards: docs/documentation-standards.md.
+  API contract: docs/api-spec.yml.
+  Data model: docs/data-model.md.
+
+  Agent selection (canonical agents in ai-specs/agents/):
+    - Backend implementation/review: ai-specs/agents/java-backend-developer.md
+      (this repo is Java/Spring Boot; ai-specs/agents/backend-developer.md is
+      scoped to TypeScript/Prisma/Express and does not apply here).
+    - Product ideation/strategy work: ai-specs/agents/product-strategy-analyst.md
+    - ai-specs/agents/frontend-developer.md does not apply here - see
+      docs/frontend-standards.md (Not Applicable, no frontend in this repo).
+
+  Workflow guidance lives in ai-specs/skills/ (for example enrich-us,
+  openspec-sync-specs, using-git-worktrees) - consult the matching skill's
+  SKILL.md before running the workflow it covers.
+
+# Per-artifact rules: additive to the schema's built-in artifact instructions.
+rules:
+  proposal:
+    - "Follow docs/base-standards.md Core Principles: small incremental steps and TDD-first for new functionality."
+    - "Declare capabilities against docs/backend-standards.md's layered architecture (domain, application, repository, controller); set skip_specs: true only for changes with no spec-level behavior change."
+    - "Select the agent per docs/base-standards.md Section 4/context above: ai-specs/agents/java-backend-developer.md for backend-shaped work, ai-specs/agents/product-strategy-analyst.md for ideation; do not select ai-specs/agents/backend-developer.md (scoped to TypeScript/Prisma/Express, not this Java/Spring Boot repo) or ai-specs/agents/frontend-developer.md (not applicable, see docs/frontend-standards.md)."
+  specs:
+    - "Requirements must be consistent with the HTTP contract in docs/api-spec.yml and the persistence model in docs/data-model.md."
+    - "Do not silently contradict or 'fix' the Known Risks and Defects documented in docs/backend-standards.md; if a change addresses one, say so explicitly."
+    - "Write all requirement and scenario text in English, per docs/documentation-standards.md General rules."
+  design:
+    - "Base architectural decisions on docs/backend-standards.md Architecture Overview, Coding Standards, and Database Patterns sections."
+  tasks:
+    - "Step 0 must create a feature branch (feature/[change-name]) before any code change, per docs/openspec-tasks-mandatory-steps.md."
+    - "Include, in order, the mandatory steps from docs/openspec-tasks-mandatory-steps.md: review/update unit tests, run unit tests and verify database state, manual curl endpoint testing, and technical documentation update."
+    - "Testing tasks must follow the conventions in docs/backend-standards.md Testing Standards (SpringBootTest style, mocking, naming)."
+    - "Any task touching data model, API contract, or stack/tooling must include updating docs/data-model.md, docs/api-spec.yml, or the relevant *-standards.md file, per docs/documentation-standards.md Technical Documentation section."
+
+# Per-operation advisory guidance, separate from artifact rules above.
+operations:
+  apply:
+    guidance:
+      - "Execute all manual tests yourself (unit tests, curl endpoint checks) - never ask the user to run them, per docs/openspec-tasks-mandatory-steps.md Agent Execution Requirements."
+      - "Mark a task complete only after its tests pass and any database state is restored, per docs/backend-standards.md Testing Standards."
+  archive:
+    guidance:
+      - "Before archiving, confirm any post-apply fix request was folded back into the change's artifacts first, per docs/base-standards.md Section 7."
+      - "Update any technical documentation impacted by the change (docs/data-model.md, docs/api-spec.yml, *-standards.md) per docs/documentation-standards.md before archiving."

@@ -1,0 +1,184 @@
+openapi: 3.0.0
+info:
+  title: app-prices-rest API
+  description: |
+    REST API that returns the price to apply for a given product, brand, and application date/time.
+
+    The service holds price list entries with overlapping validity windows and priorities per
+    brand/product; given a target date it returns the single highest-priority price whose validity
+    window covers that date.
+
+    ## Known contract gaps (documented, not fixed)
+    - `applicationDate` must match `yyyy-MM-dd HH:mm:ss` exactly. A malformed value currently produces
+      an HTTP 500 response instead of a 400, because of a defect in the generic exception handler
+      (see `docs/backend-standards.md#known-risks-and-defects`). This spec documents the *intended*
+      400 semantics for malformed input as a target, while flagging that the current implementation
+      does not reliably return it.
+    - There is no authentication/authorization on this endpoint.
+  version: 0.0.1
+  contact:
+    name: app-prices-rest maintainers
+  license:
+    name: UNLICENSED
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server (embedded Tomcat, default Spring Boot port)
+
+tags:
+  - name: Prices
+    description: Price lookup for a brand, product, and application date
+
+paths:
+  /api/price:
+    get:
+      summary: Get the price to apply for a brand/product at a given date
+      description: |
+        Returns the single price entry with the highest priority whose validity window
+        (`startDate` to `endDate`, inclusive) covers the given `applicationDate`, for the given
+        `brandId` and `productId`.
+      operationId: searchPriceForBrandTime
+      tags:
+        - Prices
+      parameters:
+        - in: query
+          name: brandId
+          required: true
+          schema:
+            type: integer
+          description: Identifier of the brand/chain the price list belongs to
+          example: 1
+        - in: query
+          name: productId
+          required: true
+          schema:
+            type: integer
+          description: Identifier of the product
+          example: 35455
+        - in: query
+          name: applicationDate
+          required: true
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$'
+          description: >-
+            Date and time to price the product at, formatted `yyyy-MM-dd HH:mm:ss` (24-hour clock).
+            No other format is accepted.
+          example: "2020-06-14 16:00:00"
+      responses:
+        '200':
+          description: Price found and returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceModel'
+              examples:
+                priceList2:
+                  summary: Highest-priority price active at 2020-06-14 16:00:00
+                  value:
+                    brandId: 1
+                    startDate: "2020-06-14T15:00:00"
+                    endDate: "2020-06-14T18:30:00"
+                    productId: 35455
+                    priceList: 2
+                    priority: 1
+                    price: 25.45
+                    curr: EUR
+        '400':
+          description: >-
+            Invalid or missing request parameters. NOTE: as of the current implementation, a
+            malformed `applicationDate` does not reliably produce this response — see the
+            "Known contract gaps" note above; treat this response definition as the intended
+            contract, not the verified current behavior.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: No price found for the given brandId/productId active at applicationDate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                httpcode: 404
+                message: "No price found to the brand"
+        '500':
+          description: >-
+            Unexpected server error. This is also the response currently observed for a malformed
+            `applicationDate` (see "Known contract gaps" above).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    PriceModel:
+      type: object
+      description: The price entry selected as applicable for the requested brand, product, and date.
+      properties:
+        brandId:
+          type: integer
+          description: Identifier of the brand the price list belongs to
+          example: 1
+        startDate:
+          type: string
+          format: date-time
+          description: Start of the validity window for this price (inclusive), ISO-8601 local date-time
+          example: "2020-06-14T15:00:00"
+        endDate:
+          type: string
+          format: date-time
+          description: End of the validity window for this price (inclusive), ISO-8601 local date-time
+          example: "2020-06-14T18:30:00"
+        productId:
+          type: integer
+          description: Identifier of the priced product
+          example: 35455
+        priceList:
+          type: integer
+          description: Identifier of the price list (rate) this entry belongs to
+          example: 2
+        priority:
+          type: integer
+          description: >-
+            Tie-breaker used when multiple price list entries are valid for the same brand,
+            product, and date; the entry with the highest priority wins
+          example: 1
+        price:
+          type: number
+          format: double
+          description: >-
+            Final price to apply. Persisted as DECIMAL(4,2) — values of 100 or higher, or with
+            more than 2 decimal places, are not currently supported (see backend-standards.md).
+          example: 25.45
+        curr:
+          type: string
+          description: ISO 4217 currency code
+          example: EUR
+      required:
+        - brandId
+        - startDate
+        - endDate
+        - productId
+        - priceList
+        - priority
+        - price
+        - curr
+
+    Error:
+      type: object
+      description: Flat error payload returned by the global exception handler for every error response.
+      properties:
+        httpcode:
+          type: integer
+          description: HTTP status code, duplicated in the body alongside the response status line
+          example: 404
+        message:
+          type: string
+          description: Human-readable error message (exception message)
+          example: "No price found to the brand"
+      required:
+        - httpcode
+        - message
