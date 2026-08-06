@@ -498,56 +498,24 @@ Result: PASS / FAIL
 
 ### Configure Selected-Client Permissions (Early, One-Time)
 
-**Purpose:** Once selected clients and their OpenSpec/CodeGraph resources are known (above), and before the first AI-heavy adaptation step (Section 6), configure a project-scoped, read-only permission allowlist for each selected client. This avoids repeated approval prompts on the same verified read-only commands across every remaining adoption step. See [Section 19](#19-permission-recommendations) for the full policy/reference material; this subsection is only the first-time setup.
+**Purpose:** Once selected clients and their OpenSpec/CodeGraph resources are known (above), and before the first AI-heavy adaptation step (Section 6), configure one project-scoped, team-reviewed permission file per selected client. This avoids repeated approval prompts for verified inspection and controlled local-validation commands across every remaining adoption step. See [Section 19](#19-permission-recommendations) for the full policy/reference material; this subsection is only the first-time setup.
 
 Rules:
 
 - Configure a permission file only for a client explicitly selected above. Claude and Kiro are not mandatory; skip a client the repository does not use.
-- Allow only verified, project-scoped, read-only patterns: repository file reading/listing, OpenSpec inspection (`--version`, `--help`, `doctor`, `context`, `schemas`, `templates`), CodeGraph exploration, and Git inspection (`status`, `diff`, `rev-parse`).
+- Keep shared project permissions in the selected client's versionable project file. For Claude Code, use `.claude/settings.json`; do not maintain a duplicate `.claude/settings.local.json` allowlist.
+- Allow verified, project-scoped, read-only patterns: repository file reading/listing, OpenSpec inspection (`--version`, `--help`, `doctor`, `context`, `schemas`, `templates`), CodeGraph exploration, and Git inspection (`status`, `diff`, `rev-parse`).
+- Controlled local build/test commands may also be shared after team review when they use repository-declared tooling, produce only ignored local artifacts, and do not install, deploy, publish, or access external services. Permission to run a test never implies that its result is PASS.
 - Keep every mutating or higher-risk operation reviewable or approval-gated: edits, arbitrary execution, installation/upgrade, deletion, overwrite, staging, commit, push, PR, merge, credential/secret changes, network access, and any other remote mutation.
+- Do not include usernames, home directories, absolute machine paths, credentials, or machine-specific dependency locations in a shared permission file.
 - Do not auto-allow generic shell loops, glob expansions, or filesystem-wide searches.
-- Validate the file's syntax, then run a fresh-session read-only smoke test before relying on it.
+- Validate the file's syntax, then run a fresh-session smoke test on every supported client/OS combination before claiming portability.
 
-**[HUMAN APPROVAL REQUIRED]** before writing either permission file.
+**[HUMAN APPROVAL REQUIRED]** before creating the initial shared permission file or broadening it with a new command family. Subsequent changes follow normal repository review so the whole team receives the same policy.
 
-Validated Claude Code example — `.claude/settings.local.json` (local and git-ignored; never staged or shared):
+Validated Claude Code location — `.claude/settings.json` (shared, versioned, and reviewed with the repository). The file itself is the single source of truth for the current allowlist; do not duplicate its evolving command list in this guide. `.claude/settings.local.json` is reserved for exceptional personal overrides and must not contain a second copy of the team allowlist.
 
-```json
-{
-  "enabledMcpjsonServers": [
-    "codegraph"
-  ],
-  "permissions": {
-    "allow": [
-      "Bash(command -v openspec)",
-      "Bash(npm root -g)",
-      "Bash(openspec --version)",
-      "Bash(openspec --help)",
-      "Bash(openspec doctor:*)",
-      "Bash(openspec context:*)",
-      "Bash(openspec schemas:*)",
-      "Bash(openspec templates:*)",
-      "Bash(codegraph explore:*)",
-      "Bash(git status:*)",
-      "Bash(git -C * status:*)",
-      "Bash(git diff:*)",
-      "Bash(git rev-parse:*)",
-      "Bash(find .:*)",
-      "Bash(ls:*)",
-      "Bash(grep:*)",
-      "Bash(rg:*)",
-      "Bash(head:*)",
-      "Bash(tail:*)",
-      "Bash(wc:*)",
-      "Bash(readlink:*)",
-      "Bash(sed -n:*)",
-      "mcp__codegraph__codegraph_explore"
-    ]
-  }
-}
-```
-
-Validated Kiro example — `.kiro/settings/permissions.yaml` (not inherently local; may be committed and shared with the team when company policy permits):
+Validated Kiro location — `.kiro/settings/permissions.yaml` (shared and versioned when company policy permits):
 
 ```yaml
 rules:
@@ -1495,7 +1463,7 @@ Save the complete staged diff so the reviewed content is reproducible: `git diff
 
 ### Staged-scope checklist
 
-Check the staged diff and staged file list explicitly for: application source/test code the adoption did not intentionally change; build outputs or other generated artifacts; ignored local client settings accidentally staged; CodeGraph runtime/database files; secret- or credential-shaped text; machine-specific absolute paths; unexpected file modes (in particular a symlink staged as a regular file, or vice versa); symlink targets resolving to the expected canonical path; broken symlinks; adapters for unselected clients; unstaged changes left after staging; and untracked files that reveal an incomplete step.
+Check the staged diff and staged file list explicitly for: application source/test code the adoption did not intentionally change; build outputs or other generated artifacts; personal client overrides accidentally staged; intentional shared client settings omitted from review; CodeGraph runtime/database files; secret- or credential-shaped text; machine-specific absolute paths; unexpected file modes (in particular a symlink staged as a regular file, or vice versa); symlink targets resolving to the expected canonical path; broken symlinks; adapters for unselected clients; unstaged changes left after staging; and untracked files that reveal an incomplete step.
 
 `git diff --cached --check` reports whitespace problems. Imported canonical SpecBoot/template material may already contain inherited, non-semantic formatting that predates this adoption — record that as a non-blocking warning and do not edit canonical imports just to normalize it. Treat a warning as a blocking defect only if it changes meaning or could affect runtime behavior in a file this adoption modified. Record the decision explicitly rather than silently normalizing every warning.
 
@@ -1653,6 +1621,10 @@ CodeGraph exploration
 
 These may be eligible for reduced prompting only after exact command patterns are verified.
 
+### Controlled local validation
+
+Repository-declared build and test commands may be included in a shared permission file after team review when they execute locally, write only ignored build/test artifacts, and do not install, deploy, publish, access credentials, or mutate remote systems. Examples include a repository's normal offline Maven validation or test commands. Automatic permission to execute a command does not establish that it ran successfully; exit codes and reported test results must still be checked explicitly.
+
 ### Project-local mutations
 
 Examples:
@@ -1692,7 +1664,8 @@ credential or secret changes
 - `find`, `grep`, CodeGraph, and OpenSpec were not universally auto-allowed.
 - Broad shell write permissions were not granted.
 - Remote mutation remained out of scope.
-- After the Section 5 permission files were configured, a fresh Claude Code session executed 8 verified read-only commands with zero permission prompts and zero file modifications; Kiro's own permission behavior was covered separately by its later fresh-session runtime-discovery evidence.
+- An earlier local Claude configuration executed 8 verified read-only commands with zero permission prompts and zero file modifications. The policy was later consolidated into the shared `.claude/settings.json`; that shared configuration must earn its own fresh-session and supported-OS evidence rather than inherit the earlier result.
+- Kiro's project permission file contains no machine-specific paths, but native Windows shell portability remains pending live validation.
 
 ### Live permission record
 
@@ -1778,7 +1751,7 @@ These chains are excluded from the clean reusable execution path and never appea
 | OpenSpec initialization for Claude Code and Kiro | Validated in reference repo | PASS |
 | SpecBoot import | Validated with hidden-directory caveat | PASS |
 | CodeGraph initialization and selected-client configuration | Validated for Claude and Kiro | PASS |
-| Selected-client permission configuration | Not previously tracked | PASS — Claude and Kiro |
+| Selected-client permission configuration | Not previously tracked | PARTIAL — shared Claude configuration and native Windows portability require fresh validation |
 | Technical-context adaptation | Validated after corrections | PASS |
 | OpenSpec configuration | Validated after corrections | PASS |
 | Canonical agent adaptation/validation | Validated after corrections | PASS |
