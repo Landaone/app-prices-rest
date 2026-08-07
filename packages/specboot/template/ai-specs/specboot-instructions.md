@@ -94,6 +94,15 @@ npx @lidr/lidr-specboot
 
 This copies all files into your project and recreates the symlink structure automatically. Safe to re-run: existing files are never overwritten.
 
+### Installer Scope: Claude/Cursor Provisioning Only (Kiro Configured Separately)
+
+The current `npx @lidr/lidr-specboot` installer (`packages/specboot/bin/init.js`) provisions shared skill/agent adapters for **Claude and Cursor only** — it symlinks `ai-specs/agents/` and `ai-specs/skills/` into `.claude/` and `.cursor/`. It does **not** currently create or provision anything under `.kiro/`.
+
+Any `.kiro/` paths present in a given repository (skills, prompts, settings) were configured **separately** — by hand, by `openspec init`'s own explicit client selection, or by a project-specific adoption step (see `SPECBOOT_ADOPTION_GUIDE.md` §2 and §13). A repository having a valid, working `.kiro/` setup does not mean this installer created it, and running the installer elsewhere will not recreate one. **This repository's own Kiro setup is real and working — it was configured separately from this installer, not by it.**
+
+**Kiro command examples throughout this document are valid only in a repository where Kiro adapters/prompts have already been separately generated or configured.** If a given repository has no `.kiro/` directory, only the Claude-syntax examples apply after running the installer; Kiro support requires its own separate setup.
+
+A future, separately approved change (`make-specboot-installer-client-aware`) may extend the installer to provision Kiro (and other clients) conditionally, based on explicit client selection — this installer does not do that today.
 
 ### 3) Customize `docs/` for Your Project (Mandatory)
 
@@ -163,27 +172,42 @@ Your AI copilot should automatically load:
 
 All paths and rules are configured to work seamlessly without manual adjustments.
 
+### Permission Setup (One-Time)
+
+Before running the workflow below repeatedly, configure a project-scoped, read-only permission allowlist for each selected client once. See `SPECBOOT_ADOPTION_GUIDE.md` — "Configure Selected-Client Permissions (Early, One-Time)" (end of its Section 5) for the one-time setup, and Section 19 for the ongoing reference policy. This avoids repeated approval prompts on the same verified read-only commands across every step below; it does not change what any step does.
+
 ## 💡 Usage: Official OpenSpec Workflow
 
-The recommended workflow in this repository uses official OpenSpec commands:
+The recommended workflow in this repository uses the commands the installed OpenSpec 1.7 CLI actually generates on this machine, plus two SpecBoot-owned steps: a mandatory pre-proposal refinement gate (`enrich-us`) and a post-apply verification step (`/specboot-verify`). Invocation syntax for the `opsx` commands differs slightly per client (Claude uses a `namespace:command` colon form; Kiro uses a flat, hyphenated form) — both forms are shown below. Both SpecBoot-owned steps use an identical invocation on both clients: `enrich-us` (a skill, invoked by description match) and `/specboot-verify`.
 
-The recommended workflow in this repository uses official OpenSpec commands:
+There are **six required workflow capabilities**, in order: `enrich-us`, `propose`, `apply`, `specboot-verify`, `adversarial-review`, `archive`. Jira is not one of them — see the "enrich-us and the enriched-artifact handoff" note below.
 
-1. **`/enrich-us`** (optional): refine a vague user story or idea
-2. **`/ff`**: create all required OpenSpec artifacts
-3. **`/apply`**: implement tasks one by one
-4. **`/verify`**: validate implementation against the change artifacts
-5. **`/archive`**: archive the completed change
-6. **`/commit`**: create focused commit(s) after verification
+1. **`enrich-us`** (a skill, invoked by request/description match, not a slash command — **mandatory**, not optional, for every work item: features, bug fixes, refactors, technical tasks, spikes, and documentation changes alike): refines a work item into a complete, implementation-ready enriched Markdown artifact. Phase 1 accepts direct chat text, a screenshot, or a readable attachment — no Jira required. It returns `READY FOR PROPOSAL` or `NEEDS CLARIFICATION`; a `NEEDS CLARIFICATION` outcome blocks proceeding to the next step until resolved. This is a procedural quality gate and structured first review — it is not `adversarial-review` and never substitutes for it.
+2. **`/opsx:propose`** (Claude) / **`/opsx-propose`** (Kiro): create a new OpenSpec change and generate all required artifacts (proposal, specs, design, tasks) in one step, using the enriched artifact from step 1 as the work-item description
+   - **`/opsx:update`** (Claude) / **`/opsx-update`** (Kiro): revise or continue an existing change's artifacts
+3. **`/opsx:apply`** (Claude) / **`/opsx-apply`** (Kiro): implement tasks one by one
+4. **`/specboot-verify`** (Claude and Kiro — identical invocation on both): SpecBoot's own, client-neutral verification skill (canonical logic in `ai-specs/skills/specboot-verify/SKILL.md`; on Claude, reached directly through its skill registration — no separate command file; on Kiro, through `.kiro/prompts/specboot-verify.prompt.md`) — validates implementation against the change's artifacts, confirms every one of the six required workflow capabilities is available to every selected client, and gates the next step. A PASS or PASS WITH GAPS here only makes the change **eligible for independent adversarial review** — it does not by itself permit requesting archive approval.
+5. **`adversarial-review`** (a skill invoked by request/description match, not a slash command): independent red-team review before archiving — run from a different session or client than the one that implemented the change when possible; otherwise its output must name the same-session fallback used
+6. **Human approval**: archive approval must not be requested or granted while SpecBoot verify or `adversarial-review` has an open Blocker/Major finding — both PASS, not just verify, plus explicit human approval, are required before this step. This is a **documented process gate** — it does not technically block `/opsx:archive` / `/opsx-archive` itself, which remains unmodified and will still run if invoked directly
+7. **`/opsx:archive`** (Claude) / **`/opsx-archive`** (Kiro): archive the completed change. Both already perform sync-then-archive and re-verify delta/main-spec equivalence internally before moving the change — no separate sync step is needed immediately beforehand
+8. **`openspec validate --strict`**: post-archive strict validation
+9. **`/commit`**: create focused commit(s) and manage a Pull Request after verification
+
+**enrich-us and the enriched-artifact handoff**: `enrich-us` persists its enriched Markdown artifact to `.specboot/staging/<slug>-enriched.md` (repo-local, gitignored) — the durable, authoritative copy. In the same conversation, invoke step 2's propose command next; when it asks what to build, provide the enriched artifact's `## Enhanced` content (visible above and backed by the staged file) as the description. After propose creates the change directory, copy the staged file into it as `enriched-work-item.md` for traceability — a documented manual step that does not modify `.claude/commands/opsx/propose.md` or `.kiro/prompts/opsx-propose.prompt.md`. Jira MCP, automatic ticket retrieval, Jira write-back, and ticket-status transitions are a separately approved future phase — not configured, implemented, or required in Phase 1.
+
+**Note on `/new`, `/ff`, and `/continue`**: an earlier OpenSpec generation (1.3.1, as seen in the historical `AI4Devs-LTI-extended` adoption) generated these as separate commands, and the historical workflow chained `enrich-us -> opsx:new -> opsx:ff -> opsx:apply` with the enriched artifact as `opsx:new`'s input. This machine's installed OpenSpec 1.7 CLI does not currently generate `/new`, `/ff`, or `/continue`: `/opsx:propose` covers what `/new` + `/ff` did together (including receiving the enriched artifact, per the handoff described above), and `/opsx:update` covers `/continue`.
+
+**Note on official `/opsx:verify` and `/specboot-verify` coexistence**: OpenSpec 1.7 *does* ship an official `verify` workflow (both a skill and an `/opsx:verify` command template) — an earlier draft of this document incorrectly stated 1.7 had dropped verify entirely. What is actually true: which `opsx` workflows are generated is controlled by a `profile`/`workflows` selection that is **global to the machine running the CLI** (`~/.config/openspec/config.json`), not owned by this repository or committed to it. On the reference machine used to write this document, that global list excludes `verify` (`openspec config list` → `workflows: propose, explore, apply, update, sync, archive`). **A different developer's machine may have official `/opsx:verify` enabled.** If so, that is not a problem to fix: `opsx:verify` and `specboot-verify` occupy non-colliding names, so their mere coexistence is never treated as a failure. But official `/opsx:verify`, as OpenSpec ships it, does **not** satisfy this repository's mandatory adversarial-review-then-human-approval sequence by itself — its own conclusion goes straight to "ready for archive" with no such gate. **`/specboot-verify` is the authoritative SpecBoot gate regardless of whether `/opsx:verify` is present**; if both exist on your machine, use `/specboot-verify` for this workflow. No step in this document, and no SpecBoot adoption step, changes this machine-global profile/workflow configuration or runs `openspec update` to enable or disable any workflow — that remains an explicit, separate, human decision outside SpecBoot's scope.
+
 Workflow reference image:
 
 ![OpenSpec custom workflow reference](https://drive.google.com/uc?export=view&id=1H5pAfjzpvYLlaGxJOrd6zox2Q87HxGkh)
 
-### Optional: MCP Integrations (Jira + Playwright)
+### Optional: MCP Integrations (Playwright); Jira is a future phase, not current
 
 This workflow is enhanced with MCP servers that are mentioned in the workflow. These are optional and you can skip them entirely, or replace them with equivalent tools.
 
-- **Jira MCP (recommended in `/enrich-us`)**: lets the agent read Jira tickets directly to enrich user stories without copy/paste.
+- **Jira MCP**: **not** part of the current, Phase-1 `enrich-us` — Phase 1 is self-contained and works from direct chat text, a screenshot, or a readable attachment, with no Jira dependency. Jira MCP, automatic ticket retrieval, Jira write-back, and ticket-status transitions are a separately approved future phase; do not configure or rely on it for the current workflow.
 - **Playwright MCP (recommended for E2E testing)**: lets the agent run browser-based E2E checks for user workflows.
 
 Recommended installation approach:
@@ -199,12 +223,31 @@ Use these commands in sequence:
 
 Optional first step (recommended): create a dedicated worktree before running the command flow, then clean it up when done. The `using-git-worktrees` skill can automate this.
 
+Claude syntax:
+
 ```bash
-/enrich-us SCRUM-10
-/ff SCRUM-10
-/apply SCRUM-10
-/verify SCRUM-10
-/archive SCRUM-10
+# enrich-us: invoke the skill with the work item pasted, attached, or screenshotted (no Jira required)
+# -> produces .specboot/staging/<slug>-enriched.md and a READY FOR PROPOSAL / NEEDS CLARIFICATION outcome
+/opsx:propose <slug>              # use the enriched artifact's content as the work-item description
+/opsx:apply <slug>
+/specboot-verify <slug>
+# adversarial-review: invoke the skill (ideally from a different session/client) before requesting archive approval
+/opsx:archive <slug>
+openspec validate --strict
+/commit
+```
+
+Kiro syntax — valid only where Kiro has been separately configured for this repository (see "Installer Scope" above; the current npm installer does not provision Kiro) — same sequence, the `opsx` commands are hyphenated, `/specboot-verify` is identical on both clients:
+
+```bash
+# enrich-us: invoke the skill with the work item pasted, attached, or screenshotted (no Jira required)
+# -> produces .specboot/staging/<slug>-enriched.md and a READY FOR PROPOSAL / NEEDS CLARIFICATION outcome
+/opsx-propose <slug>               # use the enriched artifact's content as the work-item description
+/opsx-apply <slug>
+/specboot-verify <slug>
+# adversarial-review: invoke the skill (ideally from a different session/client) before requesting archive approval
+/opsx-archive <slug>
+openspec validate --strict
 /commit
 ```
 
@@ -214,7 +257,7 @@ Artifacts are managed through OpenSpec directories during this flow, including t
 
 Skills live in `ai-specs/skills/` and are mirrored into `.claude/skills/` and `.cursor/skills/` via relative symlinks, so any copilot can discover them. The agent loads a skill automatically when a request matches its description (per `AGENTS.md` §4). The most useful ones in day-to-day work are **`enrich-us`**, **`using-git-worktrees`**, **`writing-skills`**, and **`code-auditing`**:
 
-- **`enrich-us`** — Analyze and enhance a vague Jira user story (or raw idea) into an implementation-ready ticket with acceptance criteria, technical detail, and edge cases. Use **before** planning to make sure the team and the AI agree on scope.
+- **`enrich-us`** — Mandatory pre-proposal refinement gate: enhances any work item (feature, bug fix, refactor, technical task, spike, or documentation change) from direct chat text, a screenshot, or a readable attachment (no Jira required) into an implementation-ready artifact with acceptance criteria, technical detail, and edge cases. Runs **before** `opsx:propose`/`opsx-propose` so the team and the AI agree on scope before planning begins.
 - **`using-git-worktrees`** — Set up an isolated workspace before starting feature work or executing a plan, with safe creation, baseline checks, copying of local Claude settings, and a complete cleanup workflow when the work is done.
 - **`writing-skills`** — Author and verify new skills (or refactor existing ones) following TDD-style validation before deployment. Use when adding a skill to `ai-specs/skills/` or editing an existing `SKILL.md`.
 - **`code-auditing`** — Run a systematic 6-phase code quality audit covering security, performance, type safety, dead code, and library best practices, ending with a prioritized action plan. Use for pre-release reviews, technical-debt sweeps, and dependency audits.

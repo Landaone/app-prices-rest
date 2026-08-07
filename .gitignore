@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### SpecBoot ###
+# enrich-us staging: durable local copy of an enriched work-item artifact, not committed
+.specboot/staging/

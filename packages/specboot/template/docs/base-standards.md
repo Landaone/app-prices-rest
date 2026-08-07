@@ -107,7 +107,7 @@ If a new fix/change is requested after `/apply` and before `/archive`, treat it 
 
 Required order:
 1. Update affected OpenSpec artifacts (scenarios, requirements/specs, `tasks.md`).
-2. Re-run artifact generation/update step when needed (`/continue`, `/ff`, or equivalent).
+2. Re-run your OpenSpec CLI's own current artifact-generation/update workflow when needed (whatever your installed version currently calls its "create/update change artifacts" step — check `openspec schemas`/your client's command list rather than assuming a specific name, since these names change between OpenSpec releases).
 3. Implement code only after artifacts reflect the new request.
 4. Re-run verification against updated artifacts before archiving.
 

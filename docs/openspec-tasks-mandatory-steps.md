@@ -246,8 +246,8 @@ Before finalizing any `tasks.md` file, verify:
 ## 5. When This Applies
 
 This rule applies when:
-- Creating `tasks.md` via `/opsx:ff` (fast-forward) or `openspec-ff-change` skill
-- Creating `tasks.md` via `/opsx:continue` (continue change) or `openspec-continue-change` skill
+- Creating `tasks.md` via `/opsx:propose` (creates a new change and its artifacts in one step; supersedes the retired `/opsx:ff`) or the `openspec-propose` skill (supersedes the retired `openspec-ff-change` skill)
+- Creating `tasks.md` via `/opsx:update` (revises or continues an existing change's artifacts; supersedes the retired `/opsx:continue`) or the `openspec-update-change` skill (supersedes the retired `openspec-continue-change` skill)
 - Updating existing `tasks.md` files
 - Any task creation that involves backend changes
 - Implementing tasks from `tasks.md` via `/opsx:apply` or `openspec-apply-change` skill - the agent must execute manual tests
