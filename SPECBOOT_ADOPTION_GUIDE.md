@@ -30,9 +30,9 @@ existing brownfield repository
 → install prerequisites
 → initialize OpenSpec with explicitly selected clients
 → import SpecBoot
-→ initialize CodeGraph
-→ configure CodeGraph for selected clients
-→ configure selected-client permissions
+→ initialize CodeGraph (conditional — skip entirely if CodeGraph is not being adopted)
+→ configure CodeGraph for selected clients (conditional — same CodeGraph decision as above)
+→ configure selected-client permissions (not conditional — always mandatory)
 → adapt repository technical context
 → configure and verify OpenSpec
 → inspect, adapt, and validate agents
@@ -51,13 +51,18 @@ Approval boundaries are marked **[HUMAN APPROVAL REQUIRED]**.
 
 `PENDING END-TO-END VALIDATION`
 
+There are six required workflow capabilities, in order: `enrich-us`, propose, apply, `specboot-verify`, independent `adversarial-review`, archive. See [Section 18](#18-daily-request-to-pr-ready-workflow) for the consolidated prompt/procedure of each.
+
 ```text
 developer request
-→ OpenSpec proposal / specifications / design / tasks
-→ implementation
+→ enrich-us (mandatory pre-proposal refinement gate; READY FOR PROPOSAL required, NEEDS CLARIFICATION blocks proceeding)
+→ propose (create OpenSpec change artifacts: proposal / specifications / design / tasks, from the enriched artifact)
+→ apply (implement tasks one by one)
 → tests
-→ review
+→ specboot-verify (PASS or PASS WITH GAPS required; makes the change eligible for independent adversarial-review only, never archive approval by itself)
+→ independent adversarial-review (ideally a different session/client than implementation; PASS or PASS WITH GAPS required)
 → affected documentation and canonical-spec synchronization
+→ archive (requires both gates' PASS/PASS WITH GAPS plus explicit human approval)
 → commit message and pull-request content prepared
 → STOP before push or pull-request creation
 → human approval
@@ -214,6 +219,8 @@ During the interactive flow:
 3. Record every selection.
 4. Do not accept defaults without review.
 
+Capability availability on disk (a client's OpenSpec resources existing and resolving) is not evidence of which process provisioned it — see `ai-specs/specboot-instructions.md`'s "Installer Scope: Claude/Cursor Provisioning Only (Kiro Configured Separately)" note.
+
 The installed version may generate either:
 
 ```text
@@ -262,6 +269,7 @@ Clients offered:
 Clients selected:
 Generated config path:
 Generated client resources:
+Per-client provisioning provenance (installer-provisioned vs. separately configured):
 openspec doctor result:
 Git changes:
 Result: PASS / FAIL
@@ -291,6 +299,7 @@ cp -rn <SPECBOOT_SOURCE>/* .
 - `.claude/`, `.kiro/`, and other hidden client directories will not be copied by this command.
 - `-n` prevents overwriting existing files.
 - Hidden client resources must be created by OpenSpec, CodeGraph, or the adapter steps.
+- A hidden client directory existing later does not by itself show which process created it — see `ai-specs/specboot-instructions.md`'s "Installer Scope: Claude/Cursor Provisioning Only (Kiro Configured Separately)" note; capability availability on disk is not evidence of installer provisioning.
 
 **[HUMAN APPROVAL REQUIRED]** before repository-local writes.
 
@@ -350,6 +359,7 @@ Files added:
 Files skipped because they existed:
 Hidden directories expected but not copied:
 Root instruction symlinks resolve to docs/base-standards.md:
+Per-client provisioning provenance (installer-provisioned vs. separately configured):
 Result: PASS / FAIL
 ```
 
@@ -358,6 +368,8 @@ Result: PASS / FAIL
 ## 4. Initialize CodeGraph
 
 **Purpose:** Build a repository index for grounded source navigation and call-graph exploration.
+
+**This entire section is skippable when CodeGraph is not being adopted for the target repository.** CodeGraph is a decision, not a mandatory step in the adoption chain — matching this repository's own `.claude/CLAUDE.md` guidance: "If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision." If CodeGraph is skipped, also skip the CodeGraph-specific content of [Section 5](#5-configure-codegraph-for-the-selected-clients) (everything above its `### Configure Selected-Client Permissions (Early, One-Time)` subsection); that subsection itself remains mandatory regardless of this decision.
 
 ### Official source
 
@@ -432,6 +444,8 @@ Result: PASS / FAIL
 
 **Purpose:** Integrate CodeGraph with every explicitly selected client.
 
+**Everything in this section from here down to, but not including, [Configure Selected-Client Permissions (Early, One-Time)](#configure-selected-client-permissions-early-one-time) is CodeGraph-specific content, conditional on the same CodeGraph-adoption decision as [Section 4](#4-initialize-codegraph): skip it entirely when CodeGraph is not being adopted for the target repository.** The `### Configure Selected-Client Permissions (Early, One-Time)` subsection that follows is a separate, unconditionally mandatory step and is **never** skipped alongside this CodeGraph-specific content, regardless of the CodeGraph decision.
+
 Run:
 
 ```bash
@@ -462,6 +476,7 @@ Reference choices are evidence, not universal defaults.
 - Do not hand-author MCP configuration as the primary path when `codegraph install` supports the selected client.
 - Inspect all generated files.
 - Do not create adapters for unselected clients.
+- Generated files existing for a client only prove current availability, not which process (this installer, the SpecBoot npm installer, or manual configuration) provisioned them — see `ai-specs/specboot-instructions.md`'s "Installer Scope: Claude/Cursor Provisioning Only (Kiro Configured Separately)" note.
 
 ### Validation
 
@@ -493,6 +508,7 @@ Automatic allow:
 Prompt front-loading:
 Pro:
 Generated files:
+Per-client provisioning provenance (installer-provisioned vs. separately configured):
 Result: PASS / FAIL
 ```
 
@@ -500,9 +516,12 @@ Result: PASS / FAIL
 
 **Purpose:** Once selected clients and their OpenSpec/CodeGraph resources are known (above), and before the first AI-heavy adaptation step (Section 6), configure one project-scoped, team-reviewed permission file per selected client. This avoids repeated approval prompts for verified inspection and controlled local-validation commands across every remaining adoption step. See [Section 19](#19-permission-recommendations) for the full policy/reference material; this subsection is only the first-time setup.
 
+**This subsection is unconditionally mandatory for every selected client, regardless of whether CodeGraph is adopted.** Unlike the CodeGraph-specific content above it in this section, permission configuration is never optional and never grouped as skippable alongside CodeGraph.
+
 Rules:
 
 - Configure a permission file only for a client explicitly selected above. Claude and Kiro are not mandatory; skip a client the repository does not use.
+- A client's permission file existing does not show which process provisioned that client's other resources (adapters, symlinks) — capability availability on disk is not evidence of installer provisioning; see `ai-specs/specboot-instructions.md`'s "Installer Scope: Claude/Cursor Provisioning Only (Kiro Configured Separately)" note.
 - Keep shared project permissions in the selected client's versionable project file. For Claude Code, use `.claude/settings.json`; do not maintain a duplicate `.claude/settings.local.json` allowlist.
 - Allow verified, project-scoped, read-only patterns: repository file reading/listing, OpenSpec inspection (`--version`, `--help`, `doctor`, `context`, `schemas`, `templates`), CodeGraph exploration, and Git inspection (`status`, `diff`, `rev-parse`).
 - Controlled local build/test commands may also be shared after team review when they use repository-declared tooling, produce only ignored local artifacts, and do not install, deploy, publish, or access external services. Permission to run a test never implies that its result is PASS.
@@ -537,6 +556,7 @@ rules:
       - "openspec schemas *"
       - "openspec templates"
       - "openspec templates *"
+      - "openspec status *"
       - "codegraph explore *"
       - "git status"
       - "git status *"
@@ -544,6 +564,7 @@ rules:
       - "git diff"
       - "git diff *"
       - "git rev-parse *"
+      - "git check-ignore *"
       - "find . *"
       - "ls *"
       - "grep *"
@@ -598,6 +619,7 @@ Kiro file present / YAML valid:
 Smoke test commands executed:
 Permission prompts triggered:
 File modifications during smoke test:
+Per-client provisioning provenance (installer-provisioned vs. separately configured):
 Result: PASS / FAIL
 ```
 
@@ -607,24 +629,9 @@ Result: PASS / FAIL
 
 **Purpose:** Replace generic SpecBoot documentation with accurate, implementation-ready context for the actual brownfield repository.
 
-### Historical prompt
+### Consolidated prompt
 
-`HISTORICAL PROMPT — VERIFIED VERBATIM`
-
-```text
-Following the same base structure already present in docs/, update all technical context documents according to this project's specifics.
-
-Requirements:
-- Keep the same document set and file names in docs/.
-- Replace generic content with this project's real stack, architecture patterns, coding conventions, and domain terminology.
-- Update backend, frontend, and documentation standards to reflect actual practices used by this team.
-- Update docs/api-spec.yml and docs/data-model.md so they match the real endpoints and entities of this project.
-- Ensure all references are internally consistent and aligned across docs/.
-- Keep everything in English and make guidance implementation-ready for AI agents.
-- Use CodeGraph as part of the repository analysis to ground the updates in the actual codebase.
-```
-
-### Consolidated prompt for the clean run
+The historical prompt originally shown inline here was relocated, byte-for-byte, to [Relocated historical prompts (verbatim)](#relocated-historical-prompts-verbatim) in Section 20.
 
 `CANONICAL CONSOLIDATED PROMPT — DERIVED FROM EXECUTED PROMPTS AND CORRECTIONS`
 
@@ -711,23 +718,9 @@ Result: PASS / FAIL
 
 **Purpose:** Connect OpenSpec artifact generation to adapted documentation, canonical agents, and canonical skills.
 
-### Historical prompt
+### Consolidated prompt
 
-`HISTORICAL PROMPT — VERIFIED VERBATIM`
-
-```text
-Update my openspec config.yml context to reference this repository's docs and ai-specs structure.
-
-Requirements:
-- Use docs/base-standards.md as the single source of truth.
-- Include docs/backend-standards.md, docs/frontend-standards.md, and docs/documentation-standards.md.
-- Include docs/api-spec.yml and docs/data-model.md.
-- Tell the agent to adopt the relevant agent from ai-specs/agents/ according to the work being performed.
-- Mention ai-specs/skills/ as workflow guidance.
-- Keep all paths relative to the project root.
-```
-
-### Consolidated prompt for the clean run
+The historical prompt originally shown inline here was relocated, byte-for-byte, to [Relocated historical prompts (verbatim)](#relocated-historical-prompts-verbatim) in Section 20.
 
 `CANONICAL CONSOLIDATED PROMPT — DERIVED FROM EXECUTED PROMPTS AND CORRECTIONS`
 
@@ -1131,6 +1124,8 @@ Result: PASS / FAIL
 
 **Purpose:** Expose canonical agents and shared skills to selected clients while preserving OpenSpec-generated resources.
 
+An adapter or generated resource existing for a client shows current capability availability only — it is not evidence of which process (the SpecBoot npm installer, `codegraph install`, or manual configuration) provisioned it; see `ai-specs/specboot-instructions.md`'s "Installer Scope: Claude/Cursor Provisioning Only (Kiro Configured Separately)" note.
+
 ### Consolidated prompt
 
 `CANONICAL CONSOLIDATED PROMPT — DERIVED FROM EXECUTED PROMPTS AND CORRECTIONS`
@@ -1214,6 +1209,7 @@ Canonical skills exposed:
 Symlinks:
 Real directories preserved:
 Unselected clients checked:
+Per-client provisioning provenance (installer-provisioned vs. separately configured):
 Corrections:
 Result: PASS / FAIL
 ```
@@ -1272,25 +1268,9 @@ Result: PASS / FAIL
 
 **Purpose:** Prove that a new client session discovers and uses repository instructions, agents, skills, docs, and CodeGraph integration.
 
-### Historical Kiro prompt
-
-`HISTORICAL PROMPT — VERIFIED VERBATIM`
-
-```text
-Review the backend architecture of this repository and identify the most important implementation risk. Use the repository's configured agents and skills where appropriate. Do not modify files.
-```
-
-### Observed Kiro result
-
-- Loaded `AGENTS.md`.
-- Loaded `code-auditing`.
-- Read `java-backend-developer.md`.
-- Consumed project documentation.
-- Identified the `HttpErrorHandler` fallback as the primary risk.
-- Modified no files.
-- Kiro's own self-report initially labeled discovery FAIL because documentation and tests were opened manually during analysis; under the interpretation rules below, that is expected manual task execution, not a discovery failure, so the corrected result is PASS. Claude Code independently reached the same primary risk in a separate fresh session, with the agent roster, skill catalog, and CodeGraph automatically discovered and no files modified.
-
 ### Consolidated validation prompt
+
+The historical Kiro prompt and its "Observed Kiro result" correction narrative originally shown inline here were relocated, byte-for-byte for the prompt text, to [Relocated historical prompts (verbatim)](#relocated-historical-prompts-verbatim) in Section 20.
 
 `CANONICAL CONSOLIDATED PROMPT — DERIVED FROM EXECUTED PROMPTS AND CORRECTIONS`
 
@@ -1515,44 +1495,87 @@ Result: PASS / FAIL
 
 **Status:** `PENDING END-TO-END VALIDATION`
 
-### Reusable prompt
+This workflow has **six required workflow capabilities, in order**: `enrich-us`, propose, apply, `specboot-verify`, independent `adversarial-review`, archive. Each is transcribed from — not re-derived from — `ai-specs/specboot-instructions.md`, the three canonical skill files (`enrich-us`, `specboot-verify`, `adversarial-review`), and `openspec/specs/specboot-verification-workflow/spec.md`. Every technology-specific instruction below is explicitly conditional on repository evidence; an unknown client, an uncommon stack, or an unrecognized build system falls back to the target repository's README, CI configuration, documentation, and real file evidence rather than assuming Node.js or failing closed; an unexecuted or failed command is FAIL, never an inferred PASS from empty output. None of the six entries below includes a shell command example — each records that explicitly rather than silently omitting the portability check.
+
+### enrich-us
+
+`CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION`
+
+Mandatory pre-proposal refinement gate. Runs before `propose` for **every** work item — feature, bug fix, refactor, technical task, spike, or documentation change alike; never optional. Invoked as a skill by request/description match, not a slash command — identical invocation model on both clients. This is a procedural quality gate and structured first review — it never substitutes for the independent `adversarial-review`, which remains required after implementation and `specboot-verify`.
+
+```text
+<paste the work item directly, attach a screenshot, or attach a readable document>
+
+Run enrich-us on this work item.
+```
+
+Returns exactly one outcome: `READY FOR PROPOSAL` (no unresolved material question remains) or `NEEDS CLARIFICATION` (lists the unresolved question(s) explicitly and blocks proceeding to `propose` until they are resolved). On `READY FOR PROPOSAL`, the next action is running `/opsx:propose` (Claude) / `/opsx-propose` (Kiro) in the same conversation, providing the enriched artifact's `## Enhanced` content as the work-item description.
+
+Stack/client conditionality: (a) no unconditional Java, Maven, Node.js, package-manager, frontend/backend, hosting-platform, selected-client, shell, or OS assumption — every technology-specific instruction here is explicitly conditional on repository evidence; (b) an unknown client, an uncommon stack, or an unrecognized build system falls back to the target repository's README, CI configuration, documentation, and real file evidence rather than assuming Node.js or failing closed; (c) an unexecuted or failed command is FAIL, never an inferred PASS from empty output. Shell portability: not applicable — no shell command example in this entry.
+
+### propose
 
 `CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION`
 
 ```text
-Implement the following request:
-
-<REQUEST>
-
-Take this change through the repository's configured SpecBoot and OpenSpec workflow.
-
-Required outcome:
-- create or update the OpenSpec change artifacts;
-- produce proposal, specifications, design when applicable, and tasks;
-- implement the approved change;
-- add or update tests;
-- run the repository's configured validation commands;
-- review the implementation against the repository documentation;
-- update API, data-model, technical documentation, and canonical specs only when affected;
-- prepare the commit message and pull-request title and description.
-
-Stop before pushing commits, creating the pull request, or performing any remote mutation.
-Present the completed evidence and request approval to proceed with the pull request.
+/opsx:propose <slug>
 ```
 
-### Expected flow
+Kiro: `/opsx-propose <slug>`. Creates a new OpenSpec change and generates all required artifacts (proposal, specs, design, tasks) in one step, using the `enrich-us` enriched artifact's `## Enhanced` content as the work-item description. After the change directory is created, copy the staged `.specboot/staging/<slug>-enriched.md` file into it as `enriched-work-item.md` for traceability — a documented manual step. Use `/opsx:update` (Claude) / `/opsx-update` (Kiro) instead to revise or continue an existing change's artifacts.
 
-1. Create or identify an isolated feature branch.
-2. Create OpenSpec change artifacts.
-3. Review proposal, specifications, design, and tasks.
-4. Implement approved scope.
-5. Add tests.
-6. Run validation.
-7. Run audit/adversarial review where appropriate.
-8. Synchronize affected docs/specs.
-9. Prepare commit and PR content.
-10. Stop before remote mutation.
-11. After approval, authorized human or client may perform the remote operation according to policy.
+Stack/client conditionality: (a) no unconditional Java, Maven, Node.js, package-manager, frontend/backend, hosting-platform, selected-client, shell, or OS assumption — every technology-specific instruction here is explicitly conditional on repository evidence; (b) an unknown client, an uncommon stack, or an unrecognized build system falls back to the target repository's README, CI configuration, documentation, and real file evidence rather than assuming Node.js or failing closed; (c) an unexecuted or failed command is FAIL, never an inferred PASS from empty output. Shell portability: not applicable — no shell command example in this entry.
+
+### apply
+
+`CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION`
+
+```text
+/opsx:apply <slug>
+```
+
+Kiro: `/opsx-apply <slug>`. Implements tasks one by one against the change's artifacts.
+
+Stack/client conditionality: (a) no unconditional Java, Maven, Node.js, package-manager, frontend/backend, hosting-platform, selected-client, shell, or OS assumption — every technology-specific instruction here is explicitly conditional on repository evidence; (b) an unknown client, an uncommon stack, or an unrecognized build system falls back to the target repository's README, CI configuration, documentation, and real file evidence rather than assuming Node.js or failing closed; (c) an unexecuted or failed command is FAIL, never an inferred PASS from empty output. Shell portability: not applicable — no shell command example in this entry.
+
+### specboot-verify
+
+`CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION`
+
+```text
+/specboot-verify <slug>
+```
+
+Identical invocation on both clients. SpecBoot's own, client-neutral verification skill (canonical logic in `ai-specs/skills/specboot-verify/SKILL.md`); validates implementation against the change's artifacts and confirms every one of the six required workflow capabilities is available to every selected client. A PASS or PASS WITH GAPS here only makes the change **eligible for independent adversarial review** — it does not by itself permit requesting archive approval; its report states explicitly: "Next gate: independent adversarial review. Archive approval is NOT yet permitted." A FAIL blocks even requesting adversarial review — correct findings and rerun verification in a fresh session.
+
+Capability availability vs. installer provenance: this skill's capability-availability check reflects only that a capability's paths currently exist and resolve on disk for the selected client — it is never a claim about which installer or process provisioned them; see the installer-provenance cross-reference in [Section 5](#5-configure-codegraph-for-the-selected-clients) and `ai-specs/specboot-instructions.md`'s "Installer Scope" note.
+
+Stack/client conditionality: (a) no unconditional Java, Maven, Node.js, package-manager, frontend/backend, hosting-platform, selected-client, shell, or OS assumption — every technology-specific instruction here is explicitly conditional on repository evidence; (b) an unknown client, an uncommon stack, or an unrecognized build system falls back to the target repository's README, CI configuration, documentation, and real file evidence rather than assuming Node.js or failing closed; (c) an unexecuted or failed command is FAIL, never an inferred PASS from empty output. Shell portability: not applicable — no shell command example in this entry.
+
+### adversarial-review
+
+`CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION`
+
+Invoked as a skill by request/description match, not a slash command — run from a different session or client than the one that implemented the change when possible; otherwise its output must name the same-session fallback used.
+
+```text
+Run an adversarial review of <change-name, PR reference, or the current active change>.
+```
+
+Independent red-team review before archiving, with a deterministic, exhaustive two-phase verdict mapping applied immediately before writing the verdict: **Phase 1** resolves every `Question / assumption` row in the Findings table with recorded evidence, or leaves it open when genuinely unresolved. **Phase 2** counts what remains and applies the mapping exactly: any Blocker or Major finding → **FAIL**; else any Minor finding or unresolved `Question / assumption` finding (zero Blocker, zero Major) → **PASS WITH GAPS**; else (nothing left in the table) → **PASS**. A PASS or PASS WITH GAPS here does not, by itself, grant archive approval — explicit human approval remains independently required, symmetric to how a `specboot-verify` PASS alone does not grant archive approval either.
+
+Stack/client conditionality: (a) no unconditional Java, Maven, Node.js, package-manager, frontend/backend, hosting-platform, selected-client, shell, or OS assumption — every technology-specific instruction here is explicitly conditional on repository evidence; (b) an unknown client, an uncommon stack, or an unrecognized build system falls back to the target repository's README, CI configuration, documentation, and real file evidence rather than assuming Node.js or failing closed; (c) an unexecuted or failed command is FAIL, never an inferred PASS from empty output. Shell portability: not applicable — no shell command example in this entry.
+
+### archive
+
+`CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION`
+
+```text
+/opsx:archive <slug>
+```
+
+Kiro: `/opsx-archive <slug>`. Archive approval must not be requested or granted while `specboot-verify` or `adversarial-review` has an open Blocker/Major finding — **both** gates' PASS or PASS WITH GAPS, plus explicit human approval, are required before this step. This gate is enforced by the documented SpecBoot workflow convention and human/agent discipline, not by a technical modification — it does not technically modify, disable, or block the selected client's installed OpenSpec archive command, which remains unmodified. `/opsx:archive` / `/opsx-archive` already perform sync-then-archive and re-verify delta/main-spec equivalence internally before moving the change — no separate sync step is needed immediately beforehand. Run `openspec validate --strict` after archiving. Commit and push remain separate, later, explicit approvals — see [Section 17](#17-review-and-create-a-clean-local-checkpoint)'s existing "Do not push" / commit-approval boundary; this entry does not restate it.
+
+Stack/client conditionality: (a) no unconditional Java, Maven, Node.js, package-manager, frontend/backend, hosting-platform, selected-client, shell, or OS assumption — every technology-specific instruction here is explicitly conditional on repository evidence; (b) an unknown client, an uncommon stack, or an unrecognized build system falls back to the target repository's README, CI configuration, documentation, and real file evidence rather than assuming Node.js or failing closed; (c) an unexecuted or failed command is FAIL, never an inferred PASS from empty output. Shell portability: not applicable — no shell command example in this entry.
 
 ### Planned pilot request
 
@@ -1584,7 +1607,14 @@ Change ID:
 Artifacts:
 Implementation:
 Tests:
-Review:
+enrich-us outcome (READY FOR PROPOSAL / NEEDS CLARIFICATION):
+Proposal approval:
+Apply result:
+specboot-verify verdict (PASS / PASS WITH GAPS / FAIL):
+Independent adversarial-review verdict (PASS / PASS WITH GAPS / FAIL):
+Independent adversarial-review provenance (reviewing session/client; cross-session, cross-client, or same-session-fallback):
+Archive approval (explicit human approval, both gates PASS/PASS WITH GAPS):
+Archive result:
 Docs/spec sync:
 Commit message:
 PR title:
@@ -1685,12 +1715,12 @@ Reason:
 
 ### Verified historical prompts
 
-| # | Phase | Status |
-|---|---|---|
-| 1 | Technical-context adaptation | `HISTORICAL PROMPT — VERIFIED VERBATIM` |
-| 2 | OpenSpec configuration | `HISTORICAL PROMPT — VERIFIED VERBATIM` |
-| 3 | Kiro and Claude fresh-session architecture review | `HISTORICAL PROMPT — VERIFIED VERBATIM` |
-| 4 | Claude Code project-permission smoke test | `HISTORICAL PROMPT — VERIFIED VERBATIM` |
+| # | Phase | Status | Current location |
+|---|---|---|---|
+| 1 | Technical-context adaptation | `HISTORICAL PROMPT — VERIFIED VERBATIM` | Relocated — see [Relocated historical prompts (verbatim)](#relocated-historical-prompts-verbatim) below (originally Section 6) |
+| 2 | OpenSpec configuration | `HISTORICAL PROMPT — VERIFIED VERBATIM` | Relocated — see [Relocated historical prompts (verbatim)](#relocated-historical-prompts-verbatim) below (originally Section 7) |
+| 3 | Kiro and Claude fresh-session architecture review | `HISTORICAL PROMPT — VERIFIED VERBATIM` | Relocated — see [Relocated historical prompts (verbatim)](#relocated-historical-prompts-verbatim) below (originally Section 15) |
+| 4 | Claude Code project-permission smoke test | `HISTORICAL PROMPT — VERIFIED VERBATIM` | Still live in [Section 5](#5-configure-codegraph-for-the-selected-clients) — out of scope for this relocation |
 
 ### Consolidated prompts
 
@@ -1707,9 +1737,71 @@ Each consolidated prompt is derived from executed prompts and corrective chains;
 
 ### Pending workflow prompt
 
+Six required workflow capabilities, in order, all authored in [Section 18](#18-daily-request-to-pr-ready-workflow) from the canonical sources (`ai-specs/specboot-instructions.md`, the three canonical skill files, `openspec/specs/specboot-verification-workflow/spec.md`):
+
 | # | Phase | Status |
 |---|---|---|
-| 1 | Daily request-to-PR-ready workflow | `CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION` |
+| 1 | `enrich-us` — mandatory pre-proposal refinement gate | `CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION` |
+| 2 | `propose` — `/opsx:propose` (Claude) / `/opsx-propose` (Kiro) | `CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION` |
+| 3 | `apply` — `/opsx:apply` (Claude) / `/opsx-apply` (Kiro) | `CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION` |
+| 4 | `specboot-verify` — `/specboot-verify` (identical on both clients) | `CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION` |
+| 5 | independent `adversarial-review` | `CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION` |
+| 6 | `archive` — `/opsx:archive` (Claude) / `/opsx-archive` (Kiro) | `CANONICAL REUSABLE PROMPT — PENDING END-TO-END VALIDATION` |
+
+### Relocated historical prompts (verbatim)
+
+These are the exact `HISTORICAL PROMPT — VERIFIED VERBATIM` blocks originally shown inline in Sections 6, 7, and 15's live path, relocated here byte-for-byte so each of those sections presents exactly one consolidated prompt, matching the pattern already used in Sections 8, 9, 11, and 13. They are historical record, not part of the clean reusable execution path — see [Historical prompt chains not recovered verbatim](#historical-prompt-chains-not-recovered-verbatim) immediately below for chains whose original text was not recovered this precisely.
+
+#### Section 6 — Adapt the Repository Technical Context (relocated historical prompt)
+
+`HISTORICAL PROMPT — VERIFIED VERBATIM`
+
+```text
+Following the same base structure already present in docs/, update all technical context documents according to this project's specifics.
+
+Requirements:
+- Keep the same document set and file names in docs/.
+- Replace generic content with this project's real stack, architecture patterns, coding conventions, and domain terminology.
+- Update backend, frontend, and documentation standards to reflect actual practices used by this team.
+- Update docs/api-spec.yml and docs/data-model.md so they match the real endpoints and entities of this project.
+- Ensure all references are internally consistent and aligned across docs/.
+- Keep everything in English and make guidance implementation-ready for AI agents.
+- Use CodeGraph as part of the repository analysis to ground the updates in the actual codebase.
+```
+
+#### Section 7 — Configure OpenSpec to Consume docs/ and ai-specs/ (relocated historical prompt)
+
+`HISTORICAL PROMPT — VERIFIED VERBATIM`
+
+```text
+Update my openspec config.yml context to reference this repository's docs and ai-specs structure.
+
+Requirements:
+- Use docs/base-standards.md as the single source of truth.
+- Include docs/backend-standards.md, docs/frontend-standards.md, and docs/documentation-standards.md.
+- Include docs/api-spec.yml and docs/data-model.md.
+- Tell the agent to adopt the relevant agent from ai-specs/agents/ according to the work being performed.
+- Mention ai-specs/skills/ as workflow guidance.
+- Keep all paths relative to the project root.
+```
+
+#### Section 15 — Validate Runtime Discovery in a Fresh Client Session (relocated historical prompt and correction narrative)
+
+`HISTORICAL PROMPT — VERIFIED VERBATIM`
+
+```text
+Review the backend architecture of this repository and identify the most important implementation risk. Use the repository's configured agents and skills where appropriate. Do not modify files.
+```
+
+Relocated "Observed Kiro result" correction narrative (reference-run correction evidence, not a live step):
+
+- Loaded `AGENTS.md`.
+- Loaded `code-auditing`.
+- Read `java-backend-developer.md`.
+- Consumed project documentation.
+- Identified the `HttpErrorHandler` fallback as the primary risk.
+- Modified no files.
+- Kiro's own self-report initially labeled discovery FAIL because documentation and tests were opened manually during analysis; under Section 15's interpretation rules, that is expected manual task execution, not a discovery failure, so the corrected result is PASS. Claude Code independently reached the same primary risk in a separate fresh session, with the agent roster, skill catalog, and CodeGraph automatically discovered and no files modified.
 
 ### Historical prompt chains not recovered verbatim
 
@@ -1750,7 +1842,7 @@ These chains are excluded from the clean reusable execution path and never appea
 | Prerequisite discovery | Partially validated | PASS |
 | OpenSpec initialization for Claude Code and Kiro | Validated in reference repo | PASS |
 | SpecBoot import | Validated with hidden-directory caveat | PASS |
-| CodeGraph initialization and selected-client configuration | Validated for Claude and Kiro | PASS |
+| CodeGraph initialization and selected-client configuration | Validated for Claude and Kiro | PASS when CodeGraph is adopted for the target repository; N/A when CodeGraph is not adopted |
 | Selected-client permission configuration | Not previously tracked | PARTIAL — shared Claude configuration and native Windows portability require fresh validation |
 | Technical-context adaptation | Validated after corrections | PASS |
 | OpenSpec configuration | Validated after corrections | PASS |
@@ -1761,7 +1853,7 @@ These chains are excluded from the clean reusable execution path and never appea
 | Kiro fresh-session discovery | Validated | PASS |
 | Project baseline | Pending | PASS, 8 tests with zero failures/errors/skips |
 | Local checkpoint | Pending | READY, explicit human commit approval still required |
-| Daily request-to-PR-ready workflow | `PENDING END-TO-END VALIDATION` | Still pending end-to-end validation |
+| Daily request-to-PR-ready workflow (six capabilities: `enrich-us`, propose, apply, `specboot-verify`, independent `adversarial-review`, archive) | `PENDING END-TO-END VALIDATION` | Still pending end-to-end validation of the six-capability sequence specifically |
 
 A status may be upgraded only after observed evidence is recorded. The clean-run column reflects the `experiment/specboot-adoption-clean` run; a future run must re-earn PASS with its own evidence rather than inherit this one.
 
