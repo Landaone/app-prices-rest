@@ -98,7 +98,7 @@ This copies all files into your project and recreates the symlink structure auto
 
 The current `npx @lidr/lidr-specboot` installer (`packages/specboot/bin/init.js`) provisions shared skill/agent adapters for **Claude and Cursor only** — it symlinks `ai-specs/agents/` and `ai-specs/skills/` into `.claude/` and `.cursor/`. It does **not** currently create or provision anything under `.kiro/`.
 
-Any `.kiro/` paths present in a given repository (skills, prompts, settings) were configured **separately** — by hand, by `openspec init`'s own explicit client selection, or by a project-specific adoption step (see `SPECBOOT_ADOPTION_GUIDE.md` §2 and §13). A repository having a valid, working `.kiro/` setup does not mean this installer created it, and running the installer elsewhere will not recreate one. **This repository's own Kiro setup is real and working — it was configured separately from this installer, not by it.**
+Any `.kiro/` paths present in a given repository (skills, prompts, settings) were configured **separately** — by hand, by `openspec init`'s own explicit client selection, or by a project-specific adoption step (see `SPECBOOT_ADOPTION_GUIDE.md` and its `specboot-adoption/` phase files — `ADOPT-02` in `specboot-adoption/01-prerequisites-and-install.md`, formerly §2, and `ADOPT-13` in `specboot-adoption/06-adapters-and-discovery.md`, formerly §13). A repository having a valid, working `.kiro/` setup does not mean this installer created it, and running the installer elsewhere will not recreate one. **This repository's own Kiro setup is real and working — it was configured separately from this installer, not by it.**
 
 **Kiro command examples throughout this document are valid only in a repository where Kiro adapters/prompts have already been separately generated or configured.** If a given repository has no `.kiro/` directory, only the Claude-syntax examples apply after running the installer; Kiro support requires its own separate setup.
 
@@ -174,7 +174,7 @@ All paths and rules are configured to work seamlessly without manual adjustments
 
 ### Permission Setup (One-Time)
 
-Before running the workflow below repeatedly, configure a project-scoped, read-only permission allowlist for each selected client once. See `SPECBOOT_ADOPTION_GUIDE.md` — "Configure Selected-Client Permissions (Early, One-Time)" (end of its Section 5) for the one-time setup, and Section 19 for the ongoing reference policy. This avoids repeated approval prompts on the same verified read-only commands across every step below; it does not change what any step does.
+Before running the workflow below repeatedly, configure a project-scoped, read-only permission allowlist for each selected client once. See `specboot-adoption/03-client-permissions.md` — step `ADOPT-05B`, "Configure Selected-Client Permissions (Early, One-Time)" (formerly the end of the adoption guide's Section 5) — for the one-time setup, and `specboot-adoption/19-permissions-policy.md` (formerly Section 19) for the ongoing reference policy. Both are reached from `SPECBOOT_ADOPTION_GUIDE.md`. This avoids repeated approval prompts on the same verified read-only commands across every step below; it does not change what any step does.
 
 ## 💡 Usage: Official OpenSpec Workflow
 

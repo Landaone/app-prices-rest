@@ -1,0 +1,26 @@
+=== VERBATIM BLOCK FIDELITY PROOF (task 6.3) ===
+Source of truth: git show HEAD:SPECBOOT_ADOPTION_GUIDE.md (pre-restructure, 2045 lines)
+Regenerated against the FINAL restructured tree.
+Labeled VERBATIM blocks in source: 4
+
+[1] source line 586: "Perform a read-only smoke test of this repository's project-local "
+    byte-identical: True
+    location(s): ['specboot-adoption/history/prompt-inventory.md']
+    occurrences: 1  (required: exactly 1)  -> PASS
+
+[2] source line 1757: 'Following the same base structure already present in docs/, update'
+    byte-identical: True
+    location(s): ['specboot-adoption/history/prompt-inventory.md']
+    occurrences: 1  (required: exactly 1)  -> PASS
+
+[3] source line 1774: 'Update my openspec config.yml context to reference this repository'
+    byte-identical: True
+    location(s): ['specboot-adoption/history/prompt-inventory.md']
+    occurrences: 1  (required: exactly 1)  -> PASS
+
+[4] source line 1790: 'Review the backend architecture of this repository and identify th'
+    byte-identical: True
+    location(s): ['specboot-adoption/history/prompt-inventory.md']
+    occurrences: 1  (required: exactly 1)  -> PASS
+
+OVERALL: PASS - every labeled verbatim block is byte-identical and appears exactly once, in history/prompt-inventory.md only
