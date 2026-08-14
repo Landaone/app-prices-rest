@@ -17,9 +17,15 @@
   "bin": {
     "lidr-specboot": "./bin/init.js"
   },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 \"test/*.test.js\"",
+    "prepack": "node scripts/assemble-payload.js",
+    "drift-check": "node bin/init.js drift-check ../.."
+  },
   "files": [
     "bin/",
-    "template/"
+    "template/",
+    "bootstrap-payload/"
   ],
   "engines": {
     "node": ">=18"

@@ -416,3 +416,43 @@ Additional inspiration/source acknowledgements:
 **Made with 🤖 by the LIDR community**
 
 For questions, issues, or suggestions, visit [LIDR.co](https://lidr.co/ia-devs)
+
+### Bootstrap entry point
+
+A repository with **no** SpecBoot files and **no** AI client configuration cannot discover this
+workflow at all — nothing tells a client where the guide or the adoption skill is. For that case:
+
+An adoption starts from the single canonical entry prompt,
+`specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md`, pasted as ordinary prompt text into a
+session opened on the target repository. It needs no command infrastructure and no prior
+configuration there; it asks for the canonical source and the client selection at run time.
+
+**Source-linked delivery, and it is the only mode:**
+
+```bash
+npx @lidr/lidr-specboot bootstrap [target] --source <canonical-source> --client <name>
+```
+
+Nothing canonical is copied: no guide, no phase files, no skill body, and no `.specboot/bootstrap/`
+at all. The project gets the **durable**, committed record under `.specboot/adoption/` plus temporary
+discovery entries pointing at the external source, so the selected client can find the
+`specboot-adopt` skill and adoption can begin.
+
+**Both arguments are required, and the command fails closed without either.** With no validated
+canonical source, or no explicitly selected supported client, it stops and writes **nothing** to the
+target repository — there is no fallback that copies SpecBoot in instead. A packaged-snapshot
+delivery is planned as separate future work (`add-specboot-packaged-snapshot-delivery`) and is not
+available here.
+
+**The canonical source location is runtime input, and the resolved path is never committed.** No
+SpecBoot artifact records it, and neither does any artifact a run produces — not the manifest, not
+the run log. It lives only in machine-local, git-ignored state under `.specboot/local/`, which
+`ADOPT-18` removes; identity is carried by the recorded checksums. A source is accepted only when it
+carries `SPECBOOT_ADOPTION_GUIDE.md`, `specboot-adoption/`, and a readable
+`ai-specs/skills/specboot-adopt/SKILL.md` — validated **before the first write**, so an incomplete
+source is rejected rather than diagnosed afterwards.
+
+**This is temporary adoption-time exposure, not permanent client provisioning.** Every entry it
+creates is inventoried in `.specboot/adoption/BOOTSTRAP-MANIFEST.json` and removed by `ADOPT-18`
+once the permanent adoption is verified. The default installer invocation is unchanged and still
+provisions shared Claude and Cursor adapters only.

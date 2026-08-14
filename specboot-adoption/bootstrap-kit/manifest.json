@@ -1,0 +1,236 @@
+{
+  "$comment": "Bootstrap kit manifest. Lists CANONICAL repository-relative source paths. Contains references, never content. DELIVERY: source-linked is the ONLY mode this kit offers - a validated canonical source is a PRECONDITION, not a branch, and a run without one FAILS CLOSED with zero target-repository writes. Packaged-snapshot delivery is DEFERRED IN FULL to `add-specboot-packaged-snapshot-delivery`; the `entries` payload->target mapping and the pack-time assembly below are RETAINED AS INSTALLER MACHINERY for that deferred change and are read by no current run. The kit is CLIENT-AGNOSTIC and SOURCE-AGNOSTIC: it carries every client recipe but provisions only the explicitly selected one, and it assumes no particular canonical source location - the source is runtime input, and the resolved path is recorded in NO committed artifact.",
+  "manifestVersion": "1.0.0",
+  "entryPoint": {
+    "$comment": "The kit's single entry point. An adoption starts by running this prompt as ordinary prompt text from the target repository; it needs no command infrastructure, no installed package, and no prior configuration there. It asks for a canonical SOURCE, never for a delivery mode.",
+    "id": "adoption-entry-prompt",
+    "path": "specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md",
+    "usage": "sole initial prompt",
+    "appliesToModes": [
+      "source-linked"
+    ]
+  },
+  "sourceResolution": {
+    "$comment": "Source location is RUNTIME INPUT. No path is recorded here or in any other canonical artifact, and no COMMITTED artifact records the resolved path either - not the manifest, not the run log, not the handoff prompt. A resolved path lives only in ignored .specboot/local/ state, which ADOPT-18 removes; identity is the checksums. Validation runs before any orchestration instruction is loaded and before the first project write; a failed validation, or no source at all, stops with zero target-repository writes.",
+    "recipe": "specboot-adoption/bootstrap-kit/source-resolution.md",
+    "requiredArtifacts": [
+      {
+        "path": "SPECBOOT_ADOPTION_GUIDE.md",
+        "kind": "file"
+      },
+      {
+        "path": "specboot-adoption/",
+        "kind": "directory"
+      },
+      {
+        "path": "ai-specs/skills/specboot-adopt/SKILL.md",
+        "kind": "file",
+        "note": "validated as a READABLE FILE, not merely a present directory - the initial session reads it directly at a source-relative path"
+      }
+    ],
+    "modeSelection": {
+      "$comment": "One mode. Absence of a validated source is a REFUSAL, not an alternative route.",
+      "source-linked": "the delivered mode; entered when a local canonical source is supplied and validates",
+      "no-validated-source": "FAIL CLOSED - the run stops, reports that a validated canonical source is required, and leaves the target repository byte-for-byte unchanged",
+      "packaged-snapshot": "DEFERRED to `add-specboot-packaged-snapshot-delivery`. Never selected by a current run; retained as a readable value only so an earlier run's manifest is read as history rather than re-interpreted."
+    },
+    "readOnly": "The validated source is read-only for the entire adoption, including for improvement proposals. A step that wrote to it is FAIL.",
+    "gitProvenance": {
+      "$comment": "THREE dispositions, never two. A dirty working tree has content that no commit identifies, so recording its HEAD as identity is precisely wrong - worse than absent, because a reader can resolve it, diff nothing, and conclude the source matched. Identity remains the CHECKSUMS in all three cases.",
+      "not-a-repository": "worktree 'not-a-repository', status 'unavailable', with its reason",
+      "clean": "worktree 'clean', status 'recorded', with the commit",
+      "dirty": "worktree 'dirty', status 'unavailable', with its reason; any observed HEAD goes in `observed-head` as labelled context, NEVER in `commit`"
+    }
+  },
+  "payloadRoot": {
+    "$comment": "Belongs to the DEFERRED packaged-snapshot mode. Never created by a source-linked run. Its ignore rule is still provisioned unconditionally as a property of the installer, not as a claim that the mode is available.",
+    "path": ".specboot/bootstrap",
+    "status": "deferred - add-specboot-packaged-snapshot-delivery"
+  },
+  "durableRoot": ".specboot/adoption",
+  "entries": [
+    {
+      "id": "adoption-guide",
+      "canonicalSource": "SPECBOOT_ADOPTION_GUIDE.md",
+      "payloadTarget": ".specboot/bootstrap/SPECBOOT_ADOPTION_GUIDE.md",
+      "kind": "file",
+      "purpose": "The authoritative adoption contract, readable before SpecBoot is installed."
+    },
+    {
+      "id": "adoption-phase-files",
+      "canonicalSource": "specboot-adoption/",
+      "payloadTarget": ".specboot/bootstrap/specboot-adoption/",
+      "kind": "directory",
+      "exclude": [
+        "history/",
+        "bootstrap-kit/"
+      ],
+      "purpose": "Conventions, phase files, troubleshooting and the run-log template."
+    },
+    {
+      "id": "orchestration-skill",
+      "canonicalSource": "ai-specs/skills/specboot-adopt/",
+      "payloadTarget": ".specboot/bootstrap/skills/specboot-adopt/",
+      "kind": "directory",
+      "purpose": "The orchestration skill body that executes the contract."
+    },
+    {
+      "id": "payload-readme",
+      "canonicalSource": "specboot-adoption/bootstrap-kit/payload-README.md",
+      "payloadTarget": ".specboot/bootstrap/README.md",
+      "kind": "file",
+      "purpose": "States what the transient directory is and that ADOPT-18 removes it."
+    }
+  ],
+  "sourceLinkedEntrySet": {
+    "$comment": "THE DELIVERED MODE. Nothing canonical is copied, and .specboot/bootstrap/ is never created. The entries below are the only canonical paths a temporary discovery entry may point at, resolved RELATIVE TO THE RUNTIME-SUPPLIED SOURCE. The external source is never itself a manifest entry, which is what puts it out of reach of every inventory-driven operation.",
+    "payloadTargetMapping": "not applicable - no payload is produced or consumed",
+    "payloadRoot": "never created",
+    "pointableCanonicalPaths": [
+      {
+        "id": "adoption-guide",
+        "sourceRelativePath": "SPECBOOT_ADOPTION_GUIDE.md"
+      },
+      {
+        "id": "adoption-phase-files",
+        "sourceRelativePath": "specboot-adoption/"
+      },
+      {
+        "id": "orchestration-skill",
+        "sourceRelativePath": "ai-specs/skills/specboot-adopt/"
+      },
+      {
+        "id": "orchestration-skill-body",
+        "sourceRelativePath": "ai-specs/skills/specboot-adopt/SKILL.md"
+      }
+    ],
+    "entryModes": {
+      "symlink": "the discovery entry is a symlink to the external canonical path",
+      "appended-block": "a delimited block in a pre-existing client instruction file, byte-restored at ADOPT-18",
+      "$noPointerFile": "'pointer-file' is REMOVED. Discovery is a property of the client, not of the filesystem: a real file naming an external path is not a discovered skill and is never recordable as a discovery entry. Where symlinks are unavailable and the selected client's recipe offers no native mechanism without one, the run FAILS CLOSED before provisioning and no entry is written. See discovery/symlink-fallback.md."
+    },
+    "machineLocal": "Source-linked discovery entries name an absolute external path and resolve on one machine only. They are excluded from every checkpoint's staged scope, are never committed, and are removed or byte-restored by ADOPT-18.",
+    "debootstrap": "ADOPT-18 removes only the project-local entries above. The payload and container obligations are recorded 'SKIPPED - source-linked mode'."
+  },
+  "durableArtifacts": [
+    {
+      "id": "bootstrap-manifest",
+      "path": ".specboot/adoption/BOOTSTRAP-MANIFEST.json",
+      "schema": "specboot-adoption/bootstrap-kit/BOOTSTRAP-MANIFEST.schema.json",
+      "committed": true,
+      "purpose": "The durable control record. Written by ADOPT-00, updated (never deleted) by ADOPT-18."
+    },
+    {
+      "id": "run-log",
+      "path": ".specboot/adoption/ADOPTION-RUN-LOG.md",
+      "assembledFrom": "specboot-adoption/run-template/ADOPTION-RUN-LOG.template.md",
+      "committed": true,
+      "purpose": "The filled run log. The documented resume source."
+    }
+  ],
+  "ignoreRules": {
+    "$comment": "Transient paths are git-ignored PER PATH, by the same git check-ignore probe and conservative fallback. The durable root is NEVER ignored - it holds committed evidence. A broader '.specboot/' pattern is forbidden because it would swallow the durable root. '.specboot/bootstrap/' is provisioned unconditionally even though no current run creates it: the rule is a property of the installer, not a claim that the deferred mode is available.",
+    "transient": [
+      ".specboot/staging/",
+      ".specboot/bootstrap/",
+      ".specboot/local/"
+    ],
+    "neverIgnore": [
+      ".specboot/adoption/"
+    ],
+    "forbiddenPattern": ".specboot/"
+  },
+  "discoveryRecipes": {
+    "claude": "specboot-adoption/bootstrap-kit/discovery/claude.md",
+    "kiro": "specboot-adoption/bootstrap-kit/discovery/kiro.md",
+    "codex": "specboot-adoption/bootstrap-kit/discovery/codex.md",
+    "symlinkFallback": "specboot-adoption/bootstrap-kit/discovery/symlink-fallback.md",
+    "sourceResolution": "specboot-adoption/bootstrap-kit/source-resolution.md",
+    "clientAutodiscovery": "specboot-adoption/bootstrap-kit/client-autodiscovery.md"
+  },
+  "clientAgnostic": {
+    "$comment": "The kit carries every recipe and provisions one. No kit file assumes a particular client, and no adoption is required to configure or validate more clients than it selected.",
+    "carriesRecipesFor": [
+      "claude",
+      "kiro",
+      "codex"
+    ],
+    "provisions": "only the clients explicitly declared SELECTED at ADOPT-00",
+    "recordsAllOthers": "NOT SELECTED"
+  },
+  "sourceAgnostic": {
+    "$comment": "The mirror of clientAgnostic. A kit that hard-codes a source is exactly as broken as one that hard-codes a client.",
+    "assumesNoSourceLocation": true,
+    "sourceIs": "runtime input supplied by the operator at ADOPT-00",
+    "resolvedPathRecordedIn": "no committed artifact at all - not the manifest, not the run log, not the handoff prompt. Only machine-local, git-ignored .specboot/local/ state, removed by ADOPT-18.",
+    "identityIs": "the recorded guide and skill checksums, plus the Git commit where the source is a CLEAN working tree"
+  },
+  "clientSupport": {
+    "$comment": "Recipe availability, NOT per-adoption status. A recipe existing here says nothing about whether any given adoption selected that client. Per-adoption status (SELECTED+PASS / SELECTED+PENDING EVIDENCE / SELECTED+FAIL / NOT SELECTED) is recorded in that adoption's run log, never here. Support is evidence-based: a client is never PASS without a fresh-session discovery AND execution test observed by that adoption.",
+    "claude": {
+      "recipeAvailable": true,
+      "gateEvidence": "mechanism matches the relative-symlink convention this repository already uses; each adoption records its own fresh-session PASS"
+    },
+    "kiro": {
+      "recipeAvailable": true,
+      "gateEvidence": "mechanism matches the confirmed .kiro/skills convention; project-instruction path is confirmed from the installed version at ADOPT-00; each adoption records its own fresh-session PASS"
+    },
+    "codex": {
+      "recipeAvailable": true,
+      "gateEvidence": "gate parts 1-2 complete (official docs 2026-08-12, .agents/skills scan path; isolated scratch repository). Part 3, the fresh-session discovery-and-execution test, NOT observed - see reports/codex-discovery-gate.md. This is a DEFERRED CLIENT-SPECIFIC OBLIGATION: PENDING EVIDENCE as a shipped recipe, carried forward to any adoption that selects Codex. An adoption that did not select Codex records it NOT SELECTED and is not blocked by it."
+    }
+  },
+  "clientSelection": {
+    "declaredBy": "human at ADOPT-00",
+    "neverInferredFrom": "presence of a client directory on disk",
+    "recipes": {
+      "claude": "discovery/claude.md",
+      "kiro": "discovery/kiro.md",
+      "codex": "discovery/codex.md"
+    },
+    "rule": "Provision and validate only the recipe(s) for clients declared SELECTED. Every other client is recorded NOT SELECTED.",
+    "statusSemantics": {
+      "SELECTED+PASS": "client gate satisfied",
+      "SELECTED+PENDING EVIDENCE": "blocks the adoption",
+      "SELECTED+FAIL": "blocks the adoption",
+      "NOT SELECTED": "nothing provisioned or validated; never blocks; never recorded as PENDING EVIDENCE"
+    },
+    "passScope": "A PASS proves support for the client that produced it and for no other; never universal or multi-client support.",
+    "required": "An explicit, supported selection is a PRECONDITION of every bootstrap write. No selection at all REFUSES; a selected client with no recipe REFUSES, naming the supported clients. Both refusals precede the preflight and leave the target repository byte-for-byte unchanged. A placeholder such as 'undeclared' is NEVER written to the committed manifest - a committed placeholder is a durable claim that a human made a choice they did not make."
+  },
+  "entriesNote": "RETAINED INSTALLER MACHINERY for the deferred packaged-snapshot mode. This payload->target mapping and the pack-time assembly that consumes it are kept so the deferred change inherits working drift protection; a source-linked run assembles and consumes NOTHING, so its single-copy guarantee holds trivially and it has no drift surface. No current run reads this mapping.",
+  "refusals": {
+    "$comment": "Every refusal happens BEFORE the first write and leaves the target repository byte-for-byte unchanged. A refusal is a clean stop, never a degraded success, and none is resolved by the run choosing on the operator's behalf.",
+    "no-source": {
+      "owner": "specboot-adoption/bootstrap-kit/source-resolution.md",
+      "reports": "that a validated canonical source is required, and the three required artifacts"
+    },
+    "invalid-source": {
+      "owner": "specboot-adoption/bootstrap-kit/source-resolution.md",
+      "reports": "which required artifact or artifacts are missing"
+    },
+    "no-client-selected": {
+      "owner": "manifest.json#clientSelection.required (canonical rule: ADOPT-00); selection ROUTES are in client-autodiscovery.md",
+      "reports": "that an explicit human selection is required"
+    },
+    "unknown-client": {
+      "owner": "manifest.json#clientSelection.required (canonical rule: ADOPT-00); selection ROUTES are in client-autodiscovery.md",
+      "reports": "the unsupported client, together with the clients that ARE supported"
+    },
+    "no-symlink-discovery-unsupported": {
+      "owner": "specboot-adoption/bootstrap-kit/discovery/symlink-fallback.md",
+      "reports": "the client, the discovery mechanism its recipe requires, and what was attempted"
+    }
+  },
+  "preflight": {
+    "$comment": "A complete preflight precedes every write (design D-X). It resolves EVERY target path the selected client's recipe and the durable state will occupy, classifies each, and reports ALL collisions together - discovering them one failed write at a time means the operator approved a mutation set the run already knew was incomplete.",
+    "classifications": [
+      "absent",
+      "pre-existing-untouched",
+      "colliding"
+    ],
+    "approvalGate": "presents the EXACT mutation inventory: each path, created or modified, by what mechanism, and whether reversible. The run performs exactly that inventory and nothing outside it.",
+    "mechanismChange": "A path needing a different mechanism than the one approved requires a NEW gate, never an adjustment.",
+    "onFailure": "Provisioning is ALL-OR-NOTHING: a failure restores the pre-provisioning state, leaving no partial discovery entry, manifest, run log, ignore rule, or machine-local store. The end state of a failed bootstrap is a repository that was never bootstrapped."
+  }
+}

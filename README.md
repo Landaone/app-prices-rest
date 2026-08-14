@@ -412,3 +412,54 @@ Additional inspiration/source acknowledgements:
 **Made with 🤖 by the LIDR community**
 
 For questions, issues, or suggestions, visit [LIDR.co](https://lidr.co/ia-devs)
+
+## Bootstrapping adoption in a repository with no AI tooling
+
+If the target repository has no SpecBoot files and no AI client configuration, nothing in it can
+discover the adoption guide yet.
+
+**Start from the entry prompt.** Paste
+[`specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md`](specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md)
+into a session opened on the target repository. It is ordinary prompt text — no slash command, no
+installed package, no prior configuration — and it asks for everything it needs at run time.
+
+### Source-linked — the one delivery mode
+
+Point the adoption at a canonical SpecBoot source instead of copying one into the project:
+
+```bash
+npx @lidr/lidr-specboot bootstrap [target] --source <path-to-canonical-specboot-source> --client claude
+```
+
+Nothing canonical is copied: no guide, no phase files, no skill body, and no `.specboot/bootstrap/`
+at all. The project gets durable adoption state plus the selected client's temporary discovery
+entries, which point at the external source. That source is read-only for the whole adoption.
+`SPECBOOT_ADOPTION_GUIDE.md` and the `specboot-adopt` skill become discoverable by the selected
+client, and adoption proceeds from `ADOPT-00`.
+
+Supply the source path yourself — it is runtime input, and no SpecBoot artifact records one. Nor
+does any artifact the run produces: the resolved path lives only in machine-local, git-ignored state
+under `.specboot/local/`, and identity is carried by the recorded checksums. The source must carry
+`SPECBOOT_ADOPTION_GUIDE.md`, `specboot-adoption/`, and a readable
+`ai-specs/skills/specboot-adopt/SKILL.md`; all three are checked before anything is written.
+
+### Both arguments are required — the command fails closed without either
+
+```bash
+npx @lidr/lidr-specboot bootstrap [target]            # refuses: no canonical source
+npx @lidr/lidr-specboot bootstrap [target] --source X # refuses: no client selected
+```
+
+With no validated canonical source, or no explicitly selected supported client, the command stops
+and writes **nothing** to the target repository — no `.specboot/`, no discovery entry, no manifest,
+no run log, no `.gitignore` change. There is no fallback that copies SpecBoot in instead: a
+packaged-snapshot delivery is planned as separate future work
+(`add-specboot-packaged-snapshot-delivery`) and is not available here.
+
+Prefer refusing to falling back. A copied guide is a fork the moment the canonical source changes,
+and a mode that has never been driven from an empty repository through to a discoverable skill is
+not a safety net — it is a path that fails *after* writing to your project.
+
+The exposure it creates is **temporary** — inventoried in `.specboot/adoption/BOOTSTRAP-MANIFEST.json`
+and removed at `ADOPT-18`. It is not permanent client provisioning: the default installer still
+provisions shared Claude and Cursor adapters only, and does not provision Kiro.

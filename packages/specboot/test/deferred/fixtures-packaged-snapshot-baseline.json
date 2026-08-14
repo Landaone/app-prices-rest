@@ -1,0 +1,74 @@
+{
+  "$comment": "Task 4.21 RED baseline. Captured BEFORE source-linked mode existed, so 'packaged-snapshot is preserved unchanged' is measured against a state recorded first rather than asserted afterwards. Scope note: this pins what packaged-snapshot DOES - the payload tree it stages, the entry inventory it records, the durable artifacts it writes, and the ignore rules it provisions. Run-level provenance the schema requires in BOTH modes (the `source` and `clientSelection` blocks) is an additive record ABOUT the run, not a change to packaged-snapshot behavior; the regression asserts every field below still holds and the payload tree is exactly equal, never that no field was added.",
+  "capturedAt": "pre-source-linked",
+  "payloadTree": [
+    "README.md",
+    "SPECBOOT_ADOPTION_GUIDE.md",
+    "skills/specboot-adopt/SKILL.md",
+    "skills/specboot-adopt/references/bootstrap-and-debootstrap.md",
+    "skills/specboot-adopt/references/checkpoint-protocol.md",
+    "skills/specboot-adopt/references/evidence-and-run-log.md",
+    "skills/specboot-adopt/references/portability-matrix.md",
+    "skills/specboot-adopt/references/rationalizations.md",
+    "specboot-adoption/00-conventions.md",
+    "specboot-adoption/01-prerequisites-and-install.md",
+    "specboot-adoption/02-codegraph.md",
+    "specboot-adoption/03-client-permissions.md",
+    "specboot-adoption/04-context-and-openspec.md",
+    "specboot-adoption/05-agents-and-skills.md",
+    "specboot-adoption/06-adapters-and-discovery.md",
+    "specboot-adoption/07-baseline-and-checkpoint.md",
+    "specboot-adoption/08-daily-workflow.md",
+    "specboot-adoption/09-bootstrap.md",
+    "specboot-adoption/10-debootstrap.md",
+    "specboot-adoption/11-e2e-pilot-and-pr-gate.md",
+    "specboot-adoption/19-permissions-policy.md",
+    "specboot-adoption/22-troubleshooting.md",
+    "specboot-adoption/run-template/ADOPTION-RUN-LOG.template.md"
+  ],
+  "durableArtifacts": [
+    "ADOPTION-RUN-LOG.md",
+    "BOOTSTRAP-MANIFEST.json"
+  ],
+  "deliveryChannel": "npm",
+  "entries": [
+    {
+      "path": ".specboot/bootstrap/README.md",
+      "ownership": "bootstrap-created",
+      "mode": "real-file",
+      "cleanup-status": "pending",
+      "canonicalPath": "specboot-adoption/bootstrap-kit/payload-README.md",
+      "intended-permanent-replacement": null
+    },
+    {
+      "path": ".specboot/bootstrap/SPECBOOT_ADOPTION_GUIDE.md",
+      "ownership": "bootstrap-created",
+      "mode": "real-file",
+      "cleanup-status": "pending",
+      "canonicalPath": "SPECBOOT_ADOPTION_GUIDE.md",
+      "intended-permanent-replacement": null
+    },
+    {
+      "path": ".specboot/bootstrap/skills/specboot-adopt/",
+      "ownership": "bootstrap-created",
+      "mode": "copy",
+      "cleanup-status": "pending",
+      "canonicalPath": "ai-specs/skills/specboot-adopt/",
+      "intended-permanent-replacement": null
+    },
+    {
+      "path": ".specboot/bootstrap/specboot-adoption/",
+      "ownership": "bootstrap-created",
+      "mode": "copy",
+      "cleanup-status": "pending",
+      "canonicalPath": "specboot-adoption/",
+      "intended-permanent-replacement": null
+    }
+  ],
+  "gitignoreRules": [
+    ".specboot/staging/",
+    ".specboot/bootstrap/"
+  ],
+  "durableNeverIgnored": ".specboot/adoption/",
+  "$amendment": "Amended 2026-08-13, during the same change, when task 9.15 added a new canonical reference (ai-specs/skills/specboot-adopt/references/source-resolution.md) that the payload mirrors. The payloadTree list below is UNCHANGED and is still asserted as a SUPERSET requirement: every path staged at the baseline must still be staged. What changed is that exactness is now asserted against the kit manifest's canonical projection computed at test time, rather than against a frozen content inventory. This tightens the regression - it now catches a payload file that vanishes AND a file staged outside the mapping AND a lapsed exclusion - and it was not relaxed to accommodate source-linked mode, which stages no payload at all."
+}

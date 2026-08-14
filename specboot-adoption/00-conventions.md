@@ -48,6 +48,12 @@ follow, is that documented path and is expected. Reading ahead "to get oriented"
 
 This boundary is what keeps one step's cost to one phase file rather than the whole guide.
 
+**The orchestrator skill is not a fourth file.** Where a `specboot-adopt` skill is executing this
+guide, its body is part of the executing agent's context, not a member of the step's working set,
+and its `references/` load **on demand only** — at the point of need, never at skill load time. The
+three-file rule is unchanged: an orchestrated step still opens this file, one phase file, and the
+run log.
+
 ---
 
 ## The step contract
@@ -202,7 +208,130 @@ client in this run — do not infer it from the files being present.
   does not edit source code, tests, OpenSpec configuration, agents, skills, or adapters.
 - Never create adapters or configuration for a client the repository did not explicitly
   select.
-- Remote mutation — push, pull-request creation, merge — is outside this guide entirely and
-  requires its own explicit approval under company policy.
+- Remote mutation is **inside** this guide, under gates, and subject to company policy.
+  Pushing a validated checkpoint to the current working branch is performed by
+  [the checkpoint protocol](#the-checkpoint-protocol) below, behind its own
+  `[HUMAN APPROVAL REQUIRED]` gate and preceded by a remote-impact assessment. Pull-request
+  creation is gated separately by `ADOPT-20`. **Merge, force-push, branch creation beyond what a
+  step names, and remote or credential configuration remain outside this guide entirely** and
+  require their own explicit approval under company policy.
 - External web, GitHub, or package-registry research requires explicit user authorization
   before it is performed.
+
+---
+
+## The checkpoint protocol
+
+**This is the single normative definition of a checkpoint.** It lives here because this file is
+already one of the three files in every step's working set — a protocol placed in a phase file
+would sit outside the working set of every step in every other phase, so invoking it would either
+force a fourth file open or invite each phase to restate it locally, which is how contracts drift.
+
+Every step or justified group invokes **this** definition. No phase file restates it.
+
+### What a checkpoint is
+
+**A checkpoint is the smallest independently validated `ADOPT` step.** The default is one
+checkpoint per step.
+
+A phase file is **not** automatically a checkpoint. A phase file is a documentation boundary; a
+checkpoint is a validation boundary. Treating them as the same thing batches independently
+verifiable work into one reviewable unit and delays the evidence.
+
+Dependent steps may be grouped into one checkpoint **only with an explicit written justification
+recorded in the checkpoint ledger**, on structural grounds:
+
+- the earlier step produces no independently observable end state (its only validation is the later
+  step's); or
+- the intermediate state is not reviewable, or not safe to leave in place; or
+- this guide's own step contract makes them an executed pair — for example `ADOPT-09`/`ADOPT-10` and
+  `ADOPT-11`/`ADOPT-12`, which [`05-agents-and-skills.md`](05-agents-and-skills.md) already
+  describes as executed as a pair.
+
+**"Fewer commits", "they are in the same file", and "it is faster" are not justifications.** A
+tidier history is a preference, not a structural fact. Grouping is a recorded exception each time,
+never a standing policy. An operator may ask for a group; the justification recorded must still be
+the true reason, and if the true reason is history readability, that is what the ledger says — not
+a fabricated claim that the steps could not be validated independently.
+
+### When it applies
+
+After **every** independently validated step or justified group — including checkpoints reached
+long before `ADOPT-16`. The protocol's applicability does not depend on the precondition of any
+single later step.
+
+`ADOPT-17` is the final checkpoint **of the adoption itself** and carries its own precondition
+(`ADOPT-16` = PASS). That is not the same as being the last checkpoint of the workflow:
+`ADOPT-18` commits the updated bootstrap manifest and `ADOPT-19` is independently validated, so each
+forms its own checkpoint under this protocol. `ADOPT-17`'s precondition is a precondition of
+`ADOPT-17`, never of this protocol.
+
+### The procedure, in order
+
+1. **Validate.** Every step in the checkpoint reaches PASS on its own criteria.
+
+2. **Declare ready for human review**, stating: the checkpoint id; the steps covered; validation
+   results; evidence pointers; any open deviations; improvement proposals raised; and **the exact
+   staged file list**. Never declare readiness while any step in the checkpoint is at FAIL or
+   PENDING. A summary or a file count is not the exact list.
+
+3. **Checkpoint approval.** **[HUMAN APPROVAL REQUIRED]**
+
+4. **Stage only the intended files.** Never `git add -A` or any unconditional stage-everything
+   command. Apply the full `ADOPT-17` staged-scope checklist.
+
+5. **Independent review of the staged diff.** After any correction, re-run a fresh independent
+   review of the corrected staged diff. The reviewer that made the correction is not the last
+   check.
+
+6. **Commit.**
+
+7. **Determine and report the remote impact.** Whether the push will trigger continuous
+   integration, deployments, security scans, notifications, or any other automation — derived from
+   real evidence (workflow and pipeline configuration, branch protection, webhooks, required
+   checks), inspected read-only. **Never assumed.**
+
+   Where the impact cannot be inspected or determined, it is **unknown**, and unknown or unapproved
+   impact **blocks the push**. "No CI configuration found" is a finding to report, not a licence to
+   push — automation can live in org-level rules, webhooks, mirrors, and platform integrations that
+   leave no trace in the working tree. Do not request new credentials or elevated access to resolve
+   an unknown; report it and stop.
+
+8. **Push approval.** **[HUMAN APPROVAL REQUIRED]** — separate from step 3.
+
+9. **Push** to the **current working branch** only, on the already-configured remote. Never a force
+   push. Never a branch this guide did not name.
+
+10. **Propose improvements** to this guide, the phase files, and
+    [`22-troubleshooting.md`](22-troubleshooting.md) into the run log's improvement-proposals block.
+    Never apply them during the run.
+
+11. **Record the checkpoint ledger entry** and advance.
+
+### The two approvals are distinct
+
+A commit approval is **not** a push approval. Neither carries forward to the next checkpoint. A
+commit is local and cheap to undo; a push is outward-facing and may trigger automation that cannot
+be recalled. Collapsing them would let a reviewer who assessed a diff implicitly authorize an
+unassessed remote effect.
+
+That the operator approved the content 30 seconds ago, and knows it is destined for the branch, is
+not the push approval. Ask.
+
+### Applies forward
+
+Bringing push inside the contract binds adoptions **started after this amendment lands**.
+Repositories adopted under the previous contract, which stated "Do not push. Remote mutation is
+outside this guide entirely.", were **correct to stop at commit**. They are recorded as
+pre-amendment and are never retroactively marked FAIL.
+
+The same rule governs the mandatory code-graph capability in
+[`02-codegraph.md`](02-codegraph.md): a repository adopted before that amendment may have skipped
+CodeGraph entirely, and is recorded as pre-amendment rather than retroactively failed.
+
+### Ledger evidence, per checkpoint
+
+id; the step or the justified group with its written justification; validation results; evidence
+pointers; the ready-for-review declaration; the approval (who, when, what was approved); the exact
+staged file list; the commit SHA; the remote-impact assessment and its verdict; push status; and
+the improvement proposals raised.

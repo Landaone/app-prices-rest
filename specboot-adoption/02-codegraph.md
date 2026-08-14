@@ -1,4 +1,4 @@
-# Phase 2 — CodeGraph (Conditional)
+# Phase 2 — Code-Graph Capability (Mandatory)
 
 Read [`00-conventions.md`](00-conventions.md) first.
 
@@ -7,35 +7,51 @@ section 5.
 
 ---
 
-## Decision node — is CodeGraph being adopted?
+## Capability selection — which code-graph implementation is being used?
 
-**This entire file is conditional.** CodeGraph is a decision, not a mandatory link in the
-adoption chain.
+**A code-graph capability is mandatory for every adoption. This file is not conditional.**
 
-**Predicate:** CodeGraph is adopted for this repository when **both** hold:
+CodeGraph is optional only as the **product choice**. A company-approved equivalent that provides
+the required repository-graph capability — symbol lookup, call paths, and blast-radius over the
+real codebase — is equally acceptable.
 
-1. the operator has explicitly decided to adopt it, and that decision is recorded in the
-   run log; and
-2. after `ADOPT-04`, a `.codegraph/` directory exists at the repository root.
+**There is no waiver and no PASS without one. No usable graph capability is FAIL.** Absence is not
+a skip, not a waiver, and not `PENDING EVIDENCE`. The adoption stops.
 
-Before `ADOPT-04` runs, only condition 1 is testable — the decision is the gate, and the
-directory is its result.
+Select and record, in this order:
 
-**If the decision is no:** skip this entire file. Record the skip in the run log with the
-reason. Go directly to [`03-client-permissions.md`](03-client-permissions.md).
+1. **Select the implementation** — CodeGraph, or the named company-approved equivalent.
+2. **Establish and verify its availability with an executed command**, not an assertion. An
+   operator stating that a capability is available is not evidence that it is.
+3. **Record** the selected implementation, its version, the verification command with its exit code
+   and output summary, and any coverage limitations (for example unsupported languages).
+4. **If no implementation is usable, this step is FAIL and the adoption stops here.**
 
-This matches the guidance in a repository's own root instruction file: if there is no
-`.codegraph/` directory, skip CodeGraph entirely — indexing is the user's decision.
+A supplied company-approved equivalent is validated only to the extent that its verification
+command runs and returns a non-empty structured result. This guide does not judge the tool's
+quality — but a verification command that fails or cannot be run means no usable capability, hence
+FAIL.
 
-> **`03-client-permissions.md` is not part of this conditional.** Selected-client permission
-> configuration is unconditionally mandatory and is never skipped alongside CodeGraph. It
-> is a separate file precisely so that no "skip CodeGraph" path can reach past it.
+> **Why there is no "small repository" exemption.** The argument that a repository is small enough
+> for text search, and that the gap can be recorded as a known limitation, is the one rationalization
+> this rule exists to refuse. An honest FAIL record does not restore the missing capability, and the
+> downstream steps that consume it (`ADOPT-06`, `ADOPT-09`, `ADOPT-11`) are unconditional consumers.
+> Recording the gap and continuing produces an adoption whose later steps rest on a capability that
+> was never established.
+
+> **`03-client-permissions.md` was never part of any conditional.** Selected-client permission
+> configuration is unconditionally mandatory and is a separate file precisely so that no routing
+> decision here can reach past it. That remains true.
+
+**Applies forward.** Repositories adopted before this amendment may have skipped CodeGraph
+entirely. They are recorded as **pre-amendment**, never retroactively marked FAIL. This rule binds
+adoptions started after it lands.
 
 ---
 
 ## `ADOPT-04` — Initialize CodeGraph
 
-**Condition:** CodeGraph adopted (see the decision node above)
+**Condition:** always — the selected code-graph implementation from the capability selection above
 
 **Purpose:** Build a repository index for grounded source navigation and call-graph
 exploration.
@@ -105,7 +121,7 @@ these failures, not an absence of one:
 
 ## `ADOPT-05` — Configure CodeGraph for the Selected Clients
 
-**Condition:** CodeGraph adopted (see the decision node above)
+**Condition:** always — the selected code-graph implementation from the capability selection above
 
 **Purpose:** Integrate CodeGraph with every explicitly selected client.
 

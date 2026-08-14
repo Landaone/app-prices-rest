@@ -14,6 +14,7 @@
 
 ### If you are a person
 
+0. **Starting an adoption?** Use [`specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md`](specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md) — the single canonical entry prompt. Paste it, as ordinary prompt text, into a session opened on the target repository. It asks for the canonical source and the client selection at run time; you do not edit it and you do not need any tooling installed first.
 0. New to SpecBoot adoption? Read **[How this works, in plain language](#how-this-works-in-plain-language)** below first — it explains where you start, how you resume, what evidence is, who approves what, and what to do when a step fails, without assuming you know any of this guide's terms.
 1. Read [`specboot-adoption/00-conventions.md`](specboot-adoption/00-conventions.md) once. It defines the step contract, approval-gate semantics, and evidence discipline that every step assumes.
 2. Copy [`specboot-adoption/run-template/ADOPTION-RUN-LOG.template.md`](specboot-adoption/run-template/ADOPTION-RUN-LOG.template.md) and keep it open. Fill it as you go, not at the end.
@@ -38,7 +39,50 @@
 If you have never run a SpecBoot adoption, read this section first. It answers the six
 questions operators actually ask, before any file reference matters.
 
-**Where you begin.** At `ADOPT-01`, in a repository that already exists and may have **no AI
+**How the contract reaches your project: source-linked delivery.** Canonical SpecBoot lives in its
+own source, supplied to an adoption at run time. `ADOPT-00` asks for it and validates it **before
+writing anything**. There is one mode, and a validated source is a **precondition of the run, not a
+branch within it**:
+
+| Condition | What happens |
+|---|---|
+| you supply a local canonical SpecBoot source and it validates | **source-linked** — **nothing canonical is copied**: no guide, no phase files, no skill body, and no `.specboot/bootstrap/`. Your project gets durable adoption state plus temporary discovery entries pointing at the external source |
+| you supply none, or the one you supply fails validation | the run **stops and writes nothing**. There is no fallback that copies SpecBoot into your project |
+
+**Why refusing beats falling back.** A packaged-snapshot delivery — copying a transient payload in
+when no source is available — is planned as separate future work
+(`add-specboot-packaged-snapshot-delivery`) and is deliberately **not** offered here. A mode that
+has never been driven from an empty repository through to a working, discoverable skill is not a
+safety net: it is a path that fails *after* writing to your project, which is the one failure shape
+`ADOPT-00`'s preflight exists to prevent.
+
+**Five ways `ADOPT-00` stops before touching your repository.** Each one leaves your project
+**byte-for-byte unchanged** — nothing to undo, because nothing was created:
+
+| Stops when | It tells you |
+|---|---|
+| you supplied no canonical source | that one is required, and the three artifacts it must contain |
+| the source you supplied is incomplete | which artifact is missing or unreadable |
+| you named no client | that an explicit choice is required — it never guesses from a `.claude/` or `.kiro/` directory it happens to find |
+| you named a client it has no recipe for | which client, and which ones it does support |
+| your environment cannot create symlinks and the client you chose needs one to find the skill | the client, the mechanism it needs, and what was tried |
+
+Source-linked is preferred because a copied guide is a fork the moment the canonical source
+changes, and a project holding a copy will eventually edit it. A source is accepted only when it
+carries all three of `SPECBOOT_ADOPTION_GUIDE.md`, `specboot-adoption/`, and a readable
+`ai-specs/skills/specboot-adopt/SKILL.md` — checked **before the first write**, so an incomplete
+source is rejected rather than diagnosed afterwards.
+
+**The source location is runtime input, and nothing records it.** No canonical artifact holds a
+machine-specific path, and **no committed artifact records the resolved path either** — not the
+manifest, not the run log, not the handoff prompt. It lives only in machine-local, git-ignored state
+under `.specboot/local/`, which `ADOPT-18` removes. Identity is the recorded **checksums**, not the path —
+which is what lets a run resume on a different machine, and what makes a changed source *drift*
+rather than a silent instruction swap.
+
+**Where you begin.** At `ADOPT-00` when the repository has no SpecBoot files and no AI client
+configuration — bootstrap makes this guide and the `specboot-adopt` skill discoverable before
+anything else can run. Otherwise at `ADOPT-01`, in a repository that already exists and may have **no AI
 tooling installed at all**. That is the normal starting point: adoption is what installs and
 configures it. You do not need anything set up beforehand beyond the repository itself and
 permission to work on it.
@@ -105,9 +149,14 @@ it mid-adoption.
 
 | Question | Answer |
 |---|---|
-| Where do I start? | `ADOPT-01` in [`01-prerequisites-and-install.md`](specboot-adoption/01-prerequisites-and-install.md) |
-| Which path applies to me? | The only branch is CodeGraph — see the decision node at the top of [`02-codegraph.md`](specboot-adoption/02-codegraph.md). Everything else is unconditional. |
-| How do I resume a partial adoption? | Read the step-state table in your filled run log; it names the next `ADOPT-nn` and its file. |
+| Where do I start? | `ADOPT-00` in [`09-bootstrap.md`](specboot-adoption/09-bootstrap.md) if the repository has no SpecBoot files and no AI configuration; otherwise `ADOPT-01` in [`01-prerequisites-and-install.md`](specboot-adoption/01-prerequisites-and-install.md) |
+| Which path applies to me? | Every step is unconditional. A code-graph **capability** is mandatory — [`02-codegraph.md`](specboot-adoption/02-codegraph.md) selects the implementation (CodeGraph or a company-approved equivalent); no usable capability is FAIL. |
+| How do I start one? | Paste [`bootstrap-kit/ADOPTION-ENTRY-PROMPT.md`](specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md) into a session opened on the target repository. It is the sole initial prompt and needs no tooling installed first. |
+| What do I need before `ADOPT-00` will write anything? | A local canonical SpecBoot source that validates, and an explicit choice of which AI client to provision. Without either, the run stops and your repository is untouched. |
+| What if my source is a Git repo with uncommitted changes? | The run records provenance as **unavailable, with that reason**, rather than writing down a commit that does not describe what it actually read. Your checksums still identify the source exactly. |
+| How do I resume a partial adoption? | Read the step-state table in your filled run log; it names the next `ADOPT-nn` and its file. Resume happens in a **fresh session**, which re-verifies source identity before continuing. |
+| What if the canonical source changed while I was away? | That is **drift**, and it stops the resume. The run recomputes the guide and skill checksums against the source it is given and compares them with the manifest. A mismatch stops for human reconciliation rather than silently adopting changed instructions. |
+| I am resuming on a different machine and it is asking me for the source path. Is something broken? | No — that is the ordinary case. No path is recorded anywhere committed, so there is none to be missing. Supply a local source and it is accepted when the checksums match. |
 | Where do I record evidence? | The evidence block for that step in your filled copy of [`ADOPTION-RUN-LOG.template.md`](specboot-adoption/run-template/ADOPTION-RUN-LOG.template.md). Each step's `Evidence to record` field names its fields. |
 | When is human approval required? | At any step whose `Approval gate` field is not `none`. Gates are written as the literal marker `[HUMAN APPROVAL REQUIRED]`, in the step's field and again at the point of mutation. The semantics are in [`00-conventions.md`](specboot-adoption/00-conventions.md); the individual gates live in the phase files, deliberately not duplicated here. |
 | What do I do on failure? | Mark it FAIL, then follow that step's `On failure` field. It resolves in one of three ways — inline in the step, a named entry in [`22-troubleshooting.md`](specboot-adoption/22-troubleshooting.md), or the `ADOPT-nn` that owns what broke. All three are documented recoveries; escalate only when none of them applies. An unexecuted or failed command is FAIL. |
@@ -166,11 +215,12 @@ developer request
 
 | Step | Title | File | Condition |
 |---|---|---|---|
+| `ADOPT-00` | Bootstrap Client Discovery | [`09-bootstrap.md`](specboot-adoption/09-bootstrap.md) | repository has no SpecBoot files or AI configuration |
 | `ADOPT-01` | Install Prerequisites | [`01-prerequisites-and-install.md`](specboot-adoption/01-prerequisites-and-install.md) | always |
 | `ADOPT-02` | Install and Initialize OpenSpec with Explicitly Selected Clients | [`01-prerequisites-and-install.md`](specboot-adoption/01-prerequisites-and-install.md) | always |
 | `ADOPT-03` | Import SpecBoot | [`01-prerequisites-and-install.md`](specboot-adoption/01-prerequisites-and-install.md) | always |
-| `ADOPT-04` | Initialize CodeGraph | [`02-codegraph.md`](specboot-adoption/02-codegraph.md) | CodeGraph adopted |
-| `ADOPT-05` | Configure CodeGraph for the Selected Clients | [`02-codegraph.md`](specboot-adoption/02-codegraph.md) | CodeGraph adopted |
+| `ADOPT-04` | Initialize the Code-Graph Capability | [`02-codegraph.md`](specboot-adoption/02-codegraph.md) | always |
+| `ADOPT-05` | Configure the Code-Graph Capability for the Selected Clients | [`02-codegraph.md`](specboot-adoption/02-codegraph.md) | always |
 | `ADOPT-05B` | Configure Selected-Client Permissions (Early, One-Time) | [`03-client-permissions.md`](specboot-adoption/03-client-permissions.md) | **always — never skipped with CodeGraph** |
 | `ADOPT-06` | Adapt the Repository Technical Context | [`04-context-and-openspec.md`](specboot-adoption/04-context-and-openspec.md) | always |
 | `ADOPT-07` | Configure OpenSpec to Consume `docs/` and `ai-specs/` | [`04-context-and-openspec.md`](specboot-adoption/04-context-and-openspec.md) | always |
@@ -184,6 +234,9 @@ developer request
 | `ADOPT-15` | Validate Runtime Discovery in a Fresh Client Session | [`06-adapters-and-discovery.md`](specboot-adoption/06-adapters-and-discovery.md) | always, once per client |
 | `ADOPT-16` | Run the Project Baseline | [`07-baseline-and-checkpoint.md`](specboot-adoption/07-baseline-and-checkpoint.md) | always |
 | `ADOPT-17` | Review and Create a Clean Local Checkpoint | [`07-baseline-and-checkpoint.md`](specboot-adoption/07-baseline-and-checkpoint.md) | always |
+| `ADOPT-18` | De-bootstrap and Reconcile Client Artifacts | [`10-debootstrap.md`](specboot-adoption/10-debootstrap.md) | a bootstrap manifest exists |
+| `ADOPT-19` | Real-Project End-to-End Pilot | [`11-e2e-pilot-and-pr-gate.md`](specboot-adoption/11-e2e-pilot-and-pr-gate.md) | always |
+| `ADOPT-20` | Pull-Request Readiness Gate | [`11-e2e-pilot-and-pr-gate.md`](specboot-adoption/11-e2e-pilot-and-pr-gate.md) | always |
 
 Supporting material, not executed in sequence:
 
@@ -225,6 +278,9 @@ references may still cite those numbers. The mapping is permanent:
 | §16 | `ADOPT-16` | `specboot-adoption/07-baseline-and-checkpoint.md` |
 | §17 | `ADOPT-17` | `specboot-adoption/07-baseline-and-checkpoint.md` |
 | §18 | — | `specboot-adoption/08-daily-workflow.md` |
+| — (new) | `ADOPT-00` | `specboot-adoption/09-bootstrap.md` |
+| — (new) | `ADOPT-18` | `specboot-adoption/10-debootstrap.md` |
+| — (new) | `ADOPT-19`, `ADOPT-20` | `specboot-adoption/11-e2e-pilot-and-pr-gate.md` |
 | §19 | — | `specboot-adoption/19-permissions-policy.md` |
 | §20 | — | `specboot-adoption/history/prompt-inventory.md` |
 | §21 | — | `specboot-adoption/history/reference-run-java-maven.md` |

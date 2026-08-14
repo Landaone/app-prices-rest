@@ -22,7 +22,7 @@ context for the actual brownfield repository.
 ```text
 Adapt the technical context under `docs/` to this brownfield repository.
 
-Use CodeGraph when available, and inspect the actual build configuration, source code, tests, API endpoints, persistence entities, migrations, package or module structure, and existing repository documentation before modifying files.
+Use the selected code-graph capability, and inspect the actual build configuration, source code, tests, API endpoints, persistence entities, migrations, package or module structure, and existing repository documentation before modifying files.
 
 Requirements:
 - Keep the existing document set and file names under `docs/`.

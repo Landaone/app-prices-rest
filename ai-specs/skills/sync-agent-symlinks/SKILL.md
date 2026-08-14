@@ -1,6 +1,6 @@
 ---
 name: sync-agent-symlinks
-description: Analyze and synchronize agent skill exposure after ai-specs skill changes (additions, removals, renames). Use when skills are added/removed in ai-specs and .claude/skills and .cursor/skills must stay aligned through symlinks.
+description: Analyze and synchronize agent skill exposure after ai-specs skill changes (additions, removals, renames). Use when skills are added/removed in ai-specs and the selected clients' skills directories must stay aligned through symlinks.
 author: LIDR.co
 version: 1.0.0
 ---
@@ -15,8 +15,13 @@ Use this skill after any change in `ai-specs/skills` (new skill, removed skill, 
 
 - Canonical source is `ai-specs/skills`.
 - Mirror targets are:
-  - `.claude/skills`
-  - `.cursor/skills`
+  - **the selected clients' skills directories**, discovered from the repository rather than
+    hardcoded: every `<client>/skills` directory that actually exists at the repository root
+    (for example `.claude/skills`, `.kiro/skills`, `.cursor/skills`)
+  - A client directory that does not exist is **not** created — absence means that client was not
+    selected, and inventing a mirror for it would create adapters for an unselected client.
+  - A selected client present in the repository is **never** skipped because it was missing from a
+    previously hardcoded list. In this repository `.kiro/` exists and `.cursor/` does not.
 - Manage only entries that are symlinks to `../../ai-specs/skills/<skill-name>`.
 - Do not delete non-symlink directories in mirror targets unless the user explicitly asks.
 - Never overwrite a real directory automatically; report it as a conflict.
@@ -28,8 +33,7 @@ Use this skill after any change in `ai-specs/skills` (new skill, removed skill, 
 Collect three inventories:
 
 1. Canonical skills from `ai-specs/skills/*/SKILL.md`
-2. Mirror entries in `.claude/skills`
-3. Mirror entries in `.cursor/skills`
+2. Mirror entries in each discovered `<client>/skills` directory
 
 From mirror entries, classify:
 - `linked`: valid symlink pointing to existing canonical skill
@@ -66,7 +70,7 @@ Never remove:
 
 After changes:
 
-- Confirm every canonical skill exists in both mirrors as a valid symlink, or is explicitly listed as conflict.
+- Confirm every canonical skill exists in **every discovered mirror** as a valid symlink, or is explicitly listed as a conflict.
 - Confirm no broken canonical symlinks remain.
 - Confirm external entries remain untouched.
 

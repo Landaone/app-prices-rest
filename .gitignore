@@ -35,3 +35,8 @@ build/
 ### SpecBoot ###
 # enrich-us staging: durable local copy of an enriched work-item artifact, not committed
 .specboot/staging/
+# adoption bootstrap payload: transient, removed at ADOPT-18.
+# .specboot/adoption/ is NOT ignored - it holds committed bootstrap manifest + run log.
+.specboot/bootstrap/
+# assembled at pack time from canonical sources; never a second checked-in copy
+packages/specboot/bootstrap-payload/

@@ -153,8 +153,17 @@ Suggested message:
 chore: adopt SpecBoot workflow
 ```
 
-**Approval gate:** **[HUMAN APPROVAL REQUIRED]** immediately before creating the local
-commit. **Do not push.** Remote mutation is outside this guide entirely.
+**Approval gate:** this step invokes
+[the checkpoint protocol](00-conventions.md#the-checkpoint-protocol) and takes its gates from
+there — **[HUMAN APPROVAL REQUIRED]** immediately before creating the local commit, and a
+**second, separate [HUMAN APPROVAL REQUIRED]** before pushing, with the remote-impact assessment
+reported between them. A commit approval is not a push approval.
+
+> **`ADOPT-17` reuses the protocol; it does not define it.** This step is the final checkpoint *of
+> the adoption itself*, which is why it carries the `ADOPT-16` = PASS precondition. That
+> precondition belongs to this step, **not** to the protocol: earlier checkpoints invoke the same
+> protocol long before the baseline has run, and `ADOPT-18` and `ADOPT-19` each form their own
+> checkpoint after this one.
 
 **Validation:** acceptance criteria:
 
@@ -167,12 +176,17 @@ commit. **Do not push.** Remote mutation is outside this guide entirely.
   recorded.
 - Every staged-scope checklist item above checked.
 - An independent final validation ran after any correction.
-- No remote mutation.
+- The checkpoint protocol's steps were followed in order, with both approvals recorded separately.
+- The remote-impact assessment was performed from real evidence and reported before the push
+  approval was requested; an unknown or unapproved impact blocked the push.
+- The push, if performed, targeted the current working branch on the already-configured remote,
+  and was not a force push.
 
 **Evidence to record:** run-log `ADOPT-17` — branch, status, files staged, files excluded,
 staged diff path, staged diff reviewed, `git diff --cached --check` result, blocking vs.
-non-blocking decisions, independent final validation performed, approval, commit, push
-performed (must be NO), result.
+non-blocking decisions, independent final validation performed, commit approval, commit SHA,
+remote-impact assessment and its verdict, push approval, push status, result — plus the
+checkpoint ledger entry the protocol requires.
 
 **On failure:** see [`22-troubleshooting.md`](22-troubleshooting.md) — "AI says a file exists,
 but it does not" when the staged inventory disagrees with the filesystem; "Adapter created for

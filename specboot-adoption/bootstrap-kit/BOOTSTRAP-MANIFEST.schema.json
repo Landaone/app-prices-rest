@@ -1,0 +1,262 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://lidr.co/specboot/BOOTSTRAP-MANIFEST.schema.json",
+  "title": "SpecBoot Bootstrap Manifest",
+  "description": "The durable control record written to .specboot/adoption/BOOTSTRAP-MANIFEST.json by ADOPT-00 and updated - never deleted - by ADOPT-18. ADOPT-18 acts strictly on this inventory, never by path pattern or guesswork.",
+  "type": "object",
+  "required": ["manifestVersion", "createdAt", "source", "selectedClient", "clientSelection", "environment", "entries"],
+  "additionalProperties": false,
+  "properties": {
+    "manifestVersion": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "source": {
+      "type": "object",
+      "description": "RUN-LEVEL canonical source provenance (design D-S, option B). Identity is the CHECKSUMS, and with no path recorded it is the only thing identity can be. This block carries PORTABLE IDENTITY ONLY: it defines no field for a resolved absolute path, and `additionalProperties: false` rejects one, so a manifest cannot record a machine-specific path even by accident. The manifest is committed by design, so a path recorded here would travel into every clone of the adopting repository; a label describing a value as non-portable does not make committing it portable. The external source is NEVER an entry in `entries` - the inventory rule is what makes it unreachable by any cleanup operation.",
+      "required": ["delivery-mode", "local-path-resolution", "guide-checksum", "skill-checksum", "git"],
+      "additionalProperties": false,
+      "properties": {
+        "delivery-mode": {
+          "type": "string",
+          "enum": ["source-linked", "packaged-snapshot"],
+          "description": "source-linked is the ONLY mode written by this contract: it is selected when a local canonical source is supplied and validates, and a run with no validated source FAILS CLOSED with zero target-repository writes rather than selecting anything else. 'packaged-snapshot' is retained as a readable value so a manifest produced by an earlier run is read as history rather than re-interpreted; it is DEFERRED to `add-specboot-packaged-snapshot-delivery` and is never written by a current run."
+        },
+        "local-path-resolution": {
+          "type": "string",
+          "const": "The local canonical source path is resolved per machine and is not stored in the committed manifest.",
+          "description": "The explicit statement this block carries INSTEAD of a resolved path, in BOTH delivery modes. A single permitted value, so it cannot be omitted, softened, or reworded into an implication. Where a run needs the resolved path afterwards it is kept only in machine-local, git-ignored state under `.specboot/local/` - a convenience pointer holding the path and nothing else, never read as evidence of identity, never an error when absent, and removed by ADOPT-18. Resume obtains a local path from that store where one exists on this machine, and otherwise by asking the operator or rediscovering it; no previously used absolute path is ever required to exist."
+        },
+        "guide-checksum": {
+          "type": ["string", "null"],
+          "description": "Checksum of SPECBOOT_ADOPTION_GUIDE.md in the resolved source. Half of the run's identity."
+        },
+        "skill-checksum": {
+          "type": ["string", "null"],
+          "description": "Checksum of ai-specs/skills/specboot-adopt/SKILL.md in the resolved source. The file, not the directory - the initial session reads it directly."
+        },
+        "git": {
+          "type": "object",
+          "description": "Source Git provenance, in exactly THREE dispositions (design D-S). A clean working tree records its commit. A source that is not a Git working tree records 'unavailable' with its reason. A working tree WITH UNCOMMITTED CHANGES also records 'unavailable' with its reason, because the HEAD commit does not identify the content the run actually read - writing it down as though it did produces provenance that is precisely wrong, which is worse than absent: a later reader can resolve the commit, diff nothing, and conclude the source matched. 'unavailable' is a REPRESENTABLE VALUE, never an absent field. Identity remains the CHECKSUMS in all three cases, since they are computed over the bytes actually read.",
+          "required": ["status", "worktree"],
+          "additionalProperties": false,
+          "properties": {
+            "status": { "type": "string", "enum": ["recorded", "unavailable"] },
+            "worktree": {
+              "type": "string",
+              "enum": ["clean", "dirty", "not-a-repository"],
+              "description": "The observed state of the source working tree. This field is what makes the dirty case representable rather than collapsed into the clean one, and the constraints below make a bare commit for a dirty tree INVALID rather than merely discouraged."
+            },
+            "commit": {
+              "type": "string",
+              "minLength": 7,
+              "description": "The identity field a consumer reads. Permitted ONLY when status is 'recorded', which in turn requires worktree 'clean'. Never inferred, never invented, never an empty string."
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Required when status is 'unavailable'. For example: the supplied source is not a Git working tree; or the source is a Git working tree with uncommitted changes, so its HEAD does not identify the content read."
+            },
+            "observed-head": {
+              "type": "object",
+              "description": "CONTEXT ONLY, permitted only when worktree is 'dirty'. It records what HEAD happened to be, explicitly labelled as not identifying the source content, and it is deliberately NOT the field named 'commit' - a consumer reading identity must not find a value here by accident.",
+              "required": ["commit", "note"],
+              "additionalProperties": false,
+              "properties": {
+                "commit": { "type": "string", "minLength": 7 },
+                "note": {
+                  "type": "string",
+                  "const": "This commit does not identify the source content the run read, because the working tree had uncommitted changes."
+                }
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "status": { "const": "recorded" } }, "required": ["status"] },
+              "then": {
+                "required": ["commit"],
+                "not": { "required": ["reason"] },
+                "properties": { "worktree": { "const": "clean" } }
+              }
+            },
+            {
+              "if": { "properties": { "status": { "const": "unavailable" } }, "required": ["status"] },
+              "then": { "required": ["reason"], "not": { "required": ["commit"] } }
+            },
+            {
+              "if": { "properties": { "worktree": { "const": "dirty" } }, "required": ["worktree"] },
+              "then": { "properties": { "status": { "const": "unavailable" } } }
+            },
+            {
+              "if": { "properties": { "worktree": { "const": "not-a-repository" } }, "required": ["worktree"] },
+              "then": {
+                "properties": { "status": { "const": "unavailable" } },
+                "not": { "required": ["observed-head"] }
+              }
+            },
+            {
+              "if": { "properties": { "worktree": { "const": "clean" } }, "required": ["worktree"] },
+              "then": { "not": { "required": ["observed-head"] } }
+            }
+          ]
+        },
+        "readOnly": {
+          "type": "boolean",
+          "const": true,
+          "description": "The resolved source is read-only for the entire adoption. A step that wrote to it is FAIL."
+        }
+      }
+    },
+    "clientSelection": {
+      "type": "object",
+      "description": "How selection reached the orchestrator, and what it decided (design D-T). Autodiscovery is read-only and never authorizes configuration; a finding alone is never recorded here as a selection.",
+      "required": ["route", "selected", "notSelected"],
+      "additionalProperties": false,
+      "properties": {
+        "route": {
+          "type": "string",
+          "enum": ["manual", "autodiscovery"],
+          "description": "'autodiscovery' records that a read-only probe displayed candidates; the human still selected explicitly."
+        },
+        "candidatesDisplayed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Findings shown to the human when route is 'autodiscovery'. Candidates, not authorization."
+        },
+        "selected": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "not": { "enum": ["undeclared", "unknown", "default", "none"] }
+          },
+          "description": "Clients the human explicitly selected. Only these are provisioned. A PLACEHOLDER IS NOT A SELECTION: the schema rejects 'undeclared' and its equivalents, because a committed placeholder is a durable claim that a human made a choice they did not make. A run with no selection FAILS CLOSED with zero target-repository writes rather than writing one here."
+        },
+        "notSelected": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Every other supported client. Recorded NOT SELECTED - never blank, and never PENDING EVIDENCE, which would assert intended support nobody claimed."
+        }
+      }
+    },
+    "deliveryChannel": {
+      "type": "string",
+      "enum": ["npm", "source-copy"],
+      "description": "How the payload was delivered."
+    },
+    "selectedClient": {
+      "type": "string",
+      "minLength": 1,
+      "not": { "enum": ["undeclared", "unknown", "default", "none"] },
+      "description": "The client the operator DECLARED at ADOPT-00. Never inferred from a directory's presence, and never a placeholder - a run that reached this point without an explicit, supported selection should have refused before its first write."
+    },
+    "environment": {
+      "type": "object",
+      "required": ["os", "shell", "symlinksSupported"],
+      "properties": {
+        "os": { "type": "string" },
+        "shell": { "type": "string" },
+        "symlinksSupported": {
+          "type": "boolean",
+          "description": "The EFFECTIVE capability. Capability-detected, never assumed from the platform name. When false, the run consults the selected client's recipe for a native discovery mechanism that works without symlinks; where there is none it FAILS CLOSED before provisioning and reports the capability limitation, rather than substituting a pointer file or a content copy."
+        },
+        "symlinkDetermination": {
+          "type": "string",
+          "enum": ["capability-detected", "forced off by --no-symlinks"],
+          "description": "How symlinksSupported was arrived at, so a policy-forced fallback is never mistaken for a probe failure."
+        },
+        "isGitRepository": { "type": "boolean" }
+      }
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "source", "checksum", "ownership", "mode", "intended-permanent-replacement", "cleanup-status"],
+        "additionalProperties": false,
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Repository-relative path the bootstrap created or modified."
+          },
+          "source": {
+            "type": "object",
+            "required": ["canonicalPath", "channel"],
+            "properties": {
+              "canonicalPath": { "type": "string" },
+              "channel": { "type": "string", "enum": ["npm", "source-copy", "source-linked"] }
+            },
+            "description": "The canonical path it came from, plus the delivery channel. In source-linked mode `canonicalPath` is the SOURCE-RELATIVE canonical path the entry points at - the external source itself is never an entry."
+          },
+          "checksum": {
+            "type": "string",
+            "description": "Checksum of the delivered content, so drift and tampering are detectable."
+          },
+          "ownership": {
+            "type": "string",
+            "enum": ["bootstrap-created", "pre-existing-modified", "pre-existing-untouched"],
+            "description": "What prevents cleanup from touching a file the repository already had. Entries marked pre-existing-untouched are NEVER touched by ADOPT-18."
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["symlink", "copy", "appended-block", "real-file"],
+            "description": "How the entry was materialized. 'copy' is the Windows/no-privilege fallback for a payload entry and is removed rather than unlinked. 'pointer-file' is REMOVED from this enumeration (design D-D): discovery is a property of the client, not of the filesystem, so a real file naming an external path is not a discovered skill and must never be recordable as a discovery entry. Where symlinks are unavailable and the selected client's recipe offers no native discovery mechanism without one, the run FAILS CLOSED before provisioning and no entry is written at all."
+          },
+          "intended-permanent-replacement": {
+            "type": ["string", "null"],
+            "description": "The canonical path or symlink that supersedes this entry, or null. ADOPT-18 MUST verify this exists and resolves BEFORE removing the entry; removing an entry whose replacement is missing is FAIL, not cleanup."
+          },
+          "cleanup-status": {
+            "type": "string",
+            "enum": ["pending", "removed", "converted", "retained-with-reason"],
+            "description": "Terminal state required at ADOPT-18 PASS. An entry left at 'pending' is FAIL, not a partial PASS."
+          },
+          "machineLocal": {
+            "type": "boolean",
+            "description": "True when the entry names, or is, an artifact valid on one machine only - a source-linked symlink or pointer file. Machine-local entries are excluded from every checkpoint's staged scope via `.git/info/exclude` (machine-local itself, and never committed), are NEVER committed, and are removed by ADOPT-18. Staging one is FAIL, not a cosmetic slip."
+          },
+          "retained-reason": {
+            "type": "string",
+            "description": "Required when cleanup-status is 'retained-with-reason'."
+          },
+          "final-disposition": {
+            "type": ["object", "null"],
+            "required": ["action", "at"],
+            "properties": {
+              "action": { "type": "string" },
+              "at": { "type": "string", "format": "date-time" },
+              "evidence": { "type": "string" }
+            },
+            "description": "What ADOPT-18 actually did, and when."
+          }
+        }
+      }
+    },
+    "modeObligations": {
+      "type": "object",
+      "description": "Per-mode outcomes recorded EXPLICITLY, so neither mode's end state is judged by the other's checks. In source-linked mode the payload and container obligations read 'SKIPPED - source-linked mode' - an explicit outcome, never left blank and never inferred as PASS.",
+      "additionalProperties": false,
+      "properties": {
+        "payload": { "type": "string", "enum": ["PASS", "FAIL", "SKIPPED — source-linked mode"] },
+        "container": { "type": "string", "enum": ["PASS", "FAIL", "SKIPPED — source-linked mode"] }
+      }
+    },
+    "debootstrap": {
+      "type": "object",
+      "description": "Written back by ADOPT-18.",
+      "properties": {
+        "completedAt": { "type": "string", "format": "date-time" },
+        "approvedBy": { "type": "string" },
+        "revalidation": {
+          "type": "object",
+          "properties": {
+            "filesystemChecks": { "type": "string", "enum": ["PASS", "FAIL"] },
+            "freshSessionDiscovery": { "type": "string", "enum": ["PASS", "FAIL", "PENDING EVIDENCE", "NOT SELECTED"],
+              "description": "PASS/FAIL/PENDING EVIDENCE apply to a SELECTED client; PENDING EVIDENCE blocks the adoption. NOT SELECTED is for a client nobody declared - nothing provisioned or validated, never blocking, and never written as PENDING EVIDENCE." },
+            "brokenSymlinks": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

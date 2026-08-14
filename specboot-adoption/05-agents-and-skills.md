@@ -28,7 +28,7 @@ without overwriting agents for other stacks.
 ```text
 Inspect, adapt, and validate the canonical agents for this repository.
 
-Use CodeGraph when available. Read the repository build configuration, source structure, `docs/`, existing OpenSpec configuration, and every agent under `ai-specs/agents/`.
+Use the selected code-graph capability. Read the repository build configuration, source structure, `docs/`, existing OpenSpec configuration, and every agent under `ai-specs/agents/`.
 
 Requirements:
 - Keep `ai-specs/agents/` as the canonical, client-neutral agent source.
@@ -145,7 +145,7 @@ specific ecosystem.
 ```text
 Inspect, adapt, and validate the canonical skills for this repository.
 
-Use CodeGraph when available. Read the repository documentation, build configuration, test configuration, and every skill under `ai-specs/skills/`.
+Use the selected code-graph capability. Read the repository documentation, build configuration, test configuration, and every skill under `ai-specs/skills/`.
 
 Requirements:
 - Keep `ai-specs/skills/` as the canonical shared skill source.

@@ -2,6 +2,11 @@
 
 Read [`00-conventions.md`](00-conventions.md) first.
 
+> **First run of this workflow during an adoption is `ADOPT-19`.** The end-to-end pilot in
+> [`11-e2e-pilot-and-pr-gate.md`](11-e2e-pilot-and-pr-gate.md) runs exactly the sequence below, on
+> one real project task chosen by the human, and is what gates pull-request readiness. The
+> semantics here are unchanged by that step.
+
 **Status:** `PENDING END-TO-END VALIDATION`
 
 This is **not** part of the one-time adoption (`ADOPT-01` … `ADOPT-17`). It is the workflow a
