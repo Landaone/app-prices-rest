@@ -1,18 +1,26 @@
 ## Purpose
 
-Defines the behavior of AI-driven SpecBoot adoption: how a single canonical entry prompt starts a run from the target repository with every parameter and gate it needs, how a canonical SpecBoot source is resolved and validated at run time so the contract is linked in place and never copied — and how a run with no validated source fails closed rather than falling back — how every write is preceded by a complete preflight and one exact-mutation approval, how a repository with no SpecBoot files and no AI client configuration is bootstrapped into one where the selected client discovers the adoption contract on its own, how the `ADOPT-nn` workflow is executed and resumed from a filled run log under human approval gates and strict evidence rules, how each independently validated checkpoint reaches a commit and a gated push, how a real end-to-end project task gates pull-request creation, and how every bootstrap-only artifact is later removed against a committed manifest without destroying the record of what it did.
+Defines the behavior of AI-driven SpecBoot adoption: how a short canonical launcher validates a candidate source read-only and loads the canonical entry prompt that starts a run from the target repository with every parameter and gate it needs, how a canonical SpecBoot source is resolved and validated at run time so the contract is linked in place and never copied — and how a run with no validated source fails closed rather than falling back — how every write is preceded by a complete preflight and one exact-mutation approval, how a repository with no SpecBoot files and no AI client configuration is bootstrapped into one where the selected client discovers the adoption contract on its own, how the `ADOPT-nn` workflow is executed and resumed from a filled run log under human approval gates and strict evidence rules, how each independently validated checkpoint reaches a commit and a gated push, how a real end-to-end project task gates pull-request creation, and how every bootstrap-only artifact is later removed against a committed manifest without destroying the record of what it did.
 
 ## ADDED Requirements
 
-### Requirement: Adoption starts from a single canonical parameterized entry prompt
+### Requirement: Adoption starts from a short canonical launcher that loads the canonical entry prompt
 
-The bootstrap kit SHALL provide exactly one canonical entry prompt at `specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md`, and it SHALL be sufficient as the **sole initial prompt** for starting an adoption. It SHALL assume only that it is invoked from the target repository. It SHALL be **parameterized**: it SHALL obtain the canonical source path, the client-selection route, the selected clients, and every other runtime input by asking at run time, and SHALL embed no machine-specific absolute path, no laboratory-specific location, and no pilot-specific value. It SHALL describe **source-linked adoption only**, SHALL NOT ask the operator to choose a delivery mode, and SHALL NOT offer packaged-snapshot as a reachable path.
+The bootstrap kit SHALL provide exactly one canonical launcher template at `specboot-adoption/bootstrap-kit/ADOPTION-LAUNCHER.template.md`, and that launcher SHALL be the **sole artifact a human pastes** to start an adoption. The bootstrap kit SHALL provide exactly one canonical entry prompt at `specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md`, which SHALL remain the complete canonical cold-start procedure and SHALL be **read from the validated canonical source** rather than pasted into a session. Together they SHALL constitute **one governed entry mechanism**, not an initial prompt supplemented by corrective patches.
+
+The launcher SHALL accept **exactly one runtime parameter**, `<SPECBOOT_SOURCE>`, and SHALL treat the supplied path as a **candidate** source that is not trusted merely because an operator supplied it. Before loading any orchestration instruction and before any write to the target repository, the launcher SHALL verify **read-only** that all four of the following exist in that candidate source: `SPECBOOT_ADOPTION_GUIDE.md`; `specboot-adoption/`; a readable `ai-specs/skills/specboot-adopt/SKILL.md`; and a readable `specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md`. Where any of the four is absent or unreadable, the launcher SHALL stop with **zero target-repository writes** and SHALL report what failed validation.
+
+Where validation passes, the launcher SHALL instruct that `ADOPTION-ENTRY-PROMPT.md` be read **completely** and followed exactly, and that complete read SHALL occur **before any adoption action is taken**. The launcher SHALL NOT duplicate the adoption procedure, the client-selection procedure, the checkpoint protocol, or any `ADOPT` step; it SHALL state that no target-repository write is permitted before the approval gate **defined by the loaded entry file**, by reference to that file rather than by defining the gate itself. The launcher SHALL be **client-neutral plain prompt text**, using no client-specific `@` include syntax, no slash command, and no OpenSpec command, and assuming no pre-installed skill.
+
+The committed launcher template SHALL carry the `<SPECBOOT_SOURCE>` placeholder and SHALL embed no machine-specific absolute path. The resolved path an operator fills in SHALL exist only in the chat or runtime session and SHALL NEVER be committed to the target repository.
+
+The entry prompt SHALL assume only that it is followed from the target repository. It SHALL be **parameterized**: it SHALL obtain the client-selection route, the selected clients, and every other runtime input by asking at run time, SHALL take the canonical source as already validated by the launcher rather than requiring the operator to supply it again, and SHALL embed no machine-specific absolute path, no laboratory-specific location, and no pilot-specific value. It SHALL describe **source-linked adoption only**, SHALL NOT ask the operator to choose a delivery mode, and SHALL NOT offer packaged-snapshot as a reachable path.
 
 The prompt SHALL be complete in its **parameters and gates** and silent on **procedure**. It SHALL take its procedure from the `specboot-adopt` skill and refer to canonical rules by name, and SHALL NOT restate an `ADOPT` step contract, the checkpoint protocol, the manifest semantics, or the de-bootstrap ordering, since a second statement of the procedure would drift from the contract without anyone diffing it.
 
-**Cold start.** The prompt SHALL assume a target repository containing no SpecBoot files, no OpenSpec installation, no `/opsx:*` commands, no discoverable `specboot-adopt` skill, and no `.specboot/` directory, since each of those is an output of the adoption rather than a precondition of it. It SHALL therefore be usable as **ordinary prompt text**: pasted and run as-is, requiring no slash command, no skill invocation, no command infrastructure, no installed package, and no pre-existing configuration in the target repository. It SHALL NEVER assume that `specboot-adopt` is already installed in, or discoverable from, the target repository.
+**Cold start.** Both the launcher and the prompt SHALL assume a target repository containing no SpecBoot files, no OpenSpec installation, no `/opsx:*` commands, no discoverable `specboot-adopt` skill, and no `.specboot/` directory, since each of those is an output of the adoption rather than a precondition of it. Both SHALL therefore be usable as **ordinary prompt text**: the launcher pasted and run as-is and the prompt read and followed as-is, requiring no slash command, no skill invocation, no command infrastructure, no installed package, and no pre-existing configuration in the target repository. Neither SHALL assume that `specboot-adopt` is already installed in, or discoverable from, the target repository.
 
-The prompt SHALL be **executable end to end from a virgin repository**, and SHALL state each of the following well enough to be performed without a corrective prompt patch: **(1)** request the canonical source and validate it — `SPECBOOT_ADOPTION_GUIDE.md`, the `specboot-adoption/` phase directory, and a readable `ai-specs/skills/specboot-adopt/SKILL.md`; **(2)** obtain the orchestration procedure by **reading that validated `SKILL.md` directly, at a source-relative path** under the resolved source; **(3)** obtain an explicit, supported client selection; **(4)** run the complete preflight and present the exact mutation inventory at a human-approval gate; **(5)** provision exactly the approved inventory; **(6)** stop and generate the exact fresh-session handoff prompt; **(7)** attempt native discovery for the first time in that fresh session, resuming from the durable manifest and run log with source identity verified. No orchestration instruction SHALL be loaded and nothing SHALL be written to the target repository until step 1 has passed. The direct read in step 2 SHALL be stated and recorded as a direct read, never as native skill discovery.
+The mechanism SHALL be **executable end to end from a virgin repository**, and the launcher and the prompt together SHALL state each of the following well enough to be performed without a corrective prompt patch or any additional procedural instruction: **(1)** the pasted launcher validates the candidate source read-only — `SPECBOOT_ADOPTION_GUIDE.md`, the `specboot-adoption/` phase directory, a readable `ai-specs/skills/specboot-adopt/SKILL.md`, and a readable `specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md` — and, on success, reads that entry prompt completely before any adoption action; **(2)** obtain the orchestration procedure by **reading the validated `SKILL.md` directly, at a source-relative path** under the resolved source; **(3)** obtain an explicit, supported client selection; **(4)** run the complete preflight and present the exact mutation inventory at a human-approval gate; **(5)** provision exactly the approved inventory; **(6)** stop and generate the exact fresh-session handoff prompt; **(7)** attempt native discovery for the first time in that fresh session, resuming from the durable manifest and run log with source identity verified. No orchestration instruction SHALL be loaded and nothing SHALL be written to the target repository until step 1 has passed. The direct read in step 2 SHALL be stated and recorded as a direct read, never as native skill discovery.
 
 Where no canonical source is supplied, or the supplied one fails validation, the run SHALL stop with **zero target-repository writes** and SHALL report that a validated canonical source is required. It SHALL NOT fall back to another delivery mode.
 
@@ -26,12 +34,52 @@ The cold-start sequence SHALL be stated once. Nothing in it SHALL restate the ad
 
 The prompt SHALL direct a run that: requires a validated local canonical SpecBoot source and fails closed without one; validates the guide, the phase directory, and the `specboot-adopt` skill **before the first project write**; offers exactly two client-selection routes, explicit manual selection and read-only autodiscovery followed by explicit human selection; states that autodiscovery neither writes nor authorizes configuration; refuses with zero writes when no client is selected or a selected client has no recipe; provisions only explicitly selected clients and records all others `NOT SELECTED`; keeps canonical orchestration client-agnostic and delegates client-dependent actions to the selected client's recipe; presents the exact intended mutations and stops for human approval before writing; initializes and validates the durable manifest and the adoption run log; runs the complete preflight, presents the exact mutation inventory for approval, and performs exactly that inventory; provisions temporary discovery entries for selected clients only; generates the exact fresh-session handoff prompts the discovery-and-execution evidence requires; continues through every reachable adoption step, stopping only at documented human-approval gates or genuine external blockers; resumes deterministically from the durable run log; detects canonical-source drift and blocks rather than consuming changed content; records failures, deviations, recoveries, and improvement proposals without editing the canonical source during the active adoption; routes accepted improvements back to the canonical shared source through the governed follow-up workflow; and never modifies model, reasoning effort, permission mode, or execution mode.
 
-The prompt SHALL state the intended operating model explicitly: one canonical entry prompt; expected human responses at explicit approval gates; fresh-session handoff prompts generated by the run rather than composed by the operator; deterministic resume from the run log; and **no improvised corrective prompt patches**. An adoption that required a corrective patch SHALL be treated as having found a gap in the entry prompt, and that gap SHALL be recorded as an improvement proposal rather than accepted as normal use.
+The prompt SHALL state the intended operating model explicitly: one short pasted launcher and the one canonical entry prompt it loads; expected human responses at explicit approval gates; fresh-session handoff prompts generated by the run rather than composed by the operator; deterministic resume from the run log; and **no improvised corrective prompt patches**. An adoption that required a corrective patch or any additional procedural instruction SHALL be treated as having found a gap in the launcher or the entry prompt, and that gap SHALL be recorded as an improvement proposal rather than accepted as normal use.
 
 #### Scenario: No canonical source is supplied
 
-- **WHEN** an operator starts an adoption with the entry prompt and supplies no local canonical SpecBoot source
+- **WHEN** an operator starts an adoption with the launcher and supplies no local canonical SpecBoot source
 - **THEN** the run stops, reports that a validated canonical source is required, leaves the target repository byte-for-byte unchanged, and offers no alternative delivery mode
+
+#### Scenario: The launcher is the only thing the human pastes
+
+- **WHEN** an operator starts an adoption in a new client session
+- **THEN** the only text they paste is the launcher template filled in with the canonical source path, the canonical entry prompt is read from the validated source rather than pasted, and no part of the entry prompt's content had to be transcribed into the session
+
+#### Scenario: The launcher validates the candidate source before loading anything
+
+- **WHEN** the launcher receives a candidate `<SPECBOOT_SOURCE>`
+- **THEN** it verifies read-only that the guide, the phase directory, a readable `SKILL.md`, and a readable `ADOPTION-ENTRY-PROMPT.md` are all present in that source before it loads any orchestration instruction and before it writes anything to the target repository
+
+#### Scenario: An invalid candidate source stops the launcher with zero writes
+
+- **WHEN** any one of the four required artifacts is missing or unreadable in the candidate source
+- **THEN** the launcher stops, reports which artifact failed validation, loads no orchestration instruction, and leaves the target repository byte-for-byte unchanged with no `.specboot/` directory, discovery entry, manifest, or run log created
+
+#### Scenario: A valid source causes the complete entry prompt to be loaded
+
+- **WHEN** the launcher's four-artifact validation passes
+- **THEN** `ADOPTION-ENTRY-PROMPT.md` is read in full from the validated source and followed exactly, and that complete read happens before any adoption action is taken
+
+#### Scenario: The launcher duplicates no procedure
+
+- **WHEN** the launcher template is inspected for what it states
+- **THEN** it contains no adoption step, no client-selection procedure, no checkpoint protocol, and no `ADOPT` step contract, and its statement that no target-repository write precedes the approval gate refers to the gate the loaded entry file defines rather than defining it
+
+#### Scenario: The launcher takes exactly one runtime parameter
+
+- **WHEN** the launcher template's parameters are enumerated
+- **THEN** `<SPECBOOT_SOURCE>` is the only one, and every other input the adoption needs is obtained by the loaded entry prompt at run time
+
+#### Scenario: The launcher is client-neutral plain text
+
+- **WHEN** the launcher template is inspected for client-specific syntax
+- **THEN** it contains no client-specific `@` include syntax, no slash command, and no OpenSpec command, and nothing in it assumes a pre-installed skill
+
+#### Scenario: The runtime source path never reaches a committed artifact
+
+- **WHEN** an operator fills the launcher's `<SPECBOOT_SOURCE>` placeholder with a real path and runs an adoption
+- **THEN** that path exists only in the chat or runtime session, the committed launcher template still carries the placeholder, and no committed artifact in the target repository records the resolved path
 
 #### Scenario: The prompt offers no delivery-mode choice
 
@@ -63,10 +111,10 @@ The prompt SHALL state the intended operating model explicitly: one canonical en
 - **WHEN** the entry prompt would describe how a step is performed
 - **THEN** it invokes the `specboot-adopt` skill and names the canonical rule instead, and no `ADOPT` step contract, checkpoint protocol, manifest procedure, or de-bootstrap ordering is restated within it
 
-#### Scenario: The prompt is sufficient on its own
+#### Scenario: The mechanism is sufficient on its own
 
-- **WHEN** an adoption is started using only the entry prompt, with no additional operator instruction
-- **THEN** the run reaches its first documented approval gate without requiring a corrective prompt patch, and any patch that proves necessary is recorded as a gap in the entry prompt and raised as an improvement proposal
+- **WHEN** an adoption is started using only the filled-in launcher, with no additional operator instruction
+- **THEN** the run reaches its first documented approval gate without requiring a corrective prompt patch, and any patch or additional procedural instruction that proves necessary is recorded as a gap in the launcher or the entry prompt and raised as an improvement proposal
 
 #### Scenario: Handoff prompts are generated, not composed by the operator
 
@@ -76,17 +124,17 @@ The prompt SHALL state the intended operating model explicitly: one canonical en
 #### Scenario: Resume needs no new prompt
 
 - **WHEN** an interrupted adoption is resumed
-- **THEN** the same entry prompt resumes it deterministically from the durable run log, and a drift detection blocks the resume rather than silently continuing against changed content
+- **THEN** the same launcher and the entry prompt it loads resume it deterministically from the durable run log, and a drift detection blocks the resume rather than silently continuing against changed content
 
-#### Scenario: The prompt runs as ordinary text in a repository with no tooling
+#### Scenario: The mechanism runs as ordinary text in a repository with no tooling
 
-- **WHEN** the entry prompt is pasted into a session opened on a target repository that has no SpecBoot files, no OpenSpec installation, no `/opsx:*` commands, no discoverable `specboot-adopt` skill, and no `.specboot/` directory
-- **THEN** it runs as-is with no slash command, skill invocation, command infrastructure, installed package, or prior configuration required, and the absent tooling is treated as the expected cold-start state rather than a blocker
+- **WHEN** the launcher is pasted into a session opened on a target repository that has no SpecBoot files, no OpenSpec installation, no `/opsx:*` commands, no discoverable `specboot-adopt` skill, and no `.specboot/` directory
+- **THEN** it and the entry prompt it loads run as-is with no slash command, skill invocation, command infrastructure, installed package, or prior configuration required, and the absent tooling is treated as the expected cold-start state rather than a blocker
 
-#### Scenario: The source is requested and validated before anything is loaded or written
+#### Scenario: The source is validated before anything is loaded or written
 
 - **WHEN** the run begins
-- **THEN** the prompt requests the canonical source and validates `SPECBOOT_ADOPTION_GUIDE.md`, the `specboot-adoption/` phase directory, and a readable `ai-specs/skills/specboot-adopt/SKILL.md`, and no orchestration instruction is loaded and no target-repository write occurs until that validation has passed
+- **THEN** the launcher validates `SPECBOOT_ADOPTION_GUIDE.md`, the `specboot-adoption/` phase directory, a readable `ai-specs/skills/specboot-adopt/SKILL.md`, and a readable `ADOPTION-ENTRY-PROMPT.md` in the candidate source, and no orchestration instruction is loaded and no target-repository write occurs until that validation has passed
 
 #### Scenario: The initial session reads the canonical skill by source-relative path
 
@@ -133,10 +181,10 @@ The prompt SHALL state the intended operating model explicitly: one canonical en
 - **WHEN** the operator runs the generated handoff prompt in a fresh session
 - **THEN** it resumes from `BOOTSTRAP-MANIFEST.json` and the adoption run log, obtains a local source path from the machine-local store or by asking, verifies source identity against the recorded checksums, and blocks for human reconciliation when the source has drifted — and the handoff prompt itself carries no source path
 
-#### Scenario: The prompt is executable end to end from a virgin repository
+#### Scenario: The mechanism is executable end to end from a virgin repository
 
-- **WHEN** an operator follows the entry prompt, and only the entry prompt, in a repository with no SpecBoot files and no AI client configuration, against a valid canonical source
-- **THEN** every one of the seven steps — source validation, the direct `SKILL.md` read, explicit client selection, the exact-mutation approval, provisioning, stop-and-handoff, and fresh-session discovery — is performable from what the prompt states, with no step requiring an instruction the operator had to supply themselves
+- **WHEN** an operator pastes the filled-in launcher, and nothing else, in a repository with no SpecBoot files and no AI client configuration, against a valid canonical source
+- **THEN** every one of the seven steps — the launcher's validation and complete load of the entry prompt, the direct `SKILL.md` read, explicit client selection, the exact-mutation approval, provisioning, stop-and-handoff, and fresh-session discovery — is performable from what the launcher and the loaded prompt state, with no step requiring an instruction the operator had to supply themselves
 
 #### Scenario: The cold-start sequence is stated once
 

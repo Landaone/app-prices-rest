@@ -422,10 +422,21 @@ For questions, issues, or suggestions, visit [LIDR.co](https://lidr.co/ia-devs)
 A repository with **no** SpecBoot files and **no** AI client configuration cannot discover this
 workflow at all — nothing tells a client where the guide or the adoption skill is. For that case:
 
-An adoption starts from the single canonical entry prompt,
-`specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md`, pasted as ordinary prompt text into a
-session opened on the target repository. It needs no command infrastructure and no prior
-configuration there; it asks for the canonical source and the client selection at run time.
+An adoption starts from `specboot-adoption/bootstrap-kit/ADOPTION-LAUNCHER.template.md` — the
+**sole artifact copied into a new client session**. Fill in its one parameter, `<SPECBOOT_SOURCE>`,
+and paste it as ordinary prompt text into a session opened on the target repository.
+
+`specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md` is the **canonical procedure the launcher
+loads** — read in full from the validated source, never pasted by hand. Asking an operator to paste
+roughly 1,850 words makes transcription part of the contract, and a truncated or stale paste fails
+silently; a loaded file cannot.
+
+The launcher treats the supplied path as a **candidate**, not a trusted source. Before loading any
+instruction and before any target-repository write, it verifies read-only that four artifacts exist
+in it: `SPECBOOT_ADOPTION_GUIDE.md`, `specboot-adoption/`, a readable
+`ai-specs/skills/specboot-adopt/SKILL.md`, and a readable `ADOPTION-ENTRY-PROMPT.md`. **If any is
+missing or unreadable it stops and writes nothing to the target repository.** Neither file needs
+command infrastructure or prior configuration there; the client selection is obtained at run time.
 
 **Source-linked delivery, and it is the only mode:**
 

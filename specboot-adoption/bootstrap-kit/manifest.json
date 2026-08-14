@@ -2,10 +2,29 @@
   "$comment": "Bootstrap kit manifest. Lists CANONICAL repository-relative source paths. Contains references, never content. DELIVERY: source-linked is the ONLY mode this kit offers - a validated canonical source is a PRECONDITION, not a branch, and a run without one FAILS CLOSED with zero target-repository writes. Packaged-snapshot delivery is DEFERRED IN FULL to `add-specboot-packaged-snapshot-delivery`; the `entries` payload->target mapping and the pack-time assembly below are RETAINED AS INSTALLER MACHINERY for that deferred change and are read by no current run. The kit is CLIENT-AGNOSTIC and SOURCE-AGNOSTIC: it carries every client recipe but provisions only the explicitly selected one, and it assumes no particular canonical source location - the source is runtime input, and the resolved path is recorded in NO committed artifact.",
   "manifestVersion": "1.0.0",
   "entryPoint": {
-    "$comment": "The kit's single entry point. An adoption starts by running this prompt as ordinary prompt text from the target repository; it needs no command infrastructure, no installed package, and no prior configuration there. It asks for a canonical SOURCE, never for a delivery mode.",
+    "$comment": "ONE GOVERNED ENTRY MECHANISM, two files with strictly separated jobs. The LAUNCHER is the sole artifact a human pastes: one runtime parameter, a READ-ONLY validation of the four required source artifacts before any instruction load or target-repository write, a zero-write stop on failure, and one instruction - read the entry prompt COMPLETELY and follow it exactly before any adoption action. The ENTRY PROMPT is the canonical full cold-start procedure and is LOADED from the validated source, never pasted: a ~1,850-word paste makes transcription part of the contract, and a truncated or stale paste fails silently. The launcher duplicates NO adoption procedure, client-selection procedure, or checkpoint protocol, and refers to the pre-write approval gate the entry prompt defines rather than defining one. Neither needs command infrastructure, an installed package, or prior configuration in the target repository. The committed launcher carries the <SPECBOOT_SOURCE> placeholder; the resolved path stays in the pasted copy and reaches no committed artifact.",
+    "launcher": {
+      "id": "adoption-launcher-template",
+      "path": "specboot-adoption/bootstrap-kit/ADOPTION-LAUNCHER.template.md",
+      "usage": "sole human-pasted initial prompt",
+      "runtimeParameters": [
+        "<SPECBOOT_SOURCE>"
+      ],
+      "validatesReadOnlyBeforeLoadingOrWriting": [
+        "SPECBOOT_ADOPTION_GUIDE.md",
+        "specboot-adoption/",
+        "ai-specs/skills/specboot-adopt/SKILL.md",
+        "specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md"
+      ],
+      "onInvalidSource": "stop with zero target-repository writes, naming the failed check",
+      "onValidSource": "read ADOPTION-ENTRY-PROMPT.md completely and follow it exactly, before any adoption action",
+      "appliesToModes": [
+        "source-linked"
+      ]
+    },
     "id": "adoption-entry-prompt",
     "path": "specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md",
-    "usage": "sole initial prompt",
+    "usage": "canonical full cold-start procedure, loaded from the validated source by the launcher",
     "appliesToModes": [
       "source-linked"
     ]

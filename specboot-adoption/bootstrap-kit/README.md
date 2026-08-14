@@ -5,21 +5,48 @@ would otherwise leave open: the guide tells an AI agent what to do, but in a rep
 SpecBoot files and no AI client configuration, nothing lets any client discover the guide or the
 `specboot-adopt` skill before `ADOPT-03` has already copied SpecBoot in.
 
-## Start here: `ADOPTION-ENTRY-PROMPT.md`
+## Start here: `ADOPTION-LAUNCHER.template.md`
 
-[`ADOPTION-ENTRY-PROMPT.md`](ADOPTION-ENTRY-PROMPT.md) is the kit's **single entry point**. An
-adoption starts from it and from nothing else: the operator pastes it, as ordinary prompt text,
-into a session opened on the target repository.
+[`ADOPTION-LAUNCHER.template.md`](ADOPTION-LAUNCHER.template.md) is the kit's **single human-pasted
+entry point**, and the only file an operator ever copies. Fill in its one parameter —
+`<SPECBOOT_SOURCE>` — and paste it into a session opened on the target repository.
 
-It needs no command infrastructure — no slash command, no installed package, no `/opsx:*` command,
-no discoverable skill, no prior configuration of any kind in the target repository. Every one of
-those is an *output* of the adoption, so none can be a precondition of starting it.
+[`ADOPTION-ENTRY-PROMPT.md`](ADOPTION-ENTRY-PROMPT.md) is the **canonical full cold-start
+procedure**, and it is **loaded, never pasted**: the launcher reads it in full from the validated
+source. The two are **one governed entry mechanism**, not a prompt plus corrective patches.
 
-It is **parameterized**: it asks for the canonical source and the client selection at run time
-rather than carrying them. It asks for a **source**, never for a delivery mode — there is only one.
-It is complete in its **parameters and gates** and deliberately silent on **procedure**, naming
-canonical rules by reference so this kit and the guide stay the only statements of what the steps
-are.
+**Why a launcher rather than pasting the procedure.** The entry prompt runs to roughly 1,850 words.
+Asking an operator to paste that into every new session makes transcription part of the contract,
+and transcription fails silently — a truncated paste, a stale copy kept in someone's notes, or a
+paragraph lost to a scrolling chat box all produce a run executing a procedure nobody can diff
+against the canonical one. A loaded file cannot fail that way.
+
+**The launcher does not inherit the source's trust; it establishes it.** A supplied path is a
+*candidate*, not a source trusted because an operator typed it. Before loading any orchestration
+instruction and before any target-repository write, the launcher verifies **read-only** that four
+artifacts exist in the candidate: `SPECBOOT_ADOPTION_GUIDE.md`, `specboot-adoption/`, a readable
+`ai-specs/skills/specboot-adopt/SKILL.md`, and a readable `ADOPTION-ENTRY-PROMPT.md`. A failure
+**stops with zero target-repository writes**. Success is followed by exactly one instruction: read
+the entry prompt **completely**, and follow it exactly, before any adoption action.
+
+The launcher **duplicates no procedure** — no `ADOPT` step, no client-selection procedure, no
+checkpoint protocol — and refers to the pre-write approval gate the loaded entry file defines rather
+than defining one itself. The file operators copy is the file whose drift would spread fastest, so
+it holds a validation gate and one instruction, and nothing more.
+
+Neither file needs command infrastructure — no slash command, no installed package, no `/opsx:*`
+command, no discoverable skill, no prior configuration of any kind in the target repository. Every
+one of those is an *output* of the adoption, so none can be a precondition of starting it.
+
+The entry prompt is **parameterized**: it takes the canonical source as already validated by the
+launcher, and asks for the client selection at run time rather than carrying it. It concerns a
+**source**, never a delivery mode — there is only one. It is complete in its **parameters and
+gates** and deliberately silent on **procedure**, naming canonical rules by reference so this kit
+and the guide stay the only statements of what the steps are.
+
+**The runtime path stays out of the repository.** The committed template carries the
+`<SPECBOOT_SOURCE>` placeholder; the real path exists only in the filled-in copy pasted into a
+session, and is never written into any committed artifact.
 
 ## One delivery mode: source-linked. A validated source is a precondition, not a branch
 
@@ -109,7 +136,8 @@ Retiring the deferred mode must not silently retire the drift protection the kit
 
 | File | Role |
 |---|---|
-| `ADOPTION-ENTRY-PROMPT.md` | **the single entry point** — the sole initial prompt an adoption starts from |
+| `ADOPTION-LAUNCHER.template.md` | **the single human-pasted entry point** — one parameter, a read-only four-artifact validation, and one instruction: load the entry prompt |
+| `ADOPTION-ENTRY-PROMPT.md` | **the canonical full cold-start procedure** — loaded in full from the validated source by the launcher, never pasted |
 | `manifest.json` | the source-linked entry set, plus the payload→target mapping retained for the deferred mode |
 | `source-resolution.md` | how the canonical source is supplied, validated, recorded, and checked for drift — and why its absence refuses |
 | `client-autodiscovery.md` | the read-only probe route to client selection, which authorizes nothing |

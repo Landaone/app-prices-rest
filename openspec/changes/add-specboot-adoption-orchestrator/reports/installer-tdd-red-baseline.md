@@ -578,3 +578,89 @@ own entry, it removed the whole inventory including `.claude/CLAUDE.md`.
 
 RED only. No implementation file was changed by this task, and no historical section above this line
 was touched.
+
+---
+
+# Task 4.33 — RED: the launcher template's four proofs (ninth revision, 2026-08-15)
+
+Additive section. Nothing above this line is modified — the records above describe what was true
+when they were written, for the campaigns they cover.
+
+## What is under test, and why it is a file assertion
+
+The launcher is **prompt text an agent follows**, not a code path `init.js` executes. Its entire
+observable contract is what the committed template instructs, so the assertions are made over
+`specboot-adoption/bootstrap-kit/ADOPTION-LAUNCHER.template.md` itself. Test file:
+`packages/specboot/test/adoption-launcher.test.js`.
+
+## RED precondition, verified before the assertions were written
+
+`specboot-adoption/bootstrap-kit/ADOPTION-LAUNCHER.template.md` was confirmed **absent**:
+
+```
+$ ls -la specboot-adoption/bootstrap-kit/ADOPTION-LAUNCHER.template.md
+ls: specboot-adoption/bootstrap-kit/ADOPTION-LAUNCHER.template.md: No such file or directory
+```
+
+`ADOPTION-ENTRY-PROMPT.md` was confirmed **present** (16,482 bytes) — task 3.21 reconciles it, it
+does not create it.
+
+## Command and result
+
+```
+$ cd packages/specboot && node --test test/adoption-launcher.test.js
+```
+
+```
+ℹ tests 17
+ℹ suites 4
+ℹ pass 0
+ℹ fail 17
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 158.597419
+```
+
+Exit status: **1**.
+
+**17 assertions, 4 suites, 0 pass, 17 fail, 0 skipped, 0 todo.** Every one of the 17 failures
+carries the same expected missing-launcher reason, verified mechanically:
+
+```
+$ grep -c 'ADOPTION-LAUNCHER.template.md is absent' <output>   → 17
+$ grep -cE '^  ✔ ' <output>                                    → 0
+```
+
+**Zero premature passes.** No assertion passed against a tree with no launcher, which is what makes
+this a baseline rather than a formality.
+
+## The four assertion groups, all observed failing
+
+| Group | Proves | Failing assertions |
+|---|---|---|
+| **4.33(a)** | an invalid candidate source produces **zero writes** | 4 |
+| **4.33(b)** | a valid source causes the **complete** canonical entry file to be loaded | 3 |
+| **4.33(c)** | the launcher contains **no duplicated procedure** | 6 |
+| **4.33(d)** | **no runtime absolute path** reaches a committed artifact | 4 |
+
+Verbatim failure reason, identical across all 17:
+
+```
+AssertionError [ERR_ASSERTION]: ADOPTION-LAUNCHER.template.md is absent: the launcher template
+has not been created yet (task 3.20). This is the expected RED reason before implementation.
+
+false !== true
+```
+
+## Why the order matters here
+
+`4.33` runs **before** `3.20` by design. Creating the launcher first would make these assertions
+pass on their first execution, proving only that a file exists — the fix would be unverified and
+the baseline unrecoverable. This is the same discipline design **D-O** imposed on the group 4
+campaign after the order-dependence defect, applied to the launcher chain.
+
+## Scope
+
+RED only. No launcher was created, no assertion was weakened, and no other test file, report, or
+implementation file was changed by this task.

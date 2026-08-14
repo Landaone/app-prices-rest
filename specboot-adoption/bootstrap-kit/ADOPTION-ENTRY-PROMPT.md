@@ -1,12 +1,16 @@
 # SpecBoot Adoption — Canonical Entry Prompt
 
-**This file is the prompt.** Paste everything below the line into a session opened on the
-repository you want to adopt SpecBoot into. It is the **sole initial prompt**: nothing else is
-typed to start an adoption, and no corrective patch should be needed to keep one going.
+**This file is the canonical procedure, and it is loaded — not pasted.** An adoption is started by
+pasting `ADOPTION-LAUNCHER.template.md`, which validates the canonical source read-only and then
+reads this file in full from it. Do not paste this file into a session: a procedure that is copied
+by hand can arrive truncated or stale, and nobody can diff what was actually pasted.
+
+Together the two are **one governed entry mechanism** — one short launcher, and the one canonical
+entry prompt it loads. No corrective patch should be needed to keep an adoption going.
 
 It is **parameterized** — it asks for what it needs at run time and carries no answers. Do not
 edit it to insert your source path, your client, or your task. If you found yourself wanting to,
-that is a gap in the prompt: record it as an improvement proposal.
+that is a gap in the mechanism: record it as an improvement proposal.
 
 ---
 
@@ -34,7 +38,8 @@ Three consequences bind everything below:
    invocation, and it requires no command infrastructure, no installed package, and no pre-existing
    configuration in the target repository.
 2. **Never assume `specboot-adopt` is installed or discoverable here.** It is not. You will read it
-   from the canonical source, by path, as described in §2.
+   from the canonical source, by path, as described in §2. The same is true of this file: you are
+   reading it from the canonical source because the launcher validated that source first.
 3. **Do not reach for any tool the adoption has not installed yet.** See the embargo in §6.
 
 ## 1. The seven steps you will perform
@@ -44,7 +49,7 @@ that comes from the canonical skill and the guide. It says what happens, and whe
 
 | # | Step | Ends in |
 |---|---|---|
-| 1 | Ask for the canonical source; validate it | a validated source, or a refusal with zero writes |
+| 1 | Establish the canonical source — confirm the launcher's validation, or run it here | a validated source, or a refusal with zero writes |
 | 2 | Read the validated `SKILL.md` directly, by source-relative path | the orchestration procedure, in context |
 | 3 | Obtain an explicit, supported client selection | a named selection, or a refusal with zero writes |
 | 4 | Run the preflight; present the exact mutation inventory | **[HUMAN APPROVAL REQUIRED]** |
@@ -52,10 +57,13 @@ that comes from the canonical skill and the guide. It says what happens, and whe
 | 6 | Stop, and generate the fresh-session handoff prompt | this session ends here |
 | 7 | *(fresh session)* Resume, verify identity, discover natively | the discovery probe's evidence |
 
-## 2. Step 1 — ask for the canonical source, and validate before you load or write
+## 2. Step 1 — establish the canonical source, and validate before you load or write
 
-Ask this first, and wait for a real answer. Do not guess, and do not infer it from what you can see
-on disk.
+**You normally arrive here with this already settled.** The launcher named `<SPECBOOT_SOURCE>` and
+validated it read-only before reading this file, so **confirm that result and move on — do not
+re-ask for a path you were already given, and do not repeat a check that has already passed.**
+
+If you reached this file some other way and no validated source is established, obtain it here:
 
 | # | Question | Notes |
 |---|---|---|
@@ -64,9 +72,11 @@ on disk.
 > **There is no delivery-mode question.** This adoption links to a canonical source and copies
 > nothing. A validated source is a **precondition of the run, not a branch within it** — see §7.
 
-Then, in this order. The ordering is the contract, not a suggestion.
+Then, in this order. The ordering is the contract, not a suggestion — whether the validation below
+was performed by the launcher or here, it is complete **before** anything is loaded or written.
 
-1. **Validate the canonical source.** Confirm all three exist inside `<SPECBOOT_SOURCE>`:
+1. **Validate the canonical source**, unless the launcher already did. Confirm all three exist
+   inside `<SPECBOOT_SOURCE>`:
    - `SPECBOOT_ADOPTION_GUIDE.md`
    - `specboot-adoption/` (the phase directory)
    - `ai-specs/skills/specboot-adopt/SKILL.md` — a **readable file**, not merely a present
@@ -245,7 +255,8 @@ human-approval gates or genuine external blockers.
 
 ## 9. How this adoption is meant to run
 
-- **One canonical entry prompt.** This one. There is no second prompt to find.
+- **One launcher, and the one canonical entry prompt it loads.** The operator pastes the launcher;
+  it loads this file from the validated source. There is no third artifact to find.
 - **Expected human responses at explicit gates.** Q1–Q3 above, the exact-mutations gate, and every
   approval gate the contract defines. A gate is a stop, not a notification.
 - **Handoff prompts are generated by the run**, never composed by the operator.

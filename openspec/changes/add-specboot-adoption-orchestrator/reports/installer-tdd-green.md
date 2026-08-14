@@ -571,3 +571,91 @@ relaxed. The 4.30 retirements are unchanged — `test/deferred/` still holds 3 f
 
 `packages/specboot/bin/init.js` and `test/debootstrap-replacement.test.js` only. No planning
 artifact, no historical report section, no phase file, and no `SKILL.md` was changed.
+
+---
+
+# Task 5.28 — GREEN: the launcher template's four proofs (ninth revision, 2026-08-15)
+
+Additive section. Nothing above this line is modified.
+
+## 1. Targeted launcher test
+
+```
+$ cd packages/specboot && node --test test/adoption-launcher.test.js
+```
+
+```
+ℹ tests 17
+ℹ suites 4
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 142.516262
+```
+
+Exit status: **0**. All four assertion groups that were observed failing under task 4.33 now pass:
+
+| Group | Proves | RED | GREEN |
+|---|---|---|---|
+| **4.33(a)** | an invalid candidate source produces **zero writes** | 4 fail | 4 pass |
+| **4.33(b)** | a valid source causes the **complete** canonical entry file to be loaded | 3 fail | 3 pass |
+| **4.33(c)** | the launcher contains **no duplicated procedure** | 6 fail | 6 pass |
+| **4.33(d)** | **no runtime absolute path** reaches a committed artifact | 4 fail | 4 pass |
+| | **total** | **0 pass / 17 fail** | **17 pass / 0 fail** |
+
+## 2. Full suite, first invocation from a clean-checkout precondition
+
+The assembled `bootstrap-payload/` was **removed** before the run, reproducing a clean checkout
+where it has never been generated (design **D-O**: no test may depend on a prior invocation's side
+effect, and the suite must pass on its *first* invocation).
+
+```
+$ rm -rf packages/specboot/bootstrap-payload
+$ cd packages/specboot && npm test
+```
+
+```
+ℹ tests 112
+ℹ suites 32
+ℹ pass 112
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17466.266961
+```
+
+Exit status: **0**. **112 tests, 32 suites, 112 pass, 0 fail, 0 cancelled, 0 skipped, 0 todo**, on a
+**first** invocation. No second run was needed and none was performed to reach this result.
+
+## 3. No assertion was weakened, deleted, skipped, or marked todo
+
+The launcher test file was **not edited between the RED and GREEN runs** — the same file that
+produced 17 failures produced 17 passes, with only the launcher template appearing in between.
+
+| Measure | RED (4.33) | GREEN (5.28) |
+|---|---|---|
+| `test(...)` blocks in `adoption-launcher.test.js` | 17 | 17 |
+| `describe(...)` suites | 4 | 4 |
+| `assert.*` calls | 31 | 31 |
+| `.skip(` / `.todo(` / `.only(` | 0 | 0 |
+| executed / passing | 17 / 0 | 17 / 17 |
+
+Suite-wide: **12 active test files**, **304 `assert.*` calls**, **0** skipped, todo, or only-scoped
+assertions. `git status --short packages/specboot/test/` reports **exactly one** entry —
+`?? adoption-launcher.test.js` — so no pre-existing test file was modified, relaxed, or removed to
+reach GREEN.
+
+## 4. What made the four groups pass
+
+`specboot-adoption/bootstrap-kit/ADOPTION-LAUNCHER.template.md` (task 3.20), plus the bounded
+reconciliation of `ADOPTION-ENTRY-PROMPT.md` (task 3.21) and the kit README and manifest
+registration (tasks 3.1, 3.2). No installer code path was added: the launcher is prompt text the
+suite validates as a committed artifact, not a branch `init.js` executes.
+
+## Scope
+
+No skill campaign was rerun. `SKILL.md` is untouched, the S-1…S-14 scenarios were not re-executed,
+and no guide-wide campaign ran. No historical section above this line was modified.
