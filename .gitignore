@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### SpecBoot bootstrap (ADOPT-00) ###
+# .specboot/adoption/ is durable and intentionally NOT ignored.
+.specboot/bootstrap/
+.specboot/local/

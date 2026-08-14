@@ -1,0 +1,66 @@
+{
+  "manifestVersion": "1.0.0",
+  "createdAt": "2026-08-15T08:32:00Z",
+  "source": {
+    "delivery-mode": "source-linked",
+    "local-path-resolution": "The local canonical source path is resolved per machine and is not stored in the committed manifest.",
+    "guide-checksum": "2ee3e50945a987b07ef3fba2fa345621a47f0cfcaa42cd02843bd63be17d7ca0",
+    "skill-checksum": "2448934c76467fb9f33a597169138eea7585b0e5c1d0f567e18fbb87be4f7fd3",
+    "git": {
+      "status": "recorded",
+      "worktree": "clean",
+      "commit": "9f08281dae42eb65d0a349c1876e6b584fe6e791"
+    },
+    "readOnly": true
+  },
+  "selectedClient": "Claude",
+  "clientSelection": {
+    "route": "autodiscovery",
+    "candidatesDisplayed": [
+      "Claude: not found — no .claude/, no .claude/skills/, no .claude/settings.json, no CLAUDE.md",
+      "Kiro: not found — no .kiro/, no .kiro/skills/, no .kiro/settings/",
+      "Codex: not found — no .agents/, no .agents/skills/, no AGENTS.md, no codex.md"
+    ],
+    "selected": ["Claude"],
+    "notSelected": ["Kiro", "Codex"]
+  },
+  "environment": {
+    "os": "Darwin 22.6.0 (x86_64)",
+    "shell": "zsh",
+    "symlinksSupported": true,
+    "symlinkDetermination": "capability-detected",
+    "isGitRepository": true
+  },
+  "entries": [
+    {
+      "path": ".claude/skills/specboot-adopt",
+      "source": {
+        "canonicalPath": "ai-specs/skills/specboot-adopt",
+        "channel": "source-linked"
+      },
+      "checksum": "2448934c76467fb9f33a597169138eea7585b0e5c1d0f567e18fbb87be4f7fd3",
+      "ownership": "bootstrap-created",
+      "mode": "symlink",
+      "intended-permanent-replacement": ".claude/skills/specboot-adopt -> ../../ai-specs/skills/specboot-adopt",
+      "cleanup-status": "pending",
+      "machineLocal": true
+    },
+    {
+      "path": ".claude/CLAUDE.md",
+      "source": {
+        "canonicalPath": "SPECBOOT_ADOPTION_GUIDE.md",
+        "channel": "source-linked"
+      },
+      "checksum": "2ef4b559cd66617818ff1f5e8e302fb8366f0772277f070776ebc9e5e6b7774c",
+      "ownership": "bootstrap-created",
+      "mode": "real-file",
+      "intended-permanent-replacement": null,
+      "cleanup-status": "pending",
+      "machineLocal": false
+    }
+  ],
+  "modeObligations": {
+    "payload": "SKIPPED — source-linked mode",
+    "container": "SKIPPED — source-linked mode"
+  }
+}
