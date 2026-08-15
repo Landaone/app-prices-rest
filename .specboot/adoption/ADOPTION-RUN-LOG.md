@@ -372,10 +372,23 @@ expected state — never a blocker and never an error.
 
 | # | Step or group | Grouping justification | Validation | Evidence pointers | Allowlist match | Ready declared | Approval | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| *(none yet)* | `ADOPT-00` | n/a | not complete — fresh-session gate outstanding | this run log | n/a | **NO** | n/a | n/a — nothing staged | n/a | not assessed | not pushed | 3 (below) |
+| 1 | `ADOPT-00` | n/a — single step, default one-checkpoint-per-step | PASS on every criterion `09-bootstrap.md` names (see evidence block above) | this run log's `ADOPT-00` evidence block; `BOOTSTRAP-MANIFEST.json`; `ADOPTION-AUTHORIZATION.md` | **YES** — staged set `{.gitignore, .claude/CLAUDE.md, .specboot/adoption/BOOTSTRAP-MANIFEST.json, .specboot/adoption/ADOPTION-RUN-LOG.md, .specboot/adoption/ADOPTION-AUTHORIZATION.md}` is exactly the fixed durable-state set plus the one non-machine-local Claude discovery entry; `.claude/skills/specboot-adopt` (machine-local symlink) correctly excluded, confirmed via `git status --ignored` (`!!`) and an independent reviewer agent | **YES** | **Commit: auto-approved via standing authorization** (`ADOPTION-AUTHORIZATION.md` Gate 3b, granted 2026-08-15 by Landaone) — allowlist match YES, so no live question asked; auto-approval itself recorded here as evidence, not presented as a live human review. **Push: auto-approved under the same standing authorization**, its fast-forward and unchanged-remote-impact conditions independently verified below before the push ran. | `.gitignore`, `.claude/CLAUDE.md`, `.specboot/adoption/BOOTSTRAP-MANIFEST.json`, `.specboot/adoption/ADOPTION-RUN-LOG.md`, `.specboot/adoption/ADOPTION-AUTHORIZATION.md` — independently reviewed by a separate agent (see below) before commit; clean bill of health, one disclosed non-blocking observation | `1c2198e650797fdb799564a3cad020387027c0a0` | Inspected read-only via `gh api` against `Landaone/app-prices-rest` (public, not archived, default branch `master`): 0 registered Actions workflows, 0 webhooks, 0 rulesets; working branch `experiment/specboot-ai-adoption-v2` did not exist on the remote (404), so no branch protection could apply and the push creates a new ref rather than rewriting one. **Verdict: no automation triggered; this determination is itself the `ADOPT-00` remote-impact baseline** the standing authorization's conditions reference going forward. | **Pushed** — `git push -u origin experiment/specboot-ai-adoption-v2`, exit 0, `* [new branch] experiment/specboot-ai-adoption-v2 -> experiment/specboot-ai-adoption-v2`. Not a force push; the only branch named by this run. No PR opened (correctly withheld — non-negotiable 6: no PR until `ADOPT-00`…`ADOPT-19` are all PASS). | 4 (see Improvement proposals table) |
 
-No checkpoint was declared. `ADOPT-00` has not reached PASS, and readiness is never declared while
-a covered step is PENDING. Nothing was staged, committed, or pushed by this session.
+**Independent review of the staged diff** (checkpoint protocol step 5): performed by a separate
+`general-purpose` subagent with no prior context on this run, given only the working directory and
+the declared allowlist. Findings: staged set matched the allowlist exactly; `.gitignore` diff was a
+pure append; `.claude/CLAUDE.md` carried a reasonable delimited pointer block with no copied
+canonical content, secrets, or absolute paths; `ADOPTION-AUTHORIZATION.md` was internally consistent
+with no unfilled placeholders; no secrets or credentials found anywhere in the staged diff. One
+disclosed, non-blocking observation: `ADOPTION-RUN-LOG.md`'s narrative evidence text (not the
+manifest, not any discovery entry) contains three `/Users/landaeta/...` paths, from recording
+command output verbatim (a `readlink` result, a PATH lookup, and linked-worktree `.git` file
+contents) per the evidence-discipline rule ("record the exact command... and its output"). This is
+consistent with the previous session's own already-recorded practice in this same run log (e.g. the
+`codegraph` PATH location, worktree inode numbers) and does not violate the guide's actual
+restriction, which is scoped to the **manifest** and **discovery entries** never carrying a resolved
+absolute path (confirmed clean in both) — not to the run log's evidentiary narrative. Reported to the
+operator for awareness given the target repository is public; not treated as blocking.
 
 ---
 
