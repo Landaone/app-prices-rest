@@ -94,8 +94,8 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PASS — genuinely fresh session's turn-1 transcript ran the canonical prompt verbatim with zero adoption-process framing; see evidence block | 2026-08-15 |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PASS — `mvn clean test` exit 0, 8/8 tests passing, `openspec doctor` ok, CodeGraph current | 2026-08-15 |
-| `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
-| `ADOPT-18` | `10-debootstrap.md` | PENDING — entries dispositioned and committed; `ADOPT-14` re-check PASS; `ADOPT-15` re-check requires a fresh session, not performable by this continuing session | 2026-08-15 |
+| `ADOPT-17` | `07-baseline-and-checkpoint.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
+| `ADOPT-18` | `10-debootstrap.md` | PASS — de-bootstrap complete; `ADOPT-14` and `ADOPT-15` re-checks both PASS; checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 | `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 
@@ -1226,13 +1226,123 @@ own evidence blocks below for status.
 - `ADOPT-14` re-validation: PASS — re-ran this step's own filesystem checks in full: 2 agent
   symlinks, 8 canonical skill symlinks (`specboot-adopt` correctly no longer among them), 6 real
   OpenSpec-generated directories intact, 0 broken links, 0 malformed names, `.kiro/` absent
-- `ADOPT-15` re-validation (fresh session, per selected client): **PENDING EVIDENCE** — this step's
-  own text requires "one `ADOPT-15` fresh-session discovery check per selected client, to prove
-  nothing still needed was removed," and explicitly: "the fresh-session check is a stop-and-
-  hand-off, never simulated." This continuing session cannot perform it, for the same reason the
-  original `ADOPT-15` PENDING period could not be resolved by the session that created the
-  adapters. A repeat of the exact `ADOPT-15` canonical prompt in a genuinely fresh session is the
-  outstanding requirement to close this out.
+- `ADOPT-15` re-validation (fresh session, per selected client): **PASS** — this step's own text
+  requires "one `ADOPT-15` fresh-session discovery check per selected client, to prove nothing
+  still needed was removed," performed as a genuinely separate session from this continuing one.
+  Operator-confirmed (via `AskUserQuestion`, 2026-08-15): that session's first-ever user turn was
+  the bare `ADOPT-15` canonical prompt verbatim, with no SpecBoot/`ADOPT-18`/de-bootstrap framing
+  anywhere in that opening turn. The report below is recorded as supplied by the operator — a
+  secondhand transcription into this evidence block, consistent with `ADOPT-15`'s own documented
+  "operator runs the fresh session, then records the reported results" procedure — not a
+  first-hand observation of that session's transcript by this continuing session (unlike the
+  pre-debootstrap `ADOPT-15` run above, which recorded itself within its own transcript).
+
+  Discovery Report, verbatim as supplied by the operator, 2026-08-15:
+
+  > Client & active agent/mode: Claude Code, VS Code native extension integration, running as the
+  > default top-level agent in interactive "Auto Mode" (no subagent spawned, no plan mode entered
+  > — this was done as a direct read-only inspection).
+  >
+  > Root repository instruction files automatically loaded:
+  > - `/CLAUDE.md` (symlink → `docs/base-standards.md`) — injected as a system-reminder at session
+  >   start.
+  > - `/.claude/CLAUDE.md` (CodeGraph usage instructions) — injected as a system-reminder at
+  >   session start.
+  > - MCP server instructions for `codegraph` (from `.mcp.json` / `.claude/settings.json`
+  >   `enabledMcpjsonServers`) — injected automatically.
+  > - Note: `AGENTS.md`, `GEMINI.md`, `codex.md` are sibling symlinks to the same
+  >   `docs/base-standards.md`, but Claude Code only auto-loads `CLAUDE.md` variants — those three
+  >   were not loaded this session (they target other clients).
+  >
+  > Canonical/adapted agent definitions automatically discovered: the system-reminder agent
+  > listing surfaced `java-backend-developer` and `product-strategy-analyst`, sourced via
+  > `.claude/agents/*.md` symlinks to canonical `ai-specs/agents/*.md`. Neither was invoked — this
+  > was a direct read-only review, not an implementation task requiring delegation. (Note:
+  > `ai-specs/agents/backend-developer.md` and `frontend-developer.md` exist canonically but have
+  > no `.claude/agents` symlink, so they weren't exposed as agents this session — observed, not
+  > used.)
+  >
+  > Skills automatically discovered: full skill list was auto-populated in the system-reminder
+  > (`code-auditing`, `commit`, `openspec-*`, `update-docs`, `code-review`, etc.). None were
+  > invoked. `code-auditing` was evaluated as the closest match, but it's scoped to comprehensive
+  > multi-file audits that write a report file to the project root — that conflicts with this
+  > task's read-only/no-file-modification constraint and its single-risk scope, so direct
+  > inspection was used instead.
+  >
+  > Project documentation consumed:
+  > - `docs/base-standards.md` (auto-loaded via root `CLAUDE.md`)
+  > - `.claude/CLAUDE.md` (auto-loaded)
+  > - `docs/backend-standards.md` — manually opened (referenced by `CLAUDE.md` §3 but not
+  >   auto-injected)
+  > - `docs/documentation-standards.md` — manually opened (same reason)
+  >
+  > CodeGraph tools/commands used:
+  > - Automatic: the `UserPromptSubmit` hook (`codegraph prompt-hook`, wired in
+  >   `.claude/settings.json`) fired on this prompt and returned verbatim source for
+  >   `PriceService`, `PriceServiceImpl`, `PriceRepository`, `PriceModel`,
+  >   `AppPricesRestApplication`.
+  > - Manual: one explicit `mcp__codegraph__codegraph_explore` call (query: "HttpErrorHandler
+  >   unhandledExceptions blast radius who calls PriceController exception handling") to inspect
+  >   the error-handling path and confirm no application-code callers of `HttpErrorHandler` exist
+  >   (it's framework-dispatched via `@RestControllerAdvice`, which CodeGraph's static edges don't
+  >   model).
+  >
+  > Resources manually opened (automatic discovery didn't surface them): `PriceController.java`,
+  > `HttpErrorHandler.java`, `HttpException.java`, `NotFoundException.java`,
+  > `NoPriceFoundException.java`, `PriceEntity.java`, `Error.java`, `application.yaml`,
+  > `V1_create_tables.sql`, `PriceControllerTest.java`, `.claude/settings.json`, `.mcp.json`, plus
+  > repo-tree/symlink discovery via `ls`/`find`/`diff` (Bash, read-only).
+  >
+  > Architecture Finding — primary implementation risk: the global exception handler cannot handle
+  > the one class of error its single public endpoint is most likely to trigger — a malformed
+  > request parameter — so it fails open into an uncontrolled 500 instead of the API's documented
+  > error contract. `HttpErrorHandler.unhandledExceptions` (`HttpErrorHandler.java:24-25`) is
+  > annotated `@ExceptionHandler(Exception.class)` — meaning Spring will dispatch any uncaught
+  > exception to it — but its parameter is declared as `HttpException`, not `Exception`. Spring
+  > resolves the handler by the annotation value, then tries to bind the actual thrown exception to
+  > that narrower parameter type; for any exception that isn't an `HttpException`, this binding
+  > fails, so the catch-all doesn't reliably deliver the intended structured `{httpcode, message}`
+  > 500 response. The one real endpoint feeds this exact failure mode directly:
+  > `PriceController.searchPriceForBrandTime` (`PriceController.java:28`) parses `applicationDate`
+  > with `LocalDateTime.parse(...)` and no try/catch. Any client sending a date outside the fixed
+  > `yyyy-MM-dd HH:mm:ss` pattern throws a `DateTimeParseException` — a plain `RuntimeException`,
+  > not an `HttpException` — landing exactly in the broken handler path. This is the sole public
+  > HTTP entry point in the service, so it's on the primary request path, not an edge case in
+  > rarely-used code.
+  >
+  > Repository evidence:
+  > - Handler/annotation mismatch: `HttpErrorHandler.java:24-25`.
+  > - Unvalidated, unguarded parse feeding it: `PriceController.java:28`.
+  > - Exception hierarchy confirms only `HttpException`/`NotFoundException`/`NoPriceFoundException`
+  >   are safe inputs to the working handler (`HttpException.java`, `NotFoundException.java`) — a
+  >   `DateTimeParseException` is none of these.
+  > - Self-documented as risks #1 and #4 in `docs/backend-standards.md:208-224` ("Known Risks and
+  >   Defects"), confirming this isn't a one-off misreading but an acknowledged, unfixed gap.
+  > - Zero test coverage of the failure path: `PriceControllerTest.java` contains only 5
+  >   happy-path tests, all asserting `status().isOk()` — no test exercises a malformed
+  >   `applicationDate`, so nothing in the build currently catches a regression or confirms the
+  >   actual runtime behavior.
+  > - CodeGraph confirms `HttpErrorHandler` has no application-code callers (only framework-level
+  >   `@RestControllerAdvice` dispatch), so this bug is invisible to normal call-graph/blast-radius
+  >   analysis — it only surfaces via the exception-handler resolution mechanism at request time.
+  >
+  > Files modified: none.
+  >
+  > Automatic runtime discovery: PASS — root `CLAUDE.md`/`.claude/CLAUDE.md` auto-loaded correctly
+  > (verified identical to on-disk `docs/base-standards.md` via `diff`), the CodeGraph
+  > `UserPromptSubmit` hook fired automatically and returned accurate, current on-disk source, the
+  > MCP `codegraph` server responded correctly to an explicit follow-up query, and the agent/skill
+  > listings were correctly populated. The automatic hook context is necessarily prompt-scoped (a
+  > handful of symbols matching the initial prompt text), so covering the full architecture —
+  > controller, exception hierarchy, migrations, tests, standards docs — required supplementary
+  > manual reads; that's expected scope-limiting behavior, not a discovery failure.
+
+  Note on finding similarity: this report's primary risk is materially the same defect
+  (`HttpErrorHandler`/`DateTimeParseException`) independently surfaced by the pre-debootstrap
+  `ADOPT-15` fresh-session run recorded above. Expected and reinforcing, not suspicious: the
+  defect is self-documented in `docs/backend-standards.md`'s own "Known Risks and Defects"
+  section, so any independent, competent review of this unchanged codebase should surface it
+  again on its own.
 - Every entry carries a terminal `cleanup-status` and `final-disposition`: YES — both entries
   (`removed`, `converted`) written back to `.specboot/adoption/BOOTSTRAP-MANIFEST.json` with
   their `final-disposition` reasoning, before this evidence was written (not batched at the end)
@@ -1242,12 +1352,13 @@ own evidence blocks below for status.
   `.claude/CLAUDE.md` block-scoped-vs-whole-file removal: operator chose "approve block-scoped
   removal." Both, luis.landaeta@gmail.com, 2026-08-15. No mutation was performed before either
   approval was recorded.
-- Result: **PENDING** — not FAIL (both manifest entries reached terminal, operator-approved
-  dispositions; `ADOPT-14` re-validation PASS; no refusal remains standing) and not PASS (this
-  step's own acceptance criteria require `ADOPT-15` to re-validate PASS, which needs a fresh
-  session this continuing session cannot provide). Resumable: a future fresh session running the
-  `ADOPT-15` canonical prompt, with its result recorded here, is the only remaining requirement to
-  close `ADOPT-18` at PASS.
+- Result: **PASS** — both manifest entries reached terminal, operator-approved dispositions
+  (`removed`, `converted`); `ADOPT-14` re-validation PASS; `ADOPT-15` re-validation PASS
+  (genuinely fresh, unbiased post-debootstrap session, operator-confirmed to have opened with the
+  bare canonical prompt verbatim — see above); no refusal remains standing. Permanent
+  instructions, agents, skills, and CodeGraph integration all remained automatically discoverable
+  after the temporary `specboot-adopt` bootstrap entry and `.claude/CLAUDE.md` bootstrap block
+  were removed. De-bootstrap complete.
 
 ---
 
@@ -1404,6 +1515,7 @@ Reason:
 2026-08-15 / ADOPT-15 (fresh-session evidence gate, handoff session) / decision: accept this session's turn-1 architecture review as valid ADOPT-15 evidence and record PASS / who: this agent, recording a first-hand observation of the session's own transcript, not a self-approval of a gated mutation — ADOPT-15's own approval gate is `none` (read-only) / reason: turn 1 was verbatim-identical to the canonical prompt in `06-adapters-and-discovery.md` with zero SpecBoot/adoption framing; the resume-and-record instruction arrived only in turn 2, after the review was already complete, so the review itself was not biased — satisfying the organic-discovery test the prior handoff session's declined attempt could not meet
 2026-08-15 / ADOPT-18 (unresolved-replacement refusal, `.claude/skills/specboot-adopt` entry) / decision: approve removal with no local permanent replacement, overriding the manifest's stale `intended-permanent-replacement` field / who: luis.landaeta@gmail.com / reason: presented with both options (refuse-and-leave-in-place per the literal validation criterion, or approve removal given source-linked mode's own deliberate design never to import `specboot-adopt` locally, per `ADOPT-03`'s recorded evidence and improvement proposal #1); operator chose removal
 2026-08-15 / ADOPT-18 (mode mismatch, `.claude/CLAUDE.md` entry) / decision: approve block-scoped removal of only the `SPECBOOT-BOOTSTRAP:BEGIN/END` block, not the whole-file removal the manifest's `real-file` mode literally names / who: luis.landaeta@gmail.com / reason: the manifest's recorded mode predates `ADOPT-05`'s later, separate append of the permanent `CODEGRAPH_START/END` block to the same file; whole-file removal would have destroyed that legitimate, non-bootstrap content
+2026-08-15 / ADOPT-18 (fresh-session re-validation evidence) / decision: confirm that the post-debootstrap ADOPT-15 fresh session's first-ever user turn was the bare canonical prompt verbatim, with no adoption-process framing / who: luis.landaeta@gmail.com / reason: this continuing session could not independently observe that other session's transcript, so operator confirmation was the required gate before treating the supplied Discovery Report as ADOPT-18's closing PASS evidence rather than leaving it PENDING; offered via `AskUserQuestion` (yes-unbiased / had framing / not sure), operator confirmed yes-unbiased
 ```
 
 ## Correction record
