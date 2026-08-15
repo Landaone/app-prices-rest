@@ -680,6 +680,8 @@ The orchestrator SHALL declare a checkpoint ready for human review with: the che
 
 Each independently validated checkpoint SHALL proceed in this order: present the checkpoint evidence and the exact Git scope as a precise file list rather than a summary; obtain explicit human approval of the checkpoint at a `[HUMAN APPROVAL REQUIRED]` gate; stage only the intended files, never an unconditional `git add -A`, apply the full staged-scope checklist, and re-run a fresh independent review after any correction; commit; determine and report the remote impact; and push to the current working branch only, after a second, separate `[HUMAN APPROVAL REQUIRED]` gate. A commit approval SHALL NOT be treated as a push approval, and neither SHALL carry forward to a subsequent checkpoint.
 
+**Both gates MAY auto-approve, mechanically, when every one of these holds**: the exact staged file list is a subset of the checkpoint's step's declared `Allowed modifications`; a standing authorization recorded in `ADOPTION-AUTHORIZATION.md` for this run covers the checkpoint's class; the push, if reached, is fast-forward; and the remote-impact assessment is unchanged from the `ADOPT-00` baseline (no new CI, ruleset, webhook, branch protection, force push, pull request, deployment, or destructive Git operation). Auto-approval SHALL be recorded as evidence — including an explicit `Allowlist match: YES` result — in the checkpoint ledger exactly as a live approval is, and SHALL NOT be presented as though a human reviewed it. Any staged path that is not a member of the step's declared `Allowed modifications` SHALL NOT be treated as a pending question: it SHALL be `FAIL_CLOSED`, reported by its exact unexpected path, and SHALL block the checkpoint until resolved.
+
 This protocol SHALL be defined **once** as a reusable procedure in canonical adoption-contract content that is already inside the bounded per-step working set, so that any step can invoke it without loading an additional file. Every independently validated step or justified group SHALL invoke that one definition. The step that captures the completed permanent adoption — the final checkpoint of the adoption itself (`ADOPT-17`) — SHALL retain its own precondition and its own position in the step sequence, and SHALL reuse the shared protocol rather than defining a competing copy of it; its precondition SHALL NOT be treated as a precondition of the protocol itself. Being the final checkpoint *of the adoption* SHALL NOT be read as being the last checkpoint of the workflow: the steps that follow it — de-bootstrap (`ADOPT-18`), which commits the updated manifest, and the end-to-end pilot (`ADOPT-19`) — are themselves independently validated steps and SHALL each form their own checkpoint under this protocol. The orchestration skill's reference material MAY explain how the orchestrator drives the protocol and records its evidence, but SHALL NOT restate or redefine the protocol's normative steps, since a second statement of the same procedure would become a competing authority that drifts from the contract.
 
 #### Scenario: Protocol is defined once and invoked many times
@@ -716,6 +718,59 @@ This protocol SHALL be defined **once** as a reusable procedure in canonical ado
 
 - **WHEN** the staged scope is corrected after review
 - **THEN** a fresh independent review of the corrected staged diff runs before commit approval is requested, and the reviewer that made the correction is not treated as the last check
+
+#### Scenario: Staged content matches the step's allowlist and a standing authorization is granted
+
+- **WHEN** a checkpoint's exact staged file list is a subset of the step's declared `Allowed modifications`, and `ADOPTION-AUTHORIZATION.md` grants a standing authorization covering it whose conditions still hold
+- **THEN** the commit and push gates auto-approve, and the checkpoint ledger records the auto-approval as evidence, including an `Allowlist match: YES` result
+
+#### Scenario: An unexpected path appears in the staged set
+
+- **WHEN** a checkpoint's staged file list contains a path outside the step's declared `Allowed modifications`
+- **THEN** the checkpoint is `FAIL_CLOSED`, naming the exact unexpected path, and is never presented as a routine approval question
+
+#### Scenario: Standing authorization does not cover a force push, deployment, or destructive operation
+
+- **WHEN** a checkpoint would require a force push, a pull request, a deployment, or any destructive Git operation
+- **THEN** auto-approval never applies regardless of the staged file list, and the checkpoint proceeds through a live `[HUMAN APPROVAL REQUIRED]` gate
+
+### Requirement: Every step declares its allowed modifications in advance, authored by the guide maintainer
+
+Every `ADOPT` step SHALL carry an `Allowed modifications` field as part of its step contract, alongside Condition, Purpose, Preconditions, Action, Approval gate, Validation, Evidence to record, and On failure. The field SHALL be authored in the canonical phase file by whoever maintains the guide, before any run exists to execute the step, and SHALL NEVER be derived or asserted live by the executing orchestrator — an executing run SHALL read this field, never write it. For a step whose output paths are fully determined by the step's own action (an installer command, a pinned import, a fixed documentation-file set), the field SHALL be a closed, exact list of paths. For a step whose output depends on repository content discovered at run time (creating at most one new agent, exposing an adapter selected from prior validated evidence), the field SHALL be a closed rule — a path glob, a cardinality bound, and explicit exclusions — rather than an exact list, since no enumerable list can be authored in advance for it.
+
+#### Scenario: A deterministic step's allowlist is an exact list
+
+- **WHEN** a step's action is an installer command or a pinned import whose resulting paths are the same regardless of the adopting repository
+- **THEN** its `Allowed modifications` field is a closed, exact list of those paths, not a rule
+
+#### Scenario: A conditional step's allowlist is a closed rule
+
+- **WHEN** a step's action creates at most one new file whose exact name depends on content discovered in the adopting repository
+- **THEN** its `Allowed modifications` field states the path glob, the cardinality bound, and explicit exclusions, and is never left as an open-ended pattern
+
+#### Scenario: The field is never derived by the executing run
+
+- **WHEN** an orchestrator executes a step
+- **THEN** it reads the step's already-authored `Allowed modifications` field from the phase file; it never computes or asserts a new allowlist for that execution
+
+### Requirement: A per-run authorization file records standing grants, never one file per step
+
+Each adoption run MAY have exactly one `ADOPTION-AUTHORIZATION.md`, recording what the human granted for that run: the selected client or clients; the declared team environment matrix; the OpenSpec version policy; the code-graph capability's default privilege scope; and the standing commit-and-push authorization with its conditions. A separate authorization file per `ADOPT` step SHALL NOT be created, since the per-step allowlist already lives in the canonical phase file and a second per-step file would duplicate it, drifting from the canonical source it was meant to mirror. Where the declared team environment matrix cannot be derived from repository evidence — CI workflow `runs-on` values, a Windows-wrapper script's presence, container or devcontainer configuration, CONTRIBUTING or README platform statements — the orchestrator SHALL present a derived-with-evidence matrix for the human to confirm or correct rather than asking a blank question, and SHALL NOT infer a narrower matrix merely from an absence of evidence.
+
+#### Scenario: One authorization file for the whole run
+
+- **WHEN** an adoption run records its granted authorizations
+- **THEN** they live in exactly one `ADOPTION-AUTHORIZATION.md`, never in a file created per `ADOPT` step
+
+#### Scenario: Environment matrix is proposed from evidence, not asked blank
+
+- **WHEN** the orchestrator reaches the environment-matrix declaration and the repository contains CI workflow configuration, a Windows-wrapper script, or platform statements in CONTRIBUTING or README
+- **THEN** it presents the matrix derived from that evidence for the human to confirm or correct, rather than asking the human to compose it from nothing
+
+#### Scenario: No evidence found does not narrow the matrix
+
+- **WHEN** the orchestrator finds no CI configuration, no Windows-wrapper script, and no platform statement in the repository
+- **THEN** it asks the human directly rather than inferring that only the current machine's platform is supported
 
 ### Requirement: Remote impact is assessed from evidence and unknown impact blocks the push
 
@@ -760,6 +815,10 @@ Pull-request creation SHALL be blocked until every adoption step from `ADOPT-00`
 The de-bootstrap step (`ADOPT-18`) SHALL act strictly on the inventory in `.specboot/adoption/BOOTSTRAP-MANIFEST.json` and SHALL NEVER infer removals from path patterns or guesswork. It SHALL run only after the final checkpoint of the adoption itself (`ADOPT-17`) is PASS, behind a `[HUMAN APPROVAL REQUIRED]` gate. For every entry carrying an `intended-permanent-replacement` it SHALL verify that the replacement exists and resolves **before** removing the transient entry; removing an entry whose replacement is missing SHALL be FAIL rather than cleanup. Entries with `ownership: pre-existing-untouched` SHALL never be touched. In **source-linked** mode — the only mode this capability delivers — there is no payload and no container, so the step SHALL remove only the project-local temporary discovery entries and the machine-local source-path store under `.specboot/local/` — unlinking each link and byte-restoring each file it appended a block to — SHALL leave the external canonical source entirely untouched, and SHALL record the payload and container obligations as `SKIPPED — source-linked mode` rather than as passed, failed, or silently omitted. The container procedure described below governs the deferred packaged-snapshot mode and SHALL NOT be exercised by a source-linked run. In both modes the step SHALL remove artifacts for clients that were not selected and for clients left unverified by their verification gate, re-run the filesystem and fresh-session discovery validations, and **write back** each entry's `cleanup-status` and `final-disposition` into the durable manifest, which SHALL be updated and committed rather than deleted. An entry left at `cleanup-status: pending` SHALL be FAIL, not a partial PASS. Manifest entries SHALL remain the exclusive authority for identifying removable payload content. Because the manifest enumerates entries and not the `.specboot/bootstrap/` container holding them, the step SHALL — where a container exists at all, and only after every recorded entry has had its replacement verified, its disposition written back, and its content removed — verify that the container holds no unrecorded or unresolved content, and then remove the now-empty container by name. A container that is not empty once the manifest has been fully processed SHALL be FAIL: the step SHALL stop for reconciliation and SHALL NEVER delete content the manifest does not describe. The durable `.specboot/adoption/BOOTSTRAP-MANIFEST.json` SHALL NEVER be removed together with the transient container and SHALL remain committed. The external canonical source SHALL NEVER be modified by this step: it is not a manifest entry, so nothing in the inventory can authorize touching it, and a step that wrote to it SHALL be FAIL.
 
 The step's written procedure and its executable behavior SHALL be the same thing, with no clause holding in one and not the other. Specifically: **replacement before removal** — no entry carrying an `intended-permanent-replacement` is removed until that replacement is verified to exist and resolve, and an unresolved replacement is FAIL with the entry left in place; **terminal dispositions written back** — every entry ends at a terminal `cleanup-status` *and* `final-disposition` in the committed manifest, with a mode's unexercised obligations recorded `SKIPPED — source-linked mode` rather than left blank or inferred as passed; **refusal over guessing** — an unresolved replacement and unrecorded content in scope for removal both stop the step for human reconciliation rather than being resolved by a choice the step makes; and **resumability** — because dispositions are written back as they are reached, a refused run names exactly which entries are terminal and which are not, and another session or operator can resume it.
+
+**De-bootstrap SHALL additionally require the capability-completeness check (see the dedicated requirement below) to be PASS before it removes the project-local discovery entries.** Removing the temporary `specboot-adopt` discovery pointer and the machine-local canonical-source path is what makes an in-repository self-repair of a missing mandatory capability impossible; the step SHALL NOT proceed past that removal while a mandatory workflow capability is still missing.
+
+**The mandatory fresh-session re-validation this step performs is scoped to what the step actually changed.** A full second fresh-session discovery-and-execution test SHALL be required only when this step's disposition touched any entry beyond the manifest's exact `bootstrap-created` entries. Where the step's disposition touched only those exact entries — the temporary discovery symlink and the temporary instruction-file block, neither of which was ever part of the permanent discovery surface a prior step provisions — a filesystem-only re-check of the permanent discovery surface SHALL be sufficient substitute evidence, explicitly recorded as such, and SHALL NOT be silently read as equivalent to an unexercised fresh-session test.
 
 #### Scenario: Permanent replacement is missing
 
@@ -815,6 +874,54 @@ The step's written procedure and its executable behavior SHALL be the same thing
 
 - **WHEN** the de-bootstrap step runs in a repository with no `BOOTSTRAP-MANIFEST.json`
 - **THEN** it is recorded as `SKIPPED — no bootstrap performed`, and is a clean no-op
+
+#### Scenario: De-bootstrap is blocked while a mandatory capability is missing
+
+- **WHEN** the capability-completeness check has not reached PASS
+- **THEN** de-bootstrap does not remove the project-local discovery entries or the machine-local canonical-source path, since doing so would remove the only path to an in-repository self-repair
+
+#### Scenario: Only temporary bootstrap entries were removed
+
+- **WHEN** de-bootstrap's disposition touched only the manifest's exact `bootstrap-created` entries
+- **THEN** a filesystem-only re-check of the permanent discovery surface is recorded as sufficient substitute evidence, explicitly labelled as such, in place of a second full fresh-session test
+
+#### Scenario: De-bootstrap touched something beyond the bootstrap-created entries
+
+- **WHEN** de-bootstrap's disposition touches any entry other than the manifest's exact `bootstrap-created` set
+- **THEN** the full fresh-session discovery-and-execution re-validation remains mandatory, and a filesystem-only re-check is not treated as sufficient on its own
+
+### Requirement: Skill completeness is verified against the required-capability list before de-bootstrap
+
+`ADOPT-11`/`ADOPT-12`'s skill validation SHALL include a completeness check, distinct from and in addition to the existing stack-adaptation check: the imported skill inventory under `ai-specs/skills/` SHALL be cross-validated against the workflow capabilities `ai-specs/specboot-instructions.md` names as mandatory. A mandatory capability with no corresponding skill present SHALL be a step FAIL, never a silent pass, and SHALL be recorded as such before `ADOPT-13` or any later step is reached. `ADOPT-03`'s canonical import source SHALL carry every mandatory capability's skill, so that the completeness check is ordinarily a confirmation rather than a discovery.
+
+#### Scenario: A mandatory capability's skill is present
+
+- **WHEN** every workflow capability `ai-specs/specboot-instructions.md` names as mandatory has a corresponding skill under `ai-specs/skills/`
+- **THEN** the completeness check is PASS, distinct from and in addition to the stack-adaptation check already performed
+
+#### Scenario: A mandatory capability's skill is missing
+
+- **WHEN** a workflow capability named as mandatory has no corresponding skill anywhere under `ai-specs/skills/`
+- **THEN** the completeness check is FAIL, is recorded before `ADOPT-13` runs, and is never inferred as PASS because the skills that are present are individually well-formed
+
+### Requirement: Generated documentation content is validated by citation against source evidence, not by human read alone
+
+The step that adapts repository technical documentation (`ADOPT-06`) SHALL extend its existing structural validation with a citation-check: every factual claim in the generated documentation — including narrative sections describing known code risks or defects — SHALL resolve to a verifiable citation (file, line, type, or annotation) obtained via the selected code-graph capability, not only the structural comparisons the step already performs. A claim with no resolvable citation SHALL fail the check rather than pass silently. An authoring convention with no project-specific judgment in it (for example, defaulting first-clone build instructions to an online rather than offline invocation) SHALL be fixed once in the canonical prompt by the guide maintainer, and SHALL NOT be asked as a per-run decision. This citation-check SHALL NOT be read as authorizing the step to alter the source code a documented risk describes: the step documents an existing, cited defect, and SHALL NEVER resolve it.
+
+#### Scenario: Every claim resolves to a citation
+
+- **WHEN** every factual claim in the generated documentation, including a "Known Risks and Defects" narrative claim, resolves to a code citation obtained via the selected code-graph capability
+- **THEN** the content-approval gate auto-approves, and the citation evidence is recorded
+
+#### Scenario: A claim has no resolvable citation
+
+- **WHEN** a generated documentation claim does not resolve to a verifiable citation
+- **THEN** the citation-check fails that claim, and the content-approval gate does not auto-approve
+
+#### Scenario: A cited risk is documented, not fixed
+
+- **WHEN** the citation-check confirms a documented code defect against its source citation
+- **THEN** the step's output describes the defect accurately and makes no change to the source code the citation points at
 
 ### Requirement: Improvement proposals are recorded after every validated checkpoint and never applied silently
 

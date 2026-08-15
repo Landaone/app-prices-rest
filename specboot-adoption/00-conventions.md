@@ -71,6 +71,7 @@ human can skim them.
 | **Validation** | Commands to run, and the explicit criteria that make the result PASS. |
 | **Evidence to record** | The run-log fields this step fills. |
 | **On failure** | Where the recovery is — see [Where `On failure` may lead](#where-on-failure-may-lead) below. |
+| **Allowed modifications** | The exact paths this step may write to — see [Allowed modifications](#allowed-modifications) below. |
 
 ## What `Action` may hold
 
@@ -90,6 +91,36 @@ Exactly one of four forms. The form is a property of the step's work, not a styl
 Two absolutes hold across all four: **never more than one labeled prompt in a step**, and
 **never a historical prompt in a live `Action`**. A historical prompt is record, not
 instruction; it lives in [`history/prompt-inventory.md`](history/prompt-inventory.md).
+
+---
+
+## Allowed modifications
+
+Every step's `Allowed modifications` field is written by whoever maintains this guide, **before
+any run exists to execute the step** — never derived, asserted, or widened by the orchestrator
+while it executes. An executing run reads this field; it never writes it. This is what makes the
+field trustworthy enough to gate an automatic approval later (see the checkpoint protocol's
+standing-authorization clause below): the same execution that is being checked never gets to
+grade its own allowlist.
+
+The field takes one of two shapes, chosen by whether the step's output is deterministic:
+
+- **Closed, exact path list** — for a step whose output paths are the same regardless of which
+  repository is adopting (an installer command's fixed generated set, a pinned import, a fixed
+  documentation-file target list). `ADOPT-00`'s per-client discovery recipes already have the
+  right shape to model this on: each `bootstrap-kit/discovery/<client>.md`'s `## Entries` table is
+  a closed, exact list, authored per client in advance of any run.
+- **Closed rule, not a list** — for a step whose exact output path depends on content discovered
+  in the adopting repository at run time (creating at most one new file matching a pattern,
+  exposing an adapter selected from already-validated prior evidence). State the path glob, the
+  cardinality bound, and explicit exclusions — never leave a conditional step's field as an
+  open-ended pattern with no bound.
+
+A checkpoint's exact staged file list is compared against the covered step's `Allowed
+modifications` as part of the checkpoint protocol below. A staged path outside the declared
+allowlist is never treated as a pending question — it is `FAIL_CLOSED`, reported by its exact
+unexpected path, because an out-of-scope file in the stage is evidence something went wrong, not
+a decision waiting on a human.
 
 ---
 
@@ -275,7 +306,7 @@ forms its own checkpoint under this protocol. `ADOPT-17`'s precondition is a pre
    staged file list**. Never declare readiness while any step in the checkpoint is at FAIL or
    PENDING. A summary or a file count is not the exact list.
 
-3. **Checkpoint approval.** **[HUMAN APPROVAL REQUIRED]**
+3. **Checkpoint approval.** **[HUMAN APPROVAL REQUIRED]**, unless the standing-authorization exception below applies, in which case the checkpoint auto-approves.
 
 4. **Stage only the intended files.** Never `git add -A` or any unconditional stage-everything
    command. Apply the full `ADOPT-17` staged-scope checklist.
@@ -297,7 +328,7 @@ forms its own checkpoint under this protocol. `ADOPT-17`'s precondition is a pre
    leave no trace in the working tree. Do not request new credentials or elevated access to resolve
    an unknown; report it and stop.
 
-8. **Push approval.** **[HUMAN APPROVAL REQUIRED]** — separate from step 3.
+8. **Push approval.** **[HUMAN APPROVAL REQUIRED]** — separate from step 3, unless the same standing-authorization exception applies to the push as well.
 
 9. **Push** to the **current working branch** only, on the already-configured remote. Never a force
    push. Never a branch this guide did not name.
@@ -317,6 +348,31 @@ unassessed remote effect.
 
 That the operator approved the content 30 seconds ago, and knows it is destined for the branch, is
 not the push approval. Ask.
+
+### Standing authorization — when a gate auto-approves instead of asking
+
+A checkpoint's commit gate, its push gate, or both, auto-approve **only** when every one of these
+holds:
+
+- the checkpoint's exact staged file list is a subset of its step's declared `Allowed
+  modifications` (see [Allowed modifications](#allowed-modifications) above);
+- `ADOPTION-AUTHORIZATION.md` — one file per adoption run, authored by the human at or near the
+  start of the run, never one file per `ADOPT` step — records a standing authorization covering
+  this checkpoint's class;
+- for a push specifically: the push is fast-forward, and the remote-impact assessment is
+  unchanged from the `ADOPT-00` baseline (no new CI, ruleset, webhook, branch protection, force
+  push, pull request, deployment, or destructive Git operation).
+
+Where all of these hold, the gate auto-approves, and the auto-approval is recorded as evidence —
+including an explicit `Allowlist match: YES` result in the checkpoint ledger — exactly as a live
+approval is recorded, never presented as though a human reviewed it in the moment. **Any staged
+path outside the step's declared `Allowed modifications` is never a question**: it is
+`FAIL_CLOSED`, reported by its exact unexpected path, and blocks the checkpoint until resolved —
+an unexpected path is evidence something went wrong, not a decision pending a human.
+
+A single `ADOPTION-AUTHORIZATION.md` per run — never a file per step — is what keeps this
+mechanism from becoming a second canonical source: the per-step allowlist already lives in the
+canonical phase file, which this file only ever reads against, never restates.
 
 ### Applies forward
 

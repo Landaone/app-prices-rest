@@ -2,7 +2,12 @@
 
 Read [`00-conventions.md`](00-conventions.md) first.
 
-Steps: `ADOPT-06`, `ADOPT-07`, `ADOPT-08`. Formerly sections 6–8.
+Steps: `ADOPT-06`, `ADOPT-07`, `ADOPT-08`. Formerly sections 6–8. `ADOPT-07`'s adapt action is
+followed immediately by `ADOPT-08`'s read-only validation of the same configuration; per
+`00-conventions.md`'s checkpoint-grouping rule, this is a guide-documented executed pair eligible
+for one checkpoint with a recorded structural justification — the same treatment
+`05-agents-and-skills.md` already states for `ADOPT-09`/`ADOPT-10` and `ADOPT-11`/`ADOPT-12`.
+`ADOPT-06` is not part of that pair.
 
 ---
 
@@ -31,11 +36,15 @@ Requirements:
 - When the repository has no frontend, preserve the frontend document but mark it clearly as not applicable; do not introduce frontend, browser, Playwright, or E2E requirements.
 - Update `docs/api-spec.yml` so it matches the real API endpoints, parameters, responses, and error contracts.
 - Update `docs/data-model.md` so it matches the real entities, fields, relationships, persistence mappings, and migrations.
-- Preserve known defects as explicitly documented risks; do not turn defective behavior into a convention to reproduce.
+- Preserve known defects as explicitly documented risks; do not turn defective behavior into a convention to reproduce. Documenting a defect accurately, with its citation, is this step's job; changing the code the defect lives in is never this step's job, regardless of how small the fix would be.
 - Search for and remove stack, domain, company, architecture, or terminology inherited from the SpecBoot template.
 - Ensure all files under `docs/` are internally consistent.
 - Keep the documentation in English and implementation-ready for AI agents.
 - Do not modify source code, tests, OpenSpec configuration, agents, skills, or client adapters.
+- Every factual claim written into `docs/` — including a narrative "Known Risks and Defects" claim, not only a structural one — must resolve to a verifiable citation (file, line, type, or annotation) obtained via the selected code-graph capability. A claim with no resolvable citation is not written; either find the citation or omit the claim. An authoring convention with no project-specific judgment in it (for example, defaulting first-clone build instructions to an online rather than offline invocation) follows the fixed convention below rather than being decided fresh for this repository.
+
+**Fixed authoring conventions** (apply without asking; these are not project-specific decisions):
+- First-clone build/test instructions default to an online invocation; an offline flag is documented only as an optional speed-up once dependencies are already cached, never as the first command a new clone runs.
 
 After editing, validate:
 - documented stack against build files;
@@ -44,13 +53,15 @@ After editing, validate:
 - data model against entities and migrations;
 - build and test commands against repository configuration;
 - absence of unrelated template terminology;
-- consistency across all changed documents.
+- consistency across all changed documents;
+- every factual claim, including narrative risk claims, resolves to a code-graph citation — this is the gate that lets this step's content approval be mechanical (see `00-conventions.md`'s standing-authorization clause) rather than requiring a live human read every time.
 
 Report:
 - repository evidence inspected;
 - files modified;
 - template contamination removed;
 - unresolved contradictions or risks;
+- the citation for every factual claim, or the claim's removal where none was found;
 - PASS or FAIL for each validation.
 
 Stop after presenting the documentation diff and validation evidence.
@@ -83,9 +94,11 @@ client adapters
 - Search for template terminology.
 - Confirm frontend is marked not applicable when absent.
 - Confirm all documentation is internally consistent.
+- Confirm every factual claim resolves to a code-graph citation; a claim with none is FAIL for that claim.
 
 **Evidence to record:** run-log `ADOPT-06` — prompt used, files changed, template
-contamination found, corrections needed, validation, prompt changes required, result.
+contamination found, corrections needed, validation, the citation-check result per claim,
+prompt changes required, result.
 
 **On failure:** see [`22-troubleshooting.md`](22-troubleshooting.md), "Template stack or
 domain appears in docs" and "Frontend requirements appear in a backend-only repository".

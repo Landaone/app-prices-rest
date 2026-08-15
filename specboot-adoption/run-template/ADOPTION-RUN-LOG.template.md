@@ -641,13 +641,18 @@ means "not known to have completed", never "completed but unrecorded".
 One row per checkpoint. A checkpoint is the smallest independently validated `ADOPT` step; a
 group requires a **written structural justification** — "fewer commits" is not one.
 
-| # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Ready declared | Approval (who / when / what) | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | | | |
+| # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| | | | | | | | | | | | | |
 
 > The commit approval and the push approval are **two distinct gates**. Neither carries forward to
 > the next checkpoint. Unknown or unapproved remote impact **blocks** the push; "no CI
 > configuration found" is a finding to report, not a licence to push.
+>
+> **Allowlist match** records the result of comparing the exact staged file list against the
+> covered step's `Allowed modifications` field (`00-conventions.md`). Filled for **every**
+> checkpoint, auto-approved or live-approved alike — an auto-approval is never left implicit.
+> `NO`, with the exact unexpected path named, is `FAIL_CLOSED`, not a routine approval outcome.
 
 ---
 

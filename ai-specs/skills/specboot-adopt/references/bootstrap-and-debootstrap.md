@@ -112,6 +112,23 @@ Drive both the same way:
    they are reached, the committed manifest already names which entries are terminal and which are
    not — another session continues from the record rather than re-deriving it.
 
+## Capability completeness gates removal, and re-validation is scoped to what changed
+
+**Before step 1 of `ADOPT-18`, confirm `ADOPT-11`/`ADOPT-12`'s mandatory-capability completeness
+check is PASS.** Removing the temporary discovery entries and the machine-local source-path store
+is what makes an in-repository self-repair of a missing mandatory workflow capability impossible —
+this is a precondition failure if the check is not PASS, checked before any entry is read, not one
+of the two refusals discovered mid-processing. Report which capability is missing and stop.
+
+**The mandatory second `ADOPT-15` fresh-session re-run is conditional, not automatic.** Drive step
+7 this way: always re-run the `ADOPT-14` filesystem checks. Re-run the full fresh-session `ADOPT-15`
+check per selected client **only when this step's disposition touched any entry beyond the
+manifest's exact `bootstrap-created` set** — those entries were never part of the permanent
+discovery surface `ADOPT-13` provisions. Where disposition touched only the `bootstrap-created`
+entries, record `ADOPT-14`'s re-check as the explicit substitute evidence rather than leaving the
+fresh-session field blank or silently treating filesystem presence as equivalent to discovery —
+`ADOPT-00`'s own validation text already draws that line, and this narrowing does not blur it.
+
 Also remove the machine-local `.specboot/local/` store, and **preserve** the committed manifest and
 run log. Act only on manifest entries — never on path patterns, never on what looks like a bootstrap
 file — **except for the container itself, in the deferred mode, which is removed by name as the

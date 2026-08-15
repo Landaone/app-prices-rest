@@ -151,6 +151,7 @@ Requirements:
 - Keep `ai-specs/skills/` as the canonical shared skill source.
 - Preserve skills that are already technology-agnostic or correctly detect the repository stack.
 - Adapt only skills whose assumptions would select incorrect tools, commands, languages, build systems, or workflows.
+- Read `ai-specs/specboot-instructions.md`'s list of mandatory workflow capabilities and cross-validate it against the imported skill inventory under `ai-specs/skills/`. This completeness check is distinct from, and in addition to, the stack-adaptation check above: a skill being correctly stack-adapted says nothing about whether every mandatory capability has a skill to begin with. A mandatory capability with no corresponding skill anywhere under `ai-specs/skills/` is a step FAIL, never a silent pass.
 - Detect languages, build systems, test tools, linters, static-analysis tools, and repository conventions from files that actually exist.
 - Make technology-specific commands conditional.
 - Detect existing tooling first, and use only tools and dependencies already configured by the repository's normal build or dependency workflow; do not install or download an undeclared tool merely to perform inspection, and distinguish resolving a dependency the project already declares (allowed) from introducing a new, undeclared dependency merely to satisfy a skill (not allowed).
@@ -171,7 +172,8 @@ Validation:
 - no undeclared tool or dependency is required;
 - no generated client directory is confused with a canonical skill;
 - shared skills remain suitable for the selected AI clients;
-- independent validation treats any unexecuted or failed command as FAIL, never an inferred PASS from empty output.
+- independent validation treats any unexecuted or failed command as FAIL, never an inferred PASS from empty output;
+- every mandatory workflow capability named in `ai-specs/specboot-instructions.md` has a corresponding skill under `ai-specs/skills/` — completeness, not merely correctness of what is present.
 
 Report:
 - skills inspected;
@@ -180,6 +182,7 @@ Report:
 - skills adapted and why;
 - files modified;
 - blockers versus optional improvements;
+- the mandatory-capability completeness check result, per capability;
 - PASS or FAIL for every validation.
 
 Stop after presenting the complete skill validation evidence.
@@ -214,7 +217,10 @@ safety.
 find ai-specs/skills -mindepth 1 -maxdepth 2 -type f -print
 find ai-specs/skills -type l -print -exec readlink {} \;
 git diff -- ai-specs/skills
+grep -n "mandatory" ai-specs/specboot-instructions.md
 ```
+
+The last command's output is the list of mandatory workflow capabilities to cross-check against the `find` output above — every capability named there must have a corresponding entry under `ai-specs/skills/`.
 
 Run these with absolute executable paths when a shell alias or function could shadow the
 real tool; treat an unexecuted or failed command as FAIL, never an inferred PASS from empty
@@ -232,10 +238,12 @@ output.
 - No undeclared dependency is required.
 - Client-generated OpenSpec skills are not copied into canonical shared skills.
 - Shared skills are suitable for selected clients.
+- Every mandatory workflow capability named in `ai-specs/specboot-instructions.md` has a corresponding skill present — a missing mandatory capability is FAIL regardless of how well-formed the skills that are present are.
 
 **Evidence to record:** run-log `ADOPT-12` — canonical skill count, missing entry files,
 missing resources, unconditional stack assumptions, undeclared dependencies,
-generated-client content confused with canonical, result.
+generated-client content confused with canonical, the mandatory-capability completeness
+result per capability, result.
 
 **On failure:** see [`22-troubleshooting.md`](22-troubleshooting.md), "OpenSpec-generated
 skill directories replaced by symlinks".

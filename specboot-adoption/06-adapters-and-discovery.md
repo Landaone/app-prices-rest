@@ -2,7 +2,14 @@
 
 Read [`00-conventions.md`](00-conventions.md) first.
 
-Steps: `ADOPT-13`, `ADOPT-14`, `ADOPT-15`. Formerly sections 13–15.
+Steps: `ADOPT-13`, `ADOPT-14`, `ADOPT-15`. Formerly sections 13–15. `ADOPT-13`'s adapt action is
+followed immediately by `ADOPT-14`'s read-only validation of the same adapters; per
+`00-conventions.md`'s checkpoint-grouping rule, this is a guide-documented executed pair eligible
+for one checkpoint with a recorded structural justification — the same treatment
+`05-agents-and-skills.md` already states for `ADOPT-09`/`ADOPT-10` and `ADOPT-11`/`ADOPT-12`.
+`ADOPT-15` is not part of that pair: it requires a genuinely fresh client session, a structurally
+different kind of evidence than a read-only filesystem re-check, and is never grouped into the
+same checkpoint as the step it follows.
 
 An adapter or generated resource existing for a client shows current capability
 availability only — see [`00-conventions.md`](00-conventions.md), "Capability availability
@@ -85,6 +92,12 @@ Report:
 Stop after filesystem validation. Do not claim runtime discovery has passed; that requires a fresh client session.
 ```
 
+**Allowed modifications:** a closed rule, not an exact list — symlinks under the selected client's
+native agent and skill directories only (for example `.claude/agents/`, `.claude/skills/` when
+Claude is selected), naming only agents and skills already validated by `ADOPT-09`–`ADOPT-12`, and
+never a real directory, never source code, tests, project documentation, or OpenSpec planning
+artifacts, and never an adapter path for a client not recorded `SELECTED`.
+
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before creating symlinks or modifying
 client directories. The prompt above additionally requires presenting the complete adapter
 plan and obtaining explicit approval before any directory or symlink is created — that is
@@ -134,6 +147,8 @@ root-instruction symlinks from `ADOPT-03` (see that step for their own validatio
 reference clean run this was 26 adapter symlinks (4 agent + 22 skill) plus 4
 root-instruction symlinks, for 30 total — illustrative evidence, not a fixed target for
 every repository.
+
+**Allowed modifications:** none — read-only.
 
 **Approval gate:** none — read-only.
 
@@ -219,6 +234,8 @@ fail a session merely because it exhibited (3), and do not front-load project do
 into the prompt merely to force a PASS — that is itself (4). Report invocation (2)
 separately; a client that judges direct read-only analysis sufficient and never formally
 invokes an agent or skill has not failed discovery.
+
+**Allowed modifications:** none — read-only, and the prompt forbids file modification.
 
 **Approval gate:** none — read-only, and the prompt forbids file modification.
 

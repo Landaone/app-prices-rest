@@ -51,10 +51,17 @@ credentials or elevated access to resolve it.
 
 One row per checkpoint, with every column the run-log template names. The commit SHA and the exact
 staged file list are what make the row auditable later; an entry without them records that
-something happened but not what.
+something happened but not what. The **Allowlist match** column is filled for every checkpoint,
+auto-approved or live-approved alike — an auto-approval is never left implicit in this row.
 
-## Two gates, every time
+## Two gates, every time — except where standing authorization applies
 
 Ask for the push approval separately, even when the commit approval was granted seconds ago and
 the operator plainly knows the work is destined for the branch. The discomfort of asking again is
 not evidence of authorization.
+
+**Before presenting either gate as a live question, check whether it auto-approves instead.** The
+rule for that is `00-conventions.md`'s standing-authorization clause; driving it — reading a step's
+`Allowed modifications`, comparing the staged set, checking `ADOPTION-AUTHORIZATION.md` — is covered
+in [`standing-authorization.md`](standing-authorization.md). Do not restate that logic here; read it
+each time.

@@ -28,7 +28,7 @@ back**; **refusal over guessing**; and **resumability**. A written procedure tha
 while the implementation does another is the defect this step is most exposed to, because nobody
 diffs a phase file against a program.
 
-**Preconditions:** `ADOPT-17` = PASS. The permanent adoption is committed and working.
+**Preconditions:** `ADOPT-17` = PASS. The permanent adoption is committed and working. **`ADOPT-11`/`ADOPT-12`'s mandatory-capability completeness check = PASS** (design D-Y). Removing the temporary discovery entries and the machine-local canonical-source path is what makes an in-repository self-repair of a missing mandatory workflow capability impossible — this step SHALL NOT proceed past that removal while any capability `ai-specs/specboot-instructions.md` names as mandatory is missing. Where the completeness check is not PASS, stop before step 1 and report which capability is missing; this is a precondition failure, not one of the two refusals below, since it is known before any entry is even read.
 
 **Action:** structured written procedure. It acts **strictly on the manifest inventory**, never by
 path pattern and never by guesswork. Guessing is what makes a cleanup step dangerous; the inventory
@@ -166,9 +166,16 @@ references.
    is removed exactly like an unselected client's adapter. A client is not supported because a file
    exists for it.
 
-7. **Re-validate.** Re-run the `ADOPT-14` filesystem checks and one `ADOPT-15` fresh-session
-   discovery check per selected client, to prove nothing still needed was removed. The
-   fresh-session check is a stop-and-hand-off, never simulated.
+7. **Re-validate.** Re-run the `ADOPT-14` filesystem checks always. **The mandatory second
+   `ADOPT-15` fresh-session discovery check per selected client is required only when this step's
+   disposition touched any entry beyond the manifest's exact `bootstrap-created` set** (design
+   D-Y) — those entries were never part of the permanent discovery surface `ADOPT-13` provisions,
+   so where disposition touched only them, `ADOPT-14`'s filesystem re-check is sufficient
+   substitute evidence, **explicitly recorded as such** rather than silently treated as equivalent
+   to an unexercised fresh-session test. Where disposition touched anything else, the full
+   fresh-session check remains mandatory and is never skipped on the strength of a filesystem
+   re-check alone. The fresh-session check, when required, is a stop-and-hand-off, never
+   simulated.
 
 8. **Write back** each entry's `cleanup-status` and `final-disposition`, plus the re-validation
    results, and commit the updated manifest as part of this checkpoint.
@@ -197,6 +204,13 @@ line. Deleting unrecorded content is the pattern-based cleanup the inventory rul
 terminal values; entries not reached stay `pending`; the durable manifest and run log are
 **preserved** either way; and the external canonical source is untouched, because it is not an entry
 and no operation here can reach it.
+
+**Allowed modifications:** a closed rule, not an exact list — only the paths already recorded as
+entries in `.specboot/adoption/BOOTSTRAP-MANIFEST.json` (removal, conversion, or byte-restoring an
+appended block, per each entry's `mode`), plus `.specboot/local/` (removed by name), plus
+`.specboot/adoption/BOOTSTRAP-MANIFEST.json` and `.specboot/adoption/ADOPTION-RUN-LOG.md`
+themselves (updated, never deleted). Never a path this step did not already know about before it
+started — the inventory rule is what this field states structurally.
 
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before any removal. Deletion is a high-risk
 operation and always requires explicit approval — see
@@ -232,9 +246,15 @@ removed, converted, or retained.
 - `find -L <adapter paths> -type l` returns empty — any result is FAIL.
 - Every root instruction symlink resolves to `docs/base-standards.md`.
 - No adapter exists for an unselected or unverified client.
-- `ADOPT-14` and `ADOPT-15` re-validate PASS.
+- `ADOPT-14` re-validates PASS. The second `ADOPT-15` fresh-session re-validation is PASS when
+  required (disposition touched something beyond the exact `bootstrap-created` entries); where it
+  was not required, `ADOPT-14`'s re-check is recorded as the explicit substitute evidence rather
+  than left blank or silently inferred as equivalent.
 - Every canonical artifact exists exactly **once** as content; all client-visible instances are
   symlinks, or are recorded copies carrying their reason.
+- The mandatory-capability completeness check (`ADOPT-11`/`ADOPT-12`) was PASS **before** any
+  entry in this step was processed — a completeness FAIL discovered after removal already
+  happened is itself a defect in this step, not merely in the earlier one.
 
 **Evidence to record:** the **delivery mode** read from the manifest and the recorded value of both
 obligations; **any refusal reached**, with its condition, the entry or residue that triggered it,
@@ -242,8 +262,11 @@ and the confirmation of what was left in place; the disposition of the machine-l
 absent already) alongside the confirmation that the durable state was preserved; the pre-cleanup
 entry count by `ownership` and `mode`; the replacement
 verification result per entry; what was removed, converted, or retained and why; the re-validation
-outcomes including the verbatim fresh-session result; the broken-symlink scan output; and the
-approval.
+outcomes including the verbatim fresh-session result **when the fresh-session re-check was
+required, and the explicit substitute-evidence statement when it was not**; the basis for that
+determination (whether disposition touched anything beyond the exact `bootstrap-created` set); the
+mandatory-capability completeness check's PASS result, confirmed **before** this step's first
+removal; the broken-symlink scan output; and the approval.
 
 **On failure:** Form A, inline. Restore the affected entries from the manifest before retrying —
 the manifest records `source`, `mode`, and `checksum` for exactly this purpose. Because it is

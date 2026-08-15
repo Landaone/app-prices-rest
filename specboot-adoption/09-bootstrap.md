@@ -211,6 +211,14 @@ directory that collides with a canonical skill name. A bootstrap-created real `C
 would be a "skipped" line. Where a real file is genuinely unavoidable, register it in the manifest
 with an `intended-permanent-replacement` so `ADOPT-18` converts it.
 
+**Allowed modifications:** a closed rule, not an exact list, since the paths depend on which client
+is selected — the selected client's `bootstrap-kit/discovery/<client>.md` `## Entries` table (a
+pre-authored, per-client exact list), plus the fixed durable-state paths every client shares:
+`.specboot/adoption/BOOTSTRAP-MANIFEST.json`, `.specboot/adoption/ADOPTION-RUN-LOG.md`,
+`.specboot/local/` (the machine-local source-path store), and the two ignore-rule edits
+(`.gitignore`, `.git/info/exclude`). Never a path outside the selected client's discovery-recipe
+table plus this fixed set.
+
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before the first repository-local write. What is
 approved is the **exact mutation inventory** the preflight produced in action 7 — every path, its
 operation, its mechanism, and its reversibility. The approval covers those paths and mechanisms

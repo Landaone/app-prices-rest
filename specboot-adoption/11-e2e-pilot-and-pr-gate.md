@@ -45,6 +45,13 @@ own scaffolding. This is what retires the guide's `PENDING END-TO-END VALIDATION
    review performed by the session that did the work is not independent, and recording it as such
    is a FAIL.
 
+**Allowed modifications:** not enumerable in advance — this step orchestrates the six-capability
+daily workflow on a real, human-named project task, and each capability in that workflow
+(`enrich-us`, propose, apply, `specboot-verify`, `adversarial-review`, archive) is its own gated
+step with its own scope, reviewed and approved through the normal OpenSpec change and checkpoint
+machinery as that pilot change proceeds. This step's own role is orchestration and evidence
+recording in the run log; it does not itself carry a separate write scope beyond that.
+
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** at the pilot change's own archive gate, per the
 normal daily workflow. This step adds no separate approval of its own — it consumes the workflow's.
 
@@ -83,6 +90,8 @@ done is not a step that *is* recorded done.
 
 A step legitimately recorded `SKIPPED` with its reason (for example `ADOPT-18` in a repository that
 was never bootstrapped) satisfies this gate. A step recorded `PENDING EVIDENCE` does not.
+
+**Allowed modifications:** none — verification only, this step creates and modifies nothing.
 
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before any pull request is created. Pull-request
 creation is remote mutation and is subject to the same company policy as the push protocol.

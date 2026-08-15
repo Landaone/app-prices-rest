@@ -37,8 +37,8 @@ adoption configures or validates more clients than it selected.
 
 | Target | Mode | Points to | Manifest `intended-permanent-replacement` |
 |---|---|---|---|
-| `.claude/skills/specboot-adopt` | `symlink` | `../../.specboot/bootstrap/skills/specboot-adopt` | `.claude/skills/specboot-adopt -> ../../ai-specs/skills/specboot-adopt` |
-| `.claude/CLAUDE.md` | `real-file` or `appended-block` | n/a — carries a delimited bootstrap block pointing at the payload guide | `none` (block removed at `ADOPT-18`) |
+| `.claude/skills/specboot-adopt` | `symlink` | the external canonical source's `ai-specs/skills/specboot-adopt`, resolved relative to the runtime-supplied `<SPECBOOT_SOURCE>` (source-linked mode never creates `.specboot/bootstrap/`) | `.claude/skills/specboot-adopt -> ../../ai-specs/skills/specboot-adopt` |
+| `.claude/CLAUDE.md` | `real-file` or `appended-block` | n/a — carries a delimited bootstrap block pointing at the external canonical guide | `none` (block removed at `ADOPT-18`) |
 
 ## Why a symlink and not a real directory
 
@@ -65,9 +65,9 @@ Block delimiters, used verbatim so removal is exact:
 
 ```text
 <!-- SPECBOOT-BOOTSTRAP:BEGIN -->
-Run the `specboot-adopt` skill. The adoption contract is at
-`.specboot/bootstrap/SPECBOOT_ADOPTION_GUIDE.md`. This block is temporary and is removed at
-`ADOPT-18`.
+Run the `specboot-adopt` skill. The adoption contract lives at the external canonical source
+resolved via `.specboot/local/canonical-source-path` (source-linked mode; no copy exists in this
+repository). This block is temporary and is removed at `ADOPT-18`.
 <!-- SPECBOOT-BOOTSTRAP:END -->
 ```
 
