@@ -1086,20 +1086,71 @@ Result: PASS
 ### `ADOPT-17` — Review and Create a Clean Local Checkpoint
 
 ```text
-Branch:
-Status:
-Files staged:
-Files excluded:
-Staged diff saved to:
-Staged diff reviewed:
-git diff --cached --check result:
-Blocking vs. non-blocking decisions:
-Independent final validation performed:
-Approval:
-Commit:
-Push performed: NO
-Result: PASS / FAIL
+Branch: `experiment/specboot-ai-adoption-v1` (tracking `origin/experiment/specboot-ai-adoption-v1`,
+  up to date with remote as of `ADOPT-16`'s push)
+Status: because this run used the one-checkpoint-per-step cadence (decision recorded above,
+  "checkpoint cadence for the remainder of the run"), every prior `ADOPT-nn` step's own
+  deliverable files were already committed and pushed as that step's own checkpoint. At the
+  start of this step, `git status --short` showed only this run log's own in-progress evidence
+  writes (the `ADOPT-15`/`ADOPT-16` checkpoint-ledger rows and this `ADOPT-17` evidence block
+  itself) — no accumulated "everything at once" diff remained to review. This step's review was
+  therefore performed as a final cumulative audit of the whole adopted state (full `git ls-files`
+  listing, symlink modes/targets/resolution, unselected-client absence, root-instruction-symlink
+  resolution, repo-wide absolute-path rescan of the run log) rather than a large staged diff,
+  and separately as a normal review of this step's own small staged diff.
+Files staged: `.specboot/adoption/ADOPTION-RUN-LOG.md` (this step's own evidence, the `ADOPT-16`
+  checkpoint-ledger row deferred from the prior checkpoint per the established cumulative-run-log
+  pattern used at checkpoint 2/`ADOPT-02`, and this step's own step-state-table and ledger rows)
+Files excluded: none — nothing else in the working tree was modified; `target/` (build output)
+  and `.codegraph/codegraph.db*`/`daemon.*` (CodeGraph runtime state) remain gitignored and
+  untracked, confirmed absent from `git status --porcelain=v1 --untracked-files=all`
+Staged diff saved to: `.specboot/adoption/staged.diff` (generated via `git diff --cached >
+  .specboot/adoption/staged.diff`; this file is itself a local review artifact, not part of the
+  staged content it captures, and is removed after this checkpoint's review — matching the fact
+  that no prior checkpoint in this run log lists `staged.diff` among its own staged file list)
+Staged diff reviewed: YES — full `git diff --cached` read in full; `git diff --cached --stat`
+  showed exactly 1 file changed
+Full-repo staged-scope checklist (beyond the diff itself, since the diff alone is only this
+  step's own bookkeeping): application source/test code unchanged (`src/` file list identical to
+  every prior step's inventory; `ADOPT-16`'s `mvn clean test` ran against it unmodified, 8/8
+  passing); no build outputs tracked (`target/` absent from `git ls-files`); no personal client
+  overrides staged (no `.claude/settings.local.json` or similar tracked); shared client settings
+  present as intended (`.claude/settings.json` tracked, reviewed in `ADOPT-05B`); no CodeGraph
+  runtime/database files tracked (only `.codegraph/.gitignore`); no secret- or credential-shaped
+  text in this step's own diff (re-scanned with the same pattern used throughout this run —
+  `password|secret|api[_-]?key|token|BEGIN ... PRIVATE KEY` — none found); no new machine-specific
+  absolute paths (repo-wide `grep -n "/Users/" ADOPTION-RUN-LOG.md` shows only the two
+  already-historical, already-corrected literal grep-command examples from `ADOPT-08`'s own
+  evidence text, not a leaked resolved path); all 14 tracked symlinks (`AGENTS.md`, `CLAUDE.md`,
+  `GEMINI.md`, `codex.md`, 2 agent adapters, 8 skill adapters) confirmed via `git ls-files -s`
+  mode `120000` (correct symlink mode, none staged as a regular file or vice versa) and resolve
+  to their expected canonical targets; `find -L .claude/agents .claude/skills -type l` empty (no
+  broken links); no adapters for unselected clients (`.kiro/` confirmed absent); no unstaged
+  changes remained after staging (`git status --short` after `git add` showed only the staged
+  entry, no ` M` unstaged line for the same or any other path); no untracked file revealed an
+  incomplete step (`git status --porcelain=v1 --untracked-files=all` empty of anything besides
+  the staged entry)
+git diff --cached --check result: exit 0, no output — no whitespace problems
+Blocking vs. non-blocking decisions: none needed — `--check` reported nothing to triage
+Independent final validation performed: YES — one correction occurred earlier in this same
+  session (`ADOPT-16`'s drafted evidence briefly contained a resolved absolute machine path,
+  caught and removed before that step's own commit); this step's review is itself the required
+  fresh, independent re-check of the now-corrected cumulative state, run after that correction
+  and covering the full staged-scope checklist above, not a re-use of the flagging pass
+Approval: commit-gate declaration presented via `AskUserQuestion`, approved on first
+  presentation; push-gate declaration presented separately after the remote-impact assessment,
+  approved on first presentation — see checkpoint ledger, row 16
+Commit: see checkpoint ledger, row 16, for the exact SHA
+Push performed: YES — see checkpoint ledger, row 16 (this run's cadence decision extends push,
+  matching every prior checkpoint; the template's own `NO` default reflects the guide's
+  pre-amendment contract, superseded here per `00-conventions.md`'s "Applies forward" section
+  and this run's own recorded checkpoint-cadence decision)
+Result: PASS
 ```
+
+**One-time adoption complete.** `ADOPT-00` through `ADOPT-17` are all PASS on recorded evidence
+in this run log. `ADOPT-18` (de-bootstrap) and `ADOPT-19` (real-project pilot) remain — see their
+own evidence blocks below for status.
 
 
 ### `ADOPT-18` — De-bootstrap and Reconcile Client Artifacts
@@ -1186,6 +1237,7 @@ Result: PASS / FAIL
 | 12 | `ADOPT-13` | n/a — single step (`06-adapters-and-discovery.md` does not describe `ADOPT-13`/`ADOPT-14` as an executed pair the way `05-agents-and-skills.md` does for `09`/`10` and `11`/`12`, so the one-checkpoint-per-step default applies) | PASS on all criteria in `06-adapters-and-discovery.md` (see step's evidence block above) | `ADOPT-13` evidence block, this run log | YES — plan presented and approved via `AskUserQuestion` before any symlink was created | luis.landaeta@gmail.com, 2026-08-15, adapter-plan approval, commit gate, and push gate each approved separately | `.claude/agents/java-backend-developer.md`, `.claude/agents/product-strategy-analyst.md`, `.claude/skills/code-auditing`, `.claude/skills/commit`, `.claude/skills/enrich-us`, `.claude/skills/explain`, `.claude/skills/meta-prompt`, `.claude/skills/update-docs`, `.claude/skills/using-git-worktrees`, `.claude/skills/writing-skills`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `ca374ca14a83e7aabb2d8f2a35cfdfaf0e1408af` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 13 | `ADOPT-14` | n/a — single step | PASS — read-only re-verification, zero broken links/malformed names (see step's evidence block above) | `ADOPT-14` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `6c0d592342822cb18e4c909f1a188daaa1d527fd` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 14 | `ADOPT-15` | n/a — single step | PASS — fresh-session evidence recorded and validated per `06-adapters-and-discovery.md`'s interpretation rules (see step's evidence block above) | `ADOPT-15` evidence block, this run log | YES — commit-gate declaration presented via `AskUserQuestion`, approved on first presentation | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `2c5858695e8af4dd0087b1f9327ca7be4d591968` | No `.github/workflows/` in tracked tree; rulesets `[]`; webhooks `[]`; branch unprotected. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
+| 15 | `ADOPT-16` | n/a — single step | PASS — `mvn clean test` exit 0, 8/8 tests, `openspec doctor` ok, `codegraph sync` current (see step's evidence block above) | `ADOPT-16` evidence block, this run log | YES — commit-gate declaration presented via `AskUserQuestion`, approved on first presentation (one correction applied pre-approval: an absolute machine path leaked into the drafted evidence, caught and removed before staging, re-verified clean) | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `f74a2680b23a5e00addf4f5efef0bdea329eee02` | No `.github/workflows/` in tracked tree; rulesets `[]`; webhooks `[]`; branch unprotected. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 
 ---
 
