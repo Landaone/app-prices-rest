@@ -100,7 +100,7 @@ Codex's outstanding obligation is **not** discharged by this run, which did not 
 | `ADOPT-00` | `09-bootstrap.md` | **PASS** — fresh-session discovery observed, Gate 3 resolved | 2026-08-15 |
 | `ADOPT-01` | `01-prerequisites-and-install.md` | **PASS** | 2026-08-15 |
 | `ADOPT-02` | `01-prerequisites-and-install.md` | **PASS** — checkpointed | 2026-08-15 |
-| `ADOPT-03` | `01-prerequisites-and-install.md` | PENDING | |
+| `ADOPT-03` | `01-prerequisites-and-install.md` | **PASS** — checkpoint pending live approval | 2026-08-16 |
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PENDING | |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PENDING | |
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PENDING | |
@@ -442,6 +442,69 @@ Result: PASS — `openspec/` exists; `openspec/config.yaml` exists; Claude-speci
 
 ---
 
+### `ADOPT-03` — Import SpecBoot
+
+```text
+Source: packages/specboot/template/ (within the same canonical source already resolved and
+  validated at ADOPT-00, `.specboot/local/canonical-source-path`, pinned commit
+  1271266d753c46c50e3b730c0b0284b19dc33648) — NOT the source's own repository root. Materialized
+  via `git archive <pinned-commit> -- packages/specboot/template/docs packages/specboot/template/ai-specs`
+  piped to `tar -x --strip-components=3` into a scratch directory, deliberately never touching the
+  source worktree itself (no `git sparse-checkout` change, no working-directory write in the
+  source) — `git status --porcelain` and `git sparse-checkout list` in the source confirmed
+  byte-for-byte unchanged before and after. This mechanism was necessary because the source is a
+  sparse-checkout worktree that materializes only the three ADOPT-00 bootstrap artifacts on disk;
+  `packages/specboot/template/`, though tracked at that same commit, is outside its checked-out
+  cone.
+  **Correction chain, recorded in full because it changed what was actually copied:** an initial
+  attempt extracted `docs/`, `ai-specs/`, and the four root pointer files from the source
+  repository's own root (also tracked at the same commit, also outside the sparse cone, extracted
+  the same way) rather than from `packages/specboot/template/`. The operator caught this and
+  corrected it, twice: first identifying that root-level `docs/` (8 files, including an extra
+  `openspec-tasks-mandatory-steps.md` not in the template) and root-level `ai-specs/skills/` (14
+  directories, including `openspec-sync-specs`, `show-spec-working`, `sync-agent-symlinks`, and —
+  incoherently — a copy of `specboot-adopt` itself) reflect that source repository's own
+  accumulated development/pilot history, not the clean distributable baseline; then, after
+  re-verification against `packages/specboot/template/` directly, catching a second error in the
+  corrected count (`ai-specs/agents/` recorded as 4 files when the pinned tree has 3 — no
+  `java-backend-developer.md`, carried over by mistake from the first, wrong extraction). Both
+  corrections were verified directly against the pinned commit's tree (`git ls-tree`) before
+  re-presenting the mutation inventory, not accepted on assertion.
+Target: /Users/landaeta/repos/labs/app-prices-rest-specboot-ai-adoption-v2 (repository root)
+Exact command: `cp -rn <scratch-extraction-of-packages/specboot/template>/* .`, run from the target
+  repository root, after a dry-run collision check (`find` + existence test per path) confirmed
+  zero collisions — every path was new. Then, as a separate action not covered by `cp` (the
+  template ships no pre-made symlinks): `ln -s docs/base-standards.md AGENTS.md` (and the same for
+  `CLAUDE.md`, `GEMINI.md`, `codex.md`), matching `packages/specboot/bin/init.js`'s behavior per the
+  step's own "Root instruction single source" note.
+Files added: `docs/` (7: `api-spec.yml`, `backend-standards.md`, `base-standards.md`,
+  `data-model.md`, `development_guide.md`, `documentation-standards.md`, `frontend-standards.md`);
+  `ai-specs/agents/` (3: `backend-developer.md`, `frontend-developer.md`,
+  `product-strategy-analyst.md`); `ai-specs/scripts/code_review.sh`;
+  `ai-specs/specboot-instructions.md`; `ai-specs/skills/` (10 directories: `adversarial-review`,
+  `code-auditing` [+ 2 reference files], `commit`, `enrich-us`, `explain`, `meta-prompt`,
+  `specboot-verify`, `update-docs`, `using-git-worktrees`, `writing-skills` [+ 5 supporting files]).
+  Root symlinks: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `codex.md` (all → `docs/base-standards.md`).
+Files skipped because they existed: none — the dry-run collision check found zero pre-existing
+  paths at any of the copied locations.
+Hidden directories expected but not copied: `.cursor/rules/use-base-rules.mdc` exists under
+  `packages/specboot/template/` but was correctly excluded — hidden directories are never matched
+  by the shell glob `*` in `cp -rn <SOURCE>/* .`, exactly as this step's own text warns, and no
+  Cursor resources were wanted since only Claude was selected at `ADOPT-00`.
+Root instruction symlinks resolve to docs/base-standards.md: YES, all four — verified via
+  `test -L <file> && readlink <file>` after creation: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
+  `codex.md` each print exactly `docs/base-standards.md`.
+Per-client provisioning provenance (installer-provisioned vs. separately configured): none of this
+  content is client-specific (no `.claude/`, `.kiro/`, etc. touched) — it is the client-agnostic
+  `ai-specs/`/`docs/` baseline every later client-adapter step (`ADOPT-09`–`ADOPT-15`) works from.
+Result: PASS — `find docs`/`find ai-specs` confirm all expected content present; `git status --short`
+  shows exactly the new paths and nothing else; all four root symlinks resolve correctly; the
+  external canonical source verified untouched throughout (`git status --porcelain` empty,
+  `git sparse-checkout list` unchanged, same three entries as before this step began).
+```
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification | Validation | Evidence pointers | Allowlist match | Ready declared | Approval | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -479,6 +542,8 @@ for the whole adoption, including for these.
 | 1 | `ADOPT-00` | `bootstrap-kit/discovery/symlink-fallback.md`, `bootstrap-kit/manifest.json`, `09-bootstrap.md` | **`.git/info/exclude` is specified as a literal path, which is wrong in a linked worktree.** There, `.git` is a *file* and the path resolves via `git rev-parse --git-path info/exclude` to the **shared common** Git directory, read by every worktree of the underlying repository. `mkdir -p .git/info` fails outright with "Not a directory". The kit should (a) specify resolution through `git rev-parse --git-path info/exclude` rather than a literal path, and (b) state the consequence — the exclusion is repository-wide across worktrees, not worktree-local — so a run can present the true blast radius at its gate instead of discovering it by a failed write. Note the launcher's Step 0 *already* anticipates linked worktrees; the bootstrap mechanics do not. | proposed |
 | 2 | `ADOPT-00` | `09-bootstrap.md`, `bootstrap-kit/manifest.json` | **The transient ignore-rule set is stated inconsistently.** `manifest.json#ignoreRules.transient` lists **three** paths (`.specboot/staging/`, `.specboot/bootstrap/`, `.specboot/local/`), while `ADOPT-00`'s validation criteria require only **two** (`.specboot/bootstrap/`, `.specboot/local/`) and the run-log template mentions `.specboot/staging/` in passing. This run provisioned exactly the two the approved inventory named, declining to widen an approved mutation set on its own authority. The canonical set should be stated once, in one place. | proposed |
 | 3 | `ADOPT-00` | `ADOPTION-ENTRY-PROMPT.md` §0 | **The cold-start premise asserts more than the adoption controls.** §0 states the target has "no OpenSpec installation and no `openspec` command" and "no `/opsx:*` commands". Those are *machine- and client-level* facts, not repository state: this run began with `openspec` 1.7.0 and `codegraph` on PATH and `/opsx:*` skills listed from user-level configuration, in a repository that was genuinely cold. The premise should be scoped to the repository, so an orchestrator records the machine-level presence as an observation rather than facing an apparent contradiction between the prompt and the evidence. | proposed |
+| 6 | `ADOPT-03` | `01-prerequisites-and-install.md` (`ADOPT-03`) | **`<SPECBOOT_SOURCE>` is ambiguous between the ADOPT-00 source root and `packages/specboot/template/` nested within it, and this run picked wrong on the first attempt.** `ADOPT-03`'s Action names `<SPECBOOT_SOURCE>` as the same placeholder used throughout the guide, and its own "Root instruction single source" note references `packages/specboot/bin/init.js` only as a symlink-matching detail, never stating that the installer's actual copy root is `packages/specboot/template/`, one level below whatever `<SPECBOOT_SOURCE>` otherwise resolves to. This run's first attempt extracted from the source repository's own root instead (also tracked at the same pinned commit, also outside the sparse cone, so equally plausible as "the source") and got a materially different, larger result — including that source repository's own accumulated pilot/dev content (4 extra skill directories, one of them an incoherent self-referential copy of `specboot-adopt`, plus an extra `docs/` file) that is not part of the clean distributable baseline. The operator caught this by direct comparison against the pinned commit's actual tree, not by re-reading the guide — the guide itself gave no signal that the first extraction was wrong. The guide should state explicitly, in `ADOPT-03`'s own Action (not only implied by an installer-script cross-reference), that `<SPECBOOT_SOURCE>` for this step resolves to `packages/specboot/template/` relative to the validated source root, distinct from the narrower root used for `ADOPT-00`'s three-artifact validation. | proposed |
+| 7 | `ADOPT-03` | `01-prerequisites-and-install.md` (`ADOPT-03`) | **Root pointer-file symlink creation is implied, not specified, as an Action.** `ADOPT-03`'s "Expected content" list and validation commands (`test -L AGENTS.md && readlink AGENTS.md`) both assume `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`/`codex.md` exist as symlinks after this step, but `packages/specboot/template/` — confirmed by direct inspection — ships no such symlinks; they are apparently generated by `packages/specboot/bin/init.js`, which `ADOPT-03`'s Action never invokes and never describes replicating. This run created the four relative symlinks as a second, explicit action beyond the literal `cp -rn` command, inferred from the "Root instruction single source" note and the failure-recovery table's symlink-repair entry, and presented that inference to the operator for approval before acting rather than assuming it silently. The guide should state symlink creation as an explicit second sub-action of `ADOPT-03`'s `Action` field, not leave it inferable only from the validation and failure-recovery sections. | proposed |
 | 5 | `ADOPT-01` | `01-prerequisites-and-install.md` (`ADOPT-01`, `ADOPT-02`, `ADOPT-03`) | **No `Allowed modifications` field is declared for `ADOPT-01`, `ADOPT-02`, or `ADOPT-03`.** `00-conventions.md` states this field is a required, ninth part of the step contract for every executable step, authored by the guide maintainer in advance so the checkpoint protocol's standing-authorization mechanism can mechanically verify `staged_files ⊆ Allowed modifications(step)` without the orchestrator ever deriving or widening it live. `grep -c "Allowed modifications" 01-prerequisites-and-install.md` returns 0. The design history for this guide (task 15.13) records that a prior revision populated this field into six other steps found missing it (`ADOPT-00`, `ADOPT-13`, `ADOPT-14`, `ADOPT-15`, `ADOPT-18`, `ADOPT-19`, `ADOPT-20`) but that pass never touched this phase file, so the gap survived. Consequence observed live: `ADOPT-01`'s checkpoint produced no repository-content mutation, so the gap was harmless here, but `ADOPT-02` (`openspec init`, generating `openspec/` and client resources) and `ADOPT-03` (`cp -rn` importing the SpecBoot baseline) will produce real repository content with no declared allowlist to mechanically check the staged set against — meaning standing authorization's core condition cannot be verified for those two steps' checkpoints as written today, and this run is treating their commit/push gates as requiring live approval rather than auto-approving, pending this gap's resolution in the canonical guide. | proposed |
 | 4 | `ADOPT-00` (resumed) | fresh-session handoff prompt (step 3); `00-conventions.md` drift language | **The two-checksum identity check has a real blind spot: a phase-file contract change lands invisibly.** The handoff prompt's step 3 ties blocking drift to a checksum mismatch on `SPECBOOT_ADOPTION_GUIDE.md` and `SKILL.md` only. This resume found the manifest's recorded commit (`834ee535`) one commit behind source HEAD (`1271266d`), where the intervening commit changed `09-bootstrap.md` — outside the checksum baseline — to add a new mandatory artifact to `ADOPT-00`'s own contract. Both checksums matched exactly throughout, so the documented blocking criterion alone would not have surfaced this; it was only found by independently diffing the intervening commit once the commit-mismatch (not checksum-mismatch) was noticed. A run that skipped that extra diff — reasonably, since the prompt's stated blocking condition was satisfied — would have declared `ADOPT-00` PASS against a stale contract. The guide should either checksum the full `specboot-adoption/` tree (or a manifest of per-file hashes) for identity, or explicitly instruct every resume to diff phase files touched by any intervening commits, not just the two named files. | proposed |
 
