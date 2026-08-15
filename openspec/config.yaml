@@ -9,8 +9,10 @@ context: |
   docs/api-spec.yml for the current API contract, and docs/data-model.md for the schema and
   price-resolution business rule. There is no frontend (docs/frontend-standards.md is marked Not
   Applicable) — never introduce frontend, browser, Playwright, or E2E requirements for this repo.
-  For backend implementation work, prefer the backend-developer canonical agent
-  (ai-specs/agents/backend-developer.md); ai-specs/skills/ holds workflow guidance (commit,
+  For backend implementation work, prefer the java-backend-developer canonical agent
+  (ai-specs/agents/java-backend-developer.md), added during adoption because the pre-existing
+  backend-developer agent targets an unrelated TypeScript/Express/Prisma stack, not this
+  repository's actual Java/Spring Boot stack. ai-specs/skills/ holds workflow guidance (commit,
   enrich-us, explain, update-docs, etc.) — load the matching skill when a request matches it, per
   docs/base-standards.md section 4.
 

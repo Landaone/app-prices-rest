@@ -85,9 +85,9 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS — checkpoint committed and pushed (smoke-test rows correctly PENDING EVIDENCE, not blocking) | 2026-08-15 |
 | `ADOPT-06` | `04-context-and-openspec.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-07` | `04-context-and-openspec.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
-| `ADOPT-08` | `04-context-and-openspec.md` | PASS — checkpoint pending | 2026-08-15 |
-| `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
-| `ADOPT-10` | `05-agents-and-skills.md` | PENDING | |
+| `ADOPT-08` | `04-context-and-openspec.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
+| `ADOPT-09` | `05-agents-and-skills.md` | PASS — checkpoint pending (grouped with ADOPT-10) | 2026-08-15 |
+| `ADOPT-10` | `05-agents-and-skills.md` | PASS — checkpoint pending (grouped with ADOPT-09) | 2026-08-15 |
 | `ADOPT-11` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-12` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PENDING | |
@@ -647,28 +647,84 @@ Result: PASS
 ### `ADOPT-09` — Inspect and Adapt Agents
 
 ```text
-Detected stacks:
-Existing agents:
-Agents preserved:
-Agents created:
-Agents modified:
-OpenSpec selection:
-Corrections:
-Result: PASS / FAIL
+Detected stacks and work types: Java 11 / Spring Boot backend (per `ADOPT-01`/`ADOPT-06`
+  evidence) — no frontend, no other backend language. Work types present: backend
+  implementation/review. No evidence of a distinct "product strategy" work type in this
+  repository, but that is a work-type-neutral capability, not stack-bound (see below).
+Existing agents (3, all imported unchanged by `ADOPT-03`): `backend-developer.md` (TypeScript /
+  Express / Prisma DDD backend — wrong stack for this repository's actual backend),
+  `frontend-developer.md` (React — no frontend exists in this repository),
+  `product-strategy-analyst.md` (technology-agnostic product/ideation agent — work type, not
+  stack, so not disqualified by this repository lacking a frontend or using Java).
+  Strict-YAML frontmatter check (`python3 -c "import yaml; yaml.safe_load(...)"` against each
+  file's frontmatter block) — all 3 **FAILED** before repair: "mapping values are not allowed
+  here" at the point each file's single-line `description:` scalar contains an embedded
+  `Context:` (or similar) colon-space pattern from its own worked examples.
+Representation-only frontmatter repairs: all 3 existing agents repaired identically — the
+  `description` field converted from a single physical line containing literal `\n`
+  (backslash-n) separators to a YAML block scalar (`description: |-`) with real newlines,
+  everything else in the frontmatter (`name`, `tools`, `model`, `color`) and the entire body
+  below the closing `---` left untouched. Verified byte-for-byte: (1) each file's body content
+  (everything after the frontmatter) is identical before/after (Python string-equality check);
+  (2) every non-description frontmatter key/value is identical before/after; (3) the description
+  text itself round-trips exactly — replacing real newlines back with literal `\n` in the parsed,
+  repaired value reproduces the original single-line string byte-for-byte. Re-parsed with strict
+  YAML after repair: all 3 now **PASS**.
+Agents preserved: `backend-developer.md`, `frontend-developer.md`, `product-strategy-analyst.md`
+  — content and purpose unchanged (frontmatter representation repair only); none overwritten or
+  repurposed, despite `backend-developer` and `frontend-developer` targeting stacks absent from
+  this repository (they remain valid canonical agents for other repositories/work).
+Agents created: `java-backend-developer.md` — no existing agent covers Java/JVM backend work, so
+  creation is warranted per this step's explicit (conditional, non-default) creation criterion.
+  Client-neutral frontmatter: only `name` and `description` (no `tools`, `model`, `color`, or MCP
+  identifiers) — confirmed programmatically
+  (`set(parsed.keys()) == {'name','description'}`). Domain-neutral: confirmed by
+  `grep -inE "PriceModel|PriceController|PriceEntity|PriceService|PriceRepository|llandaeta|
+  Flyway|H2 |JPA|Maven|Spring Boot 2\.4\.5|Lombok" ai-specs/agents/java-backend-developer.md` = no
+  matches — the agent body speaks only in generic layered-architecture terms (controllers,
+  services, repositories/entities, a centralized error-handling mechanism) and instructs reading
+  the repository's own `docs/backend-standards.md` (confirmed to exist) for actual specifics,
+  rather than hard-coding this repository's stack, package names, or business domain. Strict YAML
+  valid.
+Agents modified: none beyond the 3 representation-only frontmatter repairs above (no content or
+  scope changes to any existing agent).
+OpenSpec selection: `openspec/config.yaml`'s `context` block updated to replace the obsolete
+  `backend-developer` reference with `java-backend-developer` (an existing, wrong-stack selection
+  replaced, not appended alongside a contradictory one, per this step's requirement) — updated
+  only after `java-backend-developer.md` passed the validation checks above.
+  `openspec doctor` re-run after the edit: exit 0, zero warnings.
+Corrections: none needed this step (the frontmatter repair was the step's own designed work, not
+  a correction of this step's output)
+Result: PASS
 ```
 
 
 ### `ADOPT-10` — Validate Agents
 
 ```text
-Agent:
-Frontmatter:
-Description:
-Referenced docs:
-OpenSpec selection:
-Unrelated agents preserved:
-Adapter not canonical:
-Result: PASS / FAIL
+Commands run (read-only): `find ai-specs/agents -maxdepth 1 -type f -name '*.md' -print`;
+  `grep -R "ai-specs/agents" openspec 2>/dev/null`; `git diff -- ai-specs/agents
+  openspec/config.yaml`. All exited 0.
+Agent: `ai-specs/agents/java-backend-developer.md` exists (confirmed by the `find` output above,
+  alongside the 3 pre-existing agent files, none removed)
+Frontmatter: valid — re-confirmed by re-running the same strict `yaml.safe_load` check used in
+  `ADOPT-09` against all 4 files (3 repaired + 1 new): all PASS
+Description: matches the intended technology family (Java/JVM backend, layered architecture) —
+  re-read against the actual detected stack (Java 11 / Spring Boot, per `ADOPT-01`/`ADOPT-06`)
+Referenced docs: `docs/backend-standards.md`, the only documentation path named in the new
+  agent's body, re-confirmed to exist
+OpenSpec selection: `grep -R "ai-specs/agents" openspec` shows exactly one match, in
+  `openspec/config.yaml`'s `context`, pointing at `ai-specs/agents/java-backend-developer.md` —
+  an existing canonical agent under `ai-specs/agents/`, not a client-adapter path
+Unrelated agents preserved: `git diff -- ai-specs/agents` shows only the 3 expected
+  representation-only frontmatter diffs (description scalar style change) for
+  `backend-developer.md`, `frontend-developer.md`, `product-strategy-analyst.md` — no content,
+  name, tools, model, or color changed on any of them; `find` confirms all 3 still present on
+  disk alongside the new agent
+Adapter not canonical: no client adapters exist yet (`ADOPT-13` has not run) — nothing to
+  mistake for canonical; `openspec/config.yaml`'s reference resolves only to the canonical
+  `ai-specs/agents/` path
+Result: PASS
 ```
 
 
@@ -857,6 +913,7 @@ Result: PASS / FAIL
 | 6 | `ADOPT-05B` | n/a — single step | PASS — provisioning/reconciliation/safety complete; smoke-test table correctly PENDING EVIDENCE (see step's evidence block above) | `ADOPT-05B` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.claude/settings.json`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `03845b5ced51d69bbe7aa1ac77e49751b31f3f54` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | proposal #2 (see Improvement proposals) |
 | 7 | `ADOPT-06` | n/a — single step | PASS on all criteria in `04-context-and-openspec.md` (see step's evidence block above); two corrections applied pre-approval (`ADOPT-06/1` build-command online/offline ordering, `ADOPT-06/2` OpenAPI date-time format and response-schema honesty) | `ADOPT-06` evidence block, this run log | YES — content-approval gate presented via `AskUserQuestion`, first presentation interrupted (accidental empty response, treated as neither approval nor rejection, not proceeded on), re-presented and approved after corrections | luis.landaeta@gmail.com, 2026-08-15, content-approval gate, commit gate, and push gate each approved separately | `docs/api-spec.yml`, `docs/backend-standards.md`, `docs/base-standards.md`, `docs/data-model.md`, `docs/development_guide.md`, `docs/frontend-standards.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `ba7fa3faf3dbc919ee85f5c6d5740adccb780a0b` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 8 | `ADOPT-07` | n/a — single step | PASS on all criteria in `04-context-and-openspec.md` (see step's evidence block above); `openspec doctor`/`openspec context` both zero warnings | `ADOPT-07` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately (no separate content-approval gate — the phase file specifies none for `ADOPT-07`) | `openspec/config.yaml`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `c21da332fff9049ff684baabd9b548bf2dadf748` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
+| 9 | `ADOPT-08` | n/a — single step | PASS — read-only re-verification, zero warnings, nothing corrected (see step's evidence block above) | `ADOPT-08` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `52b7531fb5f576fb536476e02d80d40e0a13afbd` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 
 ---
 
@@ -966,4 +1023,5 @@ ADOPT-00 / 2 / fresh-session evidence written into this run log recorded three r
 ADOPT-03 / 1 / the first ADOPT-03 approval-gate presentation stated the `ai-specs/` portion of the import inventory as 15 files, when the actual count at the pinned source commit (`9f08281dae42eb65d0a349c1876e6b584fe6e791`) is 21 / diagnosis: arithmetic error made while summarizing the already-correct raw file listing (the listing itself, obtained via `find` on the `git archive`-extracted scratch copy, was complete and accurate — the error was only in the count stated in the approval-gate summary) / recovery: recounted independently with `git ls-tree -r --name-only <source-commit> -- packages/specboot/template/docs packages/specboot/template/ai-specs`, confirming 7 + 21 = 28 files total; gate re-presented with the corrected count before any write / outcome: caught before any write occurred; no file was copied under the incorrect count
 ADOPT-06 / 1 / the first drafted `docs/development_guide.md` and `docs/backend-standards.md` recommended `mvn -o` (offline) as the primary build/test command even for a first run after cloning, when a first run needs network access to download dependencies into an empty local Maven repository / diagnosis: `-o` was copied from the reviewed `ADOPT-05B` permission baseline (which allowlists exactly `mvn -o validate`/`mvn -o test`, correctly, since that baseline assumes a warm cache) without separately checking whether the *documentation* should present offline as the default for a reader's very first run / recovery: both files corrected to show plain `mvn validate`/`mvn test` first, with `-o` presented as an optional speed-up "once dependencies are already cached" / outcome: caught by the operator before the ADOPT-06 content gate was approved (the gate's first presentation was interrupted by an accidental empty response, not an approval); corrected in the same drafted-but-uncommitted state
 ADOPT-06 / 2 / the first drafted `docs/api-spec.yml` used OpenAPI `format: date-time` for `PriceModel.startDate`/`endDate`, and unconditionally pointed both the 404 and 500 responses at the custom `Error` schema / diagnosis: `format: date-time` in OpenAPI implies an RFC 3339 timestamp with a timezone/offset, but the actual field is a Java `LocalDateTime` serialized without one (confirmed against `PriceModel.java` and `PriceControllerTest`'s own assertions, e.g. `"2020-06-14T15:00:00"`) — copying the OpenAPI convention wholesale mismatched the real serialization; separately, the 500 response claimed the `Error` schema without accounting for the documented `HttpErrorHandler` defect (`ADOPT-06`'s own Known Risks section) that makes that handler unable to bind non-`HttpException` exceptions, and no 400 category was documented at all for Spring's own parameter-binding rejections (missing/non-numeric `brandId`/`productId`) / diagnosis root cause: the spec was written to look like a conventional OpenAPI document before being checked against the specific defects already documented in `backend-standards.md`'s own Known Risks section written moments earlier in the same step / recovery: removed `format: date-time`, documented the real `yyyy-MM-ddTHH:mm:ss` shape with examples; reworded the 500 response to state the body shape is not guaranteed, citing the same Known Risks section; added a 400 response describing Spring's default (non-custom) error body for parameter-binding failures / outcome: caught by the operator before the gate was approved; corrected in the same drafted-but-uncommitted state; YAML re-validated (`python3 -c "import yaml; yaml.safe_load(...)"`) after the fix
+ADOPT-09 / 1 / the first ADOPT-09+10 checkpoint gate presentation described the staged inventory as "5 files" while separately naming the run log as a 6th "plus" item, undercounting the true 6-path inventory by describing it inconsistently rather than as one flat count / diagnosis: enumeration slip while summarizing an already-correct file list (all 6 paths were named correctly in the text, but the stated count of "5" excluded the run log despite it being staged) / recovery: re-derived the exact inventory directly from `git status --porcelain` (6 paths: 3 repaired agents, 1 new agent, `openspec/config.yaml`, the run log), corrected count used in the re-presented gate / outcome: caught before any commit; no incorrect count reached a commit or the ledger
 ```
