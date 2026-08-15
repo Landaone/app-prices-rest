@@ -339,6 +339,14 @@ forms its own checkpoint under this protocol. `ADOPT-17`'s precondition is a pre
 
 11. **Record the checkpoint ledger entry** and advance.
 
+**Advancing is not a decision to present to the operator.** Once a checkpoint reaches PASS and its
+ledger entry is recorded, proceed directly to the next step's `Action` — do not stop to ask
+whether to continue. A stop between steps that is not backed by that next step's own named
+`[HUMAN APPROVAL REQUIRED]` gate is not part of this contract. Where the next step does carry its
+own gate (for example, `ADOPT-01`'s gate before installing or upgrading software), that gate is
+presented when its own step's action reaches it — never earlier, and never disguised as a generic
+"continue?" question preceding it.
+
 ### The two approvals are distinct
 
 A commit approval is **not** a push approval. Neither carries forward to the next checkpoint. A

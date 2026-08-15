@@ -362,6 +362,28 @@
 >
 > **No implementation file is changed by this revision.**
 
+> **Fourteenth revision — step-to-step advancement is tightened the same way the fresh-session
+> handoff already was, found live during the pilot's first real checkpoint (2026-08-15).** After
+> `ADOPT-00` reached PASS (checkpointed, committed, pushed), the live fresh session stopped to ask
+> "continue into `ADOPT-01` now, or pause here?" — a question with no backing approval gate.
+> `00-conventions.md`'s checkpoint protocol already ends "record the checkpoint ledger entry and
+> **advance**," so this was already meant to be automatic; only the eleventh revision's explicit
+> negative pattern had been applied to fresh-session handoffs specifically (D-Z part 8), not to
+> ordinary step-to-step transitions. Flagged, not absorbed silently: even a single occurrence
+> matters, since an unprompted stop with no backing gate can sit unanswered for as long as the
+> operator is away from the session, exactly the cost the fresh-session handoff design already
+> accounts for.
+>
+> **Generalizes D-Z part 8's pattern (design D-Z, part 9) rather than adding a narrow, one-off
+> fix**: `00-conventions.md` gains an explicit negative — advancing is not a decision to present to
+> the operator, and a stop between steps not backed by that next step's own named approval gate is
+> not part of this contract.
+>
+> **1 task is added** (7.25). **No task is reopened.** Task counts move from **247 (224 done / 23
+> open)** to **248 (224 done / 24 open)**.
+>
+> **No implementation file is changed by this revision.**
+
 ## 0. Setup: Feature Branch (MANDATORY — FIRST STEP)
 
 - [x] 0.1 Confirm the working branch is `feature/add-specboot-adoption-orchestrator` and record the starting HEAD; the branch already exists at `c900394104ca1be31d59684d31b2b2aa63fbd2f1`, so create it only if the check shows otherwise — never re-create or reset it
@@ -539,6 +561,7 @@
 - [x] 7.20 **Eleventh revision.** Extend `ADOPT-05` in `02-codegraph.md`: where the operator's `codegraph install` choices exactly match the step's own documented least-privilege defaults (project scope, automatic allow = No) and `ADOPTION-AUTHORIZATION.md`'s code-graph privilege-scope policy, the `[HUMAN APPROVAL REQUIRED]` configuration gate auto-approves — generated files remain fully diff-reviewable, only the live question is removed. Any deviation toward broader scope requires the live gate unchanged (design D-Z, part 6)
 - [x] 7.21 **Eleventh revision.** Extend `ADOPT-13` in `06-adapters-and-discovery.md`: where the adapter plan exposes exactly the agents and skills `ADOPT-09`–`ADOPT-12` already validated — no different selection, nothing not already in that evidence — the adapter-plan approval gate auto-approves, presented as evidence in the run log rather than as a live question. A plan that differs from that evidence requires the live gate unchanged (design D-Z, part 6)
 - [x] 7.23 **Thirteenth revision.** Add a pointer in `01-prerequisites-and-install.md`'s `ADOPT-02` and `02-codegraph.md`'s `ADOPT-05`: when reached, update `.specboot/adoption/ADOPTION-AUTHORIZATION.md`'s OpenSpec-version-policy and code-graph-privilege-scope sections respectively (filled from the template's default text where the run has no deviation to record), rather than asking the operator to author them from scratch (design D-Z, part 2a)
+- [x] 7.25 **Fourteenth revision.** Add an explicit negative to `00-conventions.md`'s checkpoint protocol, alongside its existing "record the checkpoint ledger entry and advance" instruction: advancing to the next step after a checkpoint reaches PASS is not a decision to present to the operator, and a stop between steps not backed by that next step's own named approval gate is not part of this contract (design D-Z, part 9)
 - [x] 7.24 **Thirteenth revision.** Add the equivalent pointer in `03-client-permissions.md`'s `ADOPT-05B`: when the declared team environment matrix is established (Step 2), record it into `.specboot/adoption/ADOPTION-AUTHORIZATION.md`'s environment-matrix section, the same file `ADOPT-00` created, not a new one (design D-Z, part 2a)
 - [x] 7.22 **Eleventh revision.** Tighten the fresh-session handoff wording with an explicit negative — "this is not a decision to present to the operator" — in three places: `09-bootstrap.md` step 9 ("Stop and hand off"), `10-debootstrap.md`'s equivalent `ADOPT-18` re-validation requirement, and `ai-specs/skills/specboot-adopt/references/bootstrap-and-debootstrap.md`. State plainly in all three that once the durable state exists (or, for `ADOPT-18`, once the disposition requires the full re-check), the fresh-session prompt is generated and the run stops — never presented as "continue in this session, or hand off?" (design D-Z, part 8)
 - [x] 7.12 Update `SPECBOOT_ADOPTION_GUIDE.md`: step index, happy path, section-number map (new rows, no rewrites), "How this works", resume/record table, and acceptance criteria. **State the source-linked delivery architecture**: one mode, how the source is resolved and validated, that a run with no validated source fails closed, and that the source location is runtime input the guide itself never records. **Extend the resume/record table** with the drift check. **Correct lines 58-59**, which carry the superseded D-S option-A sentence — the resolved path appears in *no* run evidence, committed or otherwise, only in ignored `.specboot/local/` state; identity is the checksums. *(Reopened, seventh revision: the guide describes two delivery modes and carries the option-A wording option B removed.)*

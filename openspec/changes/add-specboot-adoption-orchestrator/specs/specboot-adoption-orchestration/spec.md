@@ -829,6 +829,20 @@ Each adoption run MAY have exactly one `ADOPTION-AUTHORIZATION.md`, recording wh
 - **WHEN** the orchestrator finds no CI configuration, no Windows-wrapper script, and no platform statement in the repository
 - **THEN** it asks the human directly rather than inferring that only the current machine's platform is supported
 
+### Requirement: Advancing to the next step after a checkpoint reaches PASS is never presented as a live question
+
+Once a checkpoint reaches PASS and its ledger entry is recorded, the orchestrator SHALL proceed directly to the next step's Action. It SHALL NOT stop to ask whether to continue, and a stop between steps that is not backed by that next step's own named approval gate SHALL NOT be treated as part of this contract.
+
+#### Scenario: A checkpoint completes and no further step-specific gate applies yet
+
+- **WHEN** a checkpoint reaches PASS, is committed, and is pushed
+- **THEN** the orchestrator proceeds to the next step's Action without asking whether to continue
+
+#### Scenario: The next step has its own approval gate
+
+- **WHEN** the next step's own Action reaches a point requiring `[HUMAN APPROVAL REQUIRED]` (for example, installing or upgrading software)
+- **THEN** that step's own gate is presented at that point — never earlier, and never as a generic "continue?" question preceding it
+
 ### Requirement: Remote impact is assessed from evidence and unknown impact blocks the push
 
 Before any push, the orchestrator SHALL determine and report whether the repository's remote configuration will trigger continuous integration, deployments, security scans, notifications, or any other automation. The assessment SHALL be derived from real evidence — workflow and pipeline configuration, branch protection, webhooks, and required checks — inspected read-only, and SHALL NEVER be assumed. Where the impact cannot be inspected or determined, it SHALL be treated as unknown, and unknown or unapproved impact SHALL block the push. The absence of a discovered CI configuration SHALL be reported as a finding, not treated as a licence to push. The orchestrator SHALL NOT request new credentials or elevated access to resolve an unknown impact.
