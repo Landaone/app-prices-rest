@@ -42,7 +42,8 @@
       "ownership": "bootstrap-created",
       "mode": "symlink",
       "intended-permanent-replacement": ".claude/skills/specboot-adopt -> ../../ai-specs/skills/specboot-adopt",
-      "cleanup-status": "pending",
+      "cleanup-status": "removed",
+      "final-disposition": "Unlinked at ADOPT-18 (never followed). The manifest-recorded permanent replacement does not exist and, under this repository's deliberate source-linked delivery mode (ADOPT-03 intentionally never imported specboot-adopt locally; see improvement proposal #1), was never intended to be created locally either. The literal validation criterion (\"every intended-permanent-replacement exists and resolves\") is not met by design, not by omission; the operator explicitly approved removal with no local replacement as a reconciliation decision overriding the stale manifest field, recorded 2026-08-15. The corresponding .git/info/exclude entry was also removed as directly-tied residue of this same entry.",
       "machineLocal": true
     },
     {
@@ -55,7 +56,8 @@
       "ownership": "bootstrap-created",
       "mode": "real-file",
       "intended-permanent-replacement": null,
-      "cleanup-status": "pending",
+      "cleanup-status": "converted",
+      "final-disposition": "The manifest's recorded mode (real-file, whole-file removal) predates ADOPT-05's later append of a separate, permanent CODEGRAPH_START/END block to this same file. Removing the whole file would have destroyed that legitimate, non-bootstrap content. Operator-approved block-scoped removal performed instead: only the SPECBOOT-BOOTSTRAP:BEGIN/END block (original lines 1-19) was removed; the CodeGraph block was left byte-identical (confirmed via diff against the pre-edit committed content), 2026-08-15.",
       "machineLocal": false
     }
   ],

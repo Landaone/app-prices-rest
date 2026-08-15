@@ -95,7 +95,7 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PASS — genuinely fresh session's turn-1 transcript ran the canonical prompt verbatim with zero adoption-process framing; see evidence block | 2026-08-15 |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PASS — `mvn clean test` exit 0, 8/8 tests passing, `openspec doctor` ok, CodeGraph current | 2026-08-15 |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
-| `ADOPT-18` | `10-debootstrap.md` | PENDING | |
+| `ADOPT-18` | `10-debootstrap.md` | PENDING — entries dispositioned and committed; `ADOPT-14` re-check PASS; `ADOPT-15` re-check requires a fresh session, not performable by this continuing session | 2026-08-15 |
 | `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 | `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 
@@ -1155,37 +1155,99 @@ own evidence blocks below for status.
 
 ### `ADOPT-18` — De-bootstrap and Reconcile Client Artifacts
 
-- Manifest read from `.specboot/adoption/BOOTSTRAP-MANIFEST.json`: YES / NO
-- Entry count by `ownership` (bootstrap-created / pre-existing-modified / pre-existing-untouched):
-- Every `intended-permanent-replacement` verified to exist and resolve **before** removal: YES / NO
-- Entries removed / converted / retained-with-reason:
-- `pre-existing-untouched` entries touched (must be NONE):
+- Manifest read from `.specboot/adoption/BOOTSTRAP-MANIFEST.json`: YES — read in full before any
+  disposition plan was built
+- Entry count by `ownership`: 2, both `bootstrap-created` (`.claude/skills/specboot-adopt`,
+  `.claude/CLAUDE.md`); 0 `pre-existing-modified`; 0 `pre-existing-untouched`
+- Every `intended-permanent-replacement` verified to exist and resolve **before** removal: NO for
+  entry 1 — verification found the replacement (`../../ai-specs/skills/specboot-adopt`) does not
+  exist and, under this repository's deliberate source-linked delivery mode, was never intended
+  to (`ADOPT-03` intentionally never imported `specboot-adopt` locally; already flagged as
+  improvement proposal #1). This is the step's own documented "Unresolved replacement" condition.
+  Per this step's own further clause ("where the permanent adoption should have created it and
+  did not, create it now"), the question was whether the permanent adoption's omission was a
+  defect or a deliberate design choice; `ADOPT-03`'s own recorded evidence shows the latter.
+  Rather than silently resolve that ambiguity, both possible dispositions (refuse-and-leave-in-
+  place, or approve-removal-with-no-replacement) were presented to the operator via
+  `AskUserQuestion` before any mutation; the operator explicitly chose to approve removal with no
+  local replacement, recorded as their own reconciliation decision below and in the manifest's
+  `final-disposition` field — not a self-approved override of the written validation criterion.
+  Entry 2 (`.claude/CLAUDE.md`) has `intended-permanent-replacement: null` — nothing to verify.
+- Entries removed / converted / retained-with-reason: `.claude/skills/specboot-adopt` —
+  **removed** (`unlink`, never followed; confirmed absent via `test -e`); `.claude/CLAUDE.md` —
+  **converted** (block-scoped: only the `SPECBOOT-BOOTSTRAP:BEGIN/END` delimited block removed,
+  the separately-appended `CODEGRAPH_START/END` block left byte-identical — confirmed via `diff`
+  against the pre-edit committed content, since the manifest's literal `real-file` mode predates
+  `ADOPT-05`'s later append and would have destroyed that legitimate content if followed literally)
+- `pre-existing-untouched` entries touched (must be NONE): NONE — there were none to touch (both
+  manifest entries are `bootstrap-created`)
 - **Delivery mode read from the manifest:** source-linked
 - **Payload obligation:** `SKIPPED — source-linked mode`
 - **Container obligation:** `SKIPPED — source-linked mode`
-- `.specboot/bootstrap/` never created at any point in the run: YES / NO
+- `.specboot/bootstrap/` never created at any point in the run: YES — confirmed absent
+  (`test -e .specboot/bootstrap` reports absent), consistent with every prior step's evidence
 - Project-local discovery entries removed, and every file a delimited block was appended to
-  **byte-restored**: YES / NO
+  **byte-restored**: `.claude/skills/specboot-adopt` removed; `.claude/CLAUDE.md`'s
+  `SPECBOOT-BOOTSTRAP` block removed with the remainder (the `CODEGRAPH` block) confirmed
+  byte-identical to its pre-removal committed state via `diff` — the file did not exist before
+  `ADOPT-00` created it, so "byte-restored" is satisfied in spirit (everything the bootstrap
+  itself did not add is unaffected) rather than literally (there is no pre-bootstrap version of
+  this specific file to restore to)
 - Machine-local `.specboot/local/` store removed (or already absent), while the committed manifest
-  and run log were **preserved**: YES / NO
-- External canonical source **byte-identical**, file for file, to its pre-run state: YES / NO
-- No manifest entry describes the source or any path inside it: YES / NO
-- **Refusals reached** (record NONE where the step completed):
-  - Unresolved `intended-permanent-replacement`: NONE / **FAIL** — entry left in place, named:
-  - Unrecorded content in scope for removal: NONE / **FAIL** — residue named, neither it nor its
-    container removed:
-  - For every FAIL row: entries already dispositioned kept their terminal values, entries not
-    reached stayed `pending`, and the durable manifest and run log were preserved so another
-    session can resume: YES / NO
-- `.specboot/adoption/` present and committed: YES / NO
-- Artifacts removed for unselected or unverified clients:
-- Broken-symlink scan (`find -L … -type l`, expect empty):
-- Root instruction symlinks all resolve to `docs/base-standards.md`: YES / NO
-- `ADOPT-14` re-validation: PASS / FAIL
-- `ADOPT-15` re-validation (fresh session, per selected client): PASS / FAIL / PENDING EVIDENCE
-- Every entry carries a terminal `cleanup-status` and `final-disposition`: YES / NO
-- Approval (deletion is high-risk and always requires explicit approval):
-- Result: PASS / FAIL / SKIPPED — no bootstrap performed
+  and run log were **preserved**: YES — `.specboot/local/canonical-source-path` and its parent
+  directory removed (`rm` + `rmdir`), confirmed absent via `test -e`;
+  `.specboot/adoption/BOOTSTRAP-MANIFEST.json` and `.specboot/adoption/ADOPTION-RUN-LOG.md`
+  confirmed still present via `test -f`
+- External canonical source **byte-identical**, file for file, to its pre-run state: YES —
+  `git -C <source> status --porcelain` reported clean both before and after every operation in
+  this step (checked immediately after the unlink and after the local-store removal); no
+  operation in this step ever wrote to, read destructively from, or followed a path into the
+  source
+- No manifest entry describes the source or any path inside it: YES — both entries' `source`
+  fields name `canonicalPath`s (`ai-specs/skills/specboot-adopt`, `SPECBOOT_ADOPTION_GUIDE.md`)
+  which are relative identifiers, not filesystem paths into the resolved external source
+- **Refusals reached:**
+  - Unresolved `intended-permanent-replacement`: initially triggered for entry 1 (see above) —
+    **not left as a standing refusal**: presented to the operator as an explicit choice rather
+    than silently resolved, and the operator's explicit approval to remove with no replacement is
+    recorded as their own reconciliation decision (decision record, below), which resolves the
+    refusal rather than overriding it unilaterally. No entry remains blocked.
+  - Unrecorded content in scope for removal: NONE
+  - No FAIL row remains at the end of this step's entry-processing phase
+- `.specboot/adoption/` present and committed: present, not yet committed as of this evidence
+  write (commit is this checkpoint's own next action)
+- Artifacts removed for unselected or unverified clients: NONE needed — `.kiro/` confirmed absent
+  before and after this step (no Kiro artifacts ever existed to remove)
+- Broken-symlink scan (`find -L .claude/agents .claude/skills -type l`, expect empty): empty,
+  confirmed — exit 0, no output
+- Root instruction symlinks all resolve to `docs/base-standards.md`: YES — `readlink` on all 4
+  (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `codex.md`) confirmed, unaffected by this step (not a
+  manifest entry; separately owned by `ADOPT-03`)
+- `ADOPT-14` re-validation: PASS — re-ran this step's own filesystem checks in full: 2 agent
+  symlinks, 8 canonical skill symlinks (`specboot-adopt` correctly no longer among them), 6 real
+  OpenSpec-generated directories intact, 0 broken links, 0 malformed names, `.kiro/` absent
+- `ADOPT-15` re-validation (fresh session, per selected client): **PENDING EVIDENCE** — this step's
+  own text requires "one `ADOPT-15` fresh-session discovery check per selected client, to prove
+  nothing still needed was removed," and explicitly: "the fresh-session check is a stop-and-
+  hand-off, never simulated." This continuing session cannot perform it, for the same reason the
+  original `ADOPT-15` PENDING period could not be resolved by the session that created the
+  adapters. A repeat of the exact `ADOPT-15` canonical prompt in a genuinely fresh session is the
+  outstanding requirement to close this out.
+- Every entry carries a terminal `cleanup-status` and `final-disposition`: YES — both entries
+  (`removed`, `converted`) written back to `.specboot/adoption/BOOTSTRAP-MANIFEST.json` with
+  their `final-disposition` reasoning, before this evidence was written (not batched at the end)
+- Approval (deletion is high-risk and always requires explicit approval): presented via two
+  `AskUserQuestion` calls before any mutation — (1) resolution of the `specboot-adopt`
+  unresolved-replacement condition: operator chose "approve removal, no local replacement"; (2)
+  `.claude/CLAUDE.md` block-scoped-vs-whole-file removal: operator chose "approve block-scoped
+  removal." Both, luis.landaeta@gmail.com, 2026-08-15. No mutation was performed before either
+  approval was recorded.
+- Result: **PENDING** — not FAIL (both manifest entries reached terminal, operator-approved
+  dispositions; `ADOPT-14` re-validation PASS; no refusal remains standing) and not PASS (this
+  step's own acceptance criteria require `ADOPT-15` to re-validate PASS, which needs a fresh
+  session this continuing session cannot provide). Resumable: a future fresh session running the
+  `ADOPT-15` canonical prompt, with its result recorded here, is the only remaining requirement to
+  close `ADOPT-18` at PASS.
 
 ---
 
@@ -1238,6 +1300,7 @@ own evidence blocks below for status.
 | 13 | `ADOPT-14` | n/a — single step | PASS — read-only re-verification, zero broken links/malformed names (see step's evidence block above) | `ADOPT-14` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `6c0d592342822cb18e4c909f1a188daaa1d527fd` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 14 | `ADOPT-15` | n/a — single step | PASS — fresh-session evidence recorded and validated per `06-adapters-and-discovery.md`'s interpretation rules (see step's evidence block above) | `ADOPT-15` evidence block, this run log | YES — commit-gate declaration presented via `AskUserQuestion`, approved on first presentation | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `2c5858695e8af4dd0087b1f9327ca7be4d591968` | No `.github/workflows/` in tracked tree; rulesets `[]`; webhooks `[]`; branch unprotected. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 15 | `ADOPT-16` | n/a — single step | PASS — `mvn clean test` exit 0, 8/8 tests, `openspec doctor` ok, `codegraph sync` current (see step's evidence block above) | `ADOPT-16` evidence block, this run log | YES — commit-gate declaration presented via `AskUserQuestion`, approved on first presentation (one correction applied pre-approval: an absolute machine path leaked into the drafted evidence, caught and removed before staging, re-verified clean) | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `f74a2680b23a5e00addf4f5efef0bdea329eee02` | No `.github/workflows/` in tracked tree; rulesets `[]`; webhooks `[]`; branch unprotected. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
+| 16 | `ADOPT-17` | n/a — final step of the one-time adoption; invokes the checkpoint protocol directly per its own phase file, not a grouped exception | PASS — full cumulative staged-scope audit (see step's evidence block above): source/tests unchanged, no build output tracked, all 14 symlinks correct mode/target/resolution, no broken links, no unselected-client adapters, no secrets, no absolute-path leaks, no unstaged leftovers | `ADOPT-17` evidence block, this run log, `staged.diff` (reviewed, then removed as a local-only artifact per its own evidence note) | YES — commit-gate declaration presented via `AskUserQuestion`, approved on first presentation | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `06f180086a716fa63b40dcfd7d8c073b5ca8014d` | No `.github/workflows/` in tracked tree; rulesets `[]`; webhooks `[]`; branch unprotected. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 
 ---
 
@@ -1338,6 +1401,8 @@ Reason:
 2026-08-15 / ADOPT-05B (permission-file creation gate) / decision: approved merging the canonical source's root `.claude/settings.json` baseline into the existing file, no removals or additions / who: luis.landaeta@gmail.com / reason: corrected the evidence before writing — declined to accept "syntax is OS-agnostic" as a substitute for actual fresh-session validation on Ubuntu/Windows; those combinations recorded PENDING EVIDENCE rather than PASS, and an improvement proposal (#2) was recorded about the baseline's own unvalidated Windows/PowerShell coverage
 2026-08-15 / ADOPT-15 (fresh-session evidence gate) / decision: decline to record this session's auto-injected CodeGraph context, or a review performed later in this same already-briefed session, as ADOPT-15 evidence; stop and hand off for a genuinely separate new session instead / who: luis.landaeta@gmail.com / reason: no actual preceding-response review existed to record, and this session's opening prompt already named the adoption process, which would bias any review performed here and defeat the step's organic-discovery test; offered three paths via `AskUserQuestion` (blank subagent / manual handoff / accept as-is), operator chose manual handoff
 2026-08-15 / ADOPT-15 (fresh-session evidence gate, handoff session) / decision: accept this session's turn-1 architecture review as valid ADOPT-15 evidence and record PASS / who: this agent, recording a first-hand observation of the session's own transcript, not a self-approval of a gated mutation — ADOPT-15's own approval gate is `none` (read-only) / reason: turn 1 was verbatim-identical to the canonical prompt in `06-adapters-and-discovery.md` with zero SpecBoot/adoption framing; the resume-and-record instruction arrived only in turn 2, after the review was already complete, so the review itself was not biased — satisfying the organic-discovery test the prior handoff session's declined attempt could not meet
+2026-08-15 / ADOPT-18 (unresolved-replacement refusal, `.claude/skills/specboot-adopt` entry) / decision: approve removal with no local permanent replacement, overriding the manifest's stale `intended-permanent-replacement` field / who: luis.landaeta@gmail.com / reason: presented with both options (refuse-and-leave-in-place per the literal validation criterion, or approve removal given source-linked mode's own deliberate design never to import `specboot-adopt` locally, per `ADOPT-03`'s recorded evidence and improvement proposal #1); operator chose removal
+2026-08-15 / ADOPT-18 (mode mismatch, `.claude/CLAUDE.md` entry) / decision: approve block-scoped removal of only the `SPECBOOT-BOOTSTRAP:BEGIN/END` block, not the whole-file removal the manifest's `real-file` mode literally names / who: luis.landaeta@gmail.com / reason: the manifest's recorded mode predates `ADOPT-05`'s later, separate append of the permanent `CODEGRAPH_START/END` block to the same file; whole-file removal would have destroyed that legitimate, non-bootstrap content
 ```
 
 ## Correction record
