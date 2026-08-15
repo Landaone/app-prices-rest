@@ -251,6 +251,20 @@ Before the three-artifact source validation runs, the launcher SHALL compare the
 - **WHEN** the session's working directory is reached through a symlink that resolves to the same real path as the candidate source
 - **THEN** the comparison is made on resolved paths, so the match is still detected and the run stops
 
+### Requirement: A count or enumeration at an approval gate is mechanical command output, never a recalled figure
+
+Where a step's approval gate proposes copying, importing, or otherwise acting on a set of paths, the count and names presented SHALL be the literal output of a mechanical enumeration command (for example `find <path> -type f`) run against the actual source **before** that gate is presented, quoted directly. It SHALL NOT be a figure recalled, estimated, or summarized from an earlier read. This applies to every step presenting a count at an approval gate, not only `ADOPT-03`.
+
+#### Scenario: A copy step's gate presents a mechanically-derived count
+
+- **WHEN** a step's approval gate proposes copying a set of paths from the resolved source
+- **THEN** the count and names presented come from a mechanical enumeration command run immediately before the gate, and that command's output is quoted directly in the gate text
+
+#### Scenario: A recalled count is not evidence
+
+- **WHEN** a count presented at an approval gate was derived from an earlier read or summary rather than a command run immediately before the gate
+- **THEN** the gate is not valid evidence, regardless of whether the recalled figure happens to be correct
+
 ### Requirement: A step-level approval gate auto-approves when a deterministic policy or prior evidence already answers it
 
 Where a step's own approval gate would otherwise ask a live question, and a deterministic policy recorded in `ADOPTION-AUTHORIZATION.md` or prior validated evidence from an earlier step already answers it unambiguously, the gate SHALL auto-approve and record the answer as evidence rather than asking. This SHALL apply narrowly, to exactly the conditions each step's own text defines, and SHALL NEVER apply where the actual choice deviates from the recorded policy or evidence — a deviation SHALL always reach the live gate.

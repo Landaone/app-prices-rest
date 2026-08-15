@@ -259,7 +259,11 @@ test -L codex.md && readlink codex.md
 
 Expect every command to print exactly `docs/base-standards.md`, and every symlink to resolve.
 
-**Approval gate:** **[HUMAN APPROVAL REQUIRED]** before repository-local writes.
+**Approval gate:** **[HUMAN APPROVAL REQUIRED]** before repository-local writes. **The file counts
+and names presented at this gate are the literal output of the same `find` commands used for
+`Validation` below, run before this gate is presented — never a recalled or summarized figure**
+(`00-conventions.md`'s evidence discipline). A miscount here is not a rounding error the operator
+is expected to catch; it is evidence the gate was not actually derived mechanically.
 
 **Validation:**
 

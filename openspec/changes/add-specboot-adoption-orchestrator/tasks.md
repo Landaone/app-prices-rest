@@ -405,6 +405,28 @@
 >
 > **No implementation file is changed by this revision.**
 
+> **Sixteenth revision — the correct half of a proposal declined earlier in this change's own
+> retrospective, confirmed by three consecutive miscounts on one live gate (2026-08-15).** Early in
+> this change's retrospective analysis (predating even the tenth revision), a hand-maintained
+> `checkpoints/*.md` validation-file structure was proposed and declined as canonical-source
+> duplication. The decline was right for step-scope (`Allowed modifications` already belongs in the
+> phase file, design D-Z parts 1-2) but incomplete: it did not address a distinct failure mode —
+> `ADOPT-03`'s live approval gate presenting a **recalled** file count rather than mechanical
+> command output, and being wrong three times running on the same gate in this same pilot session
+> (`docs/` 8 vs. 7, `skills/` 14 vs. 10, `ai-specs/agents/` 4 vs. 3), echoing the original pilot's
+> own recorded miscounts at this identical step.
+>
+> **The fix is not the declined hand-maintained file — it is requiring the mechanical `find`
+> commands `ADOPT-03`'s own `Validation` section already runs to run *before* the approval gate
+> too, not only after** (design D-Z, part 11), plus a general rule in `00-conventions.md`'s evidence
+> discipline: any count or enumeration presented at any approval gate is literal command output,
+> never a recalled figure. This generalizes past `ADOPT-03` to any future step presenting a count.
+>
+> **2 tasks are added** (1.8, 7.26). **No task is reopened.** Task counts move from **249 (226 done
+> / 23 open)** to **251 (226 done / 25 open)**.
+>
+> **No implementation file is changed by this revision.**
+
 ## 0. Setup: Feature Branch (MANDATORY — FIRST STEP)
 
 - [x] 0.1 Confirm the working branch is `feature/add-specboot-adoption-orchestrator` and record the starting HEAD; the branch already exists at `c900394104ca1be31d59684d31b2b2aa63fbd2f1`, so create it only if the check shows otherwise — never re-create or reset it
@@ -417,6 +439,7 @@
 - [x] 1.3 Record the current phase-file inventory (`00`–`08`, `19`, `22`) as evidence that `09`, `10`, and `11` are free, confirming design D-G
 - [x] 1.4 Record the current `packages/specboot/template/` drift set with evidence (`code-auditing`, `enrich-us`, `using-git-worktrees` differ from canonical) as the warn-only baseline for design D-I; do not fix it in this change
 - [x] 1.5 Record the environment constraints that bound what may be claimed: host OS is `Darwin 22.6.0` with no Windows host available, and the repository has no `.github/workflows/`
+- [x] 1.8 **Sixteenth revision.** Extend `01-prerequisites-and-install.md`'s `ADOPT-03` approval gate: the file counts and names it presents are the literal output of the same `find` commands its `Validation` section already runs, executed before the gate is shown, never a recalled or summarized figure (design D-Z, part 11)
 - [x] 1.7 **Fifteenth revision.** Add an explicit statement to `01-prerequisites-and-install.md`'s `ADOPT-03`, immediately before its `cp -rn` command: `<SPECBOOT_SOURCE>` is the same canonical source `ADOPT-00` already resolved and validated; read it from the machine-local `.specboot/local/canonical-source-path` store, never re-derive it from a fresh directory scan and never re-ask the operator for it (design D-Z, part 10)
 - [x] 1.6 **Eleventh revision.** Extend `ADOPT-02` in `01-prerequisites-and-install.md`: before the install/upgrade command, check whether an already-installed OpenSpec version already supports the documented keys this guide requires (`ADOPT-01`'s own criterion); where it does, skip the install/upgrade command and its approval gate entirely and proceed straight to `openspec init`, recording the reused version as evidence. Where it does not, or none is installed, the existing command and its `[HUMAN APPROVAL REQUIRED]` gate are unchanged (design D-Z, part 6)
 
@@ -583,6 +606,7 @@
 - [x] 7.20 **Eleventh revision.** Extend `ADOPT-05` in `02-codegraph.md`: where the operator's `codegraph install` choices exactly match the step's own documented least-privilege defaults (project scope, automatic allow = No) and `ADOPTION-AUTHORIZATION.md`'s code-graph privilege-scope policy, the `[HUMAN APPROVAL REQUIRED]` configuration gate auto-approves — generated files remain fully diff-reviewable, only the live question is removed. Any deviation toward broader scope requires the live gate unchanged (design D-Z, part 6)
 - [x] 7.21 **Eleventh revision.** Extend `ADOPT-13` in `06-adapters-and-discovery.md`: where the adapter plan exposes exactly the agents and skills `ADOPT-09`–`ADOPT-12` already validated — no different selection, nothing not already in that evidence — the adapter-plan approval gate auto-approves, presented as evidence in the run log rather than as a live question. A plan that differs from that evidence requires the live gate unchanged (design D-Z, part 6)
 - [x] 7.23 **Thirteenth revision.** Add a pointer in `01-prerequisites-and-install.md`'s `ADOPT-02` and `02-codegraph.md`'s `ADOPT-05`: when reached, update `.specboot/adoption/ADOPTION-AUTHORIZATION.md`'s OpenSpec-version-policy and code-graph-privilege-scope sections respectively (filled from the template's default text where the run has no deviation to record), rather than asking the operator to author them from scratch (design D-Z, part 2a)
+- [x] 7.26 **Sixteenth revision.** Add a general rule to `00-conventions.md`'s evidence discipline: a count or enumeration presented at any approval gate is the literal, raw output of a mechanical command run against the actual source before that gate is presented, never a recalled, estimated, or summarized figure (design D-Z, part 11)
 - [x] 7.25 **Fourteenth revision.** Add an explicit negative to `00-conventions.md`'s checkpoint protocol, alongside its existing "record the checkpoint ledger entry and advance" instruction: advancing to the next step after a checkpoint reaches PASS is not a decision to present to the operator, and a stop between steps not backed by that next step's own named approval gate is not part of this contract (design D-Z, part 9)
 - [x] 7.24 **Thirteenth revision.** Add the equivalent pointer in `03-client-permissions.md`'s `ADOPT-05B`: when the declared team environment matrix is established (Step 2), record it into `.specboot/adoption/ADOPTION-AUTHORIZATION.md`'s environment-matrix section, the same file `ADOPT-00` created, not a new one (design D-Z, part 2a)
 - [x] 7.22 **Eleventh revision.** Tighten the fresh-session handoff wording with an explicit negative — "this is not a decision to present to the operator" — in three places: `09-bootstrap.md` step 9 ("Stop and hand off"), `10-debootstrap.md`'s equivalent `ADOPT-18` re-validation requirement, and `ai-specs/skills/specboot-adopt/references/bootstrap-and-debootstrap.md`. State plainly in all three that once the durable state exists (or, for `ADOPT-18`, once the disposition requires the full re-check), the fresh-session prompt is generated and the run stops — never presented as "continue in this session, or hand off?" (design D-Z, part 8)

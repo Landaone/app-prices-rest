@@ -195,6 +195,14 @@ different results, and neither is evidence of success.
 - Never claim a file exists until the filesystem confirms it. After any large write, verify
   physically — existence, line count, headings, tail — rather than trusting the writing
   tool's own success signal.
+- **A count or enumeration presented at an approval gate is the literal, raw output of a
+  mechanical command run against the actual source, never a recalled, estimated, or
+  summarized figure.** Where a step's approval gate proposes copying, importing, or otherwise
+  acting on a set of paths, run the enumeration command (for example `find <path> -type f |
+  wc -l`, or the equivalent listing) **before** presenting that gate, and quote its output
+  directly. A human approves what a command printed, not what an agent remembers counting —
+  recalling a count from an earlier read is exactly how a plausible-looking number turns out
+  wrong.
 - Do not claim automatic discovery for a resource that was manually supplied or explicitly
   loaded after the session started.
 
