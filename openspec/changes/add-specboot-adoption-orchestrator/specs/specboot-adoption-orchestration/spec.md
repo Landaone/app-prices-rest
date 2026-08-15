@@ -220,6 +220,11 @@ Adoption SHALL resolve the location of the canonical SpecBoot source as **runtim
 - **WHEN** a canonical artifact — the guide, a phase file, the kit manifest, the skill, or a recipe — refers to the canonical source
 - **THEN** it refers to it as runtime input, and no machine-specific source path appears in it; the resolved path appears in no committed artifact at all, and is retained only in ignored machine-local state
 
+#### Scenario: A later step reuses the resolved source rather than re-deriving it
+
+- **WHEN** a step other than `ADOPT-00` needs the resolved canonical source path
+- **THEN** it reads the same value from the machine-local store `ADOPT-00` wrote, and does not scan for candidate directories or ask the operator to name the source again
+
 #### Scenario: The external source is never written to
 
 - **WHEN** any adoption step would create, modify, or delete a file inside the resolved canonical source

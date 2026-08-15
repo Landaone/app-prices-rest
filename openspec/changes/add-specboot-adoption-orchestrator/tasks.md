@@ -384,6 +384,27 @@
 >
 > **No implementation file is changed by this revision.**
 
+> **Fifteenth revision — `ADOPT-03` never said where `<SPECBOOT_SOURCE>` comes from, found live
+> when a pilot session was offered two wrong candidates instead of the value `ADOPT-00` already
+> established (2026-08-15).** `01-prerequisites-and-install.md`'s `ADOPT-03` uses
+> `<SPECBOOT_SOURCE>` as a bare placeholder in its `cp -rn` command with no cross-reference to
+> `ADOPT-00`'s own resolution of that same value. The live consequence: the pilot session, reaching
+> this step with nothing telling it to reuse the already-resolved source, presented the operator a
+> choice between the development worktree (mixed with unrelated application files, never the
+> canonical source) and `packages/specboot/template/` (the deferred packaged-snapshot payload path,
+> `D-W` — not what source-linked mode reads at all) — neither of which was correct. The right value
+> was already sitting in `.specboot/local/canonical-source-path`, exactly where `ADOPT-00` left it.
+>
+> **Extends `D-Z` with part 10** (fifth instance of the same underlying principle already applied
+> in parts 6-9: a value or decision that already exists is reused, never re-derived or re-asked). A
+> grep of every phase file confirms `<SPECBOOT_SOURCE>` is referenced only in this one location, so
+> this is a single, targeted correction, not a pattern requiring a sweep.
+>
+> **1 task is added** (1.7). **No task is reopened.** Task counts move from **248 (225 done / 23
+> open)** to **249 (225 done / 24 open)**.
+>
+> **No implementation file is changed by this revision.**
+
 ## 0. Setup: Feature Branch (MANDATORY — FIRST STEP)
 
 - [x] 0.1 Confirm the working branch is `feature/add-specboot-adoption-orchestrator` and record the starting HEAD; the branch already exists at `c900394104ca1be31d59684d31b2b2aa63fbd2f1`, so create it only if the check shows otherwise — never re-create or reset it
@@ -396,6 +417,7 @@
 - [x] 1.3 Record the current phase-file inventory (`00`–`08`, `19`, `22`) as evidence that `09`, `10`, and `11` are free, confirming design D-G
 - [x] 1.4 Record the current `packages/specboot/template/` drift set with evidence (`code-auditing`, `enrich-us`, `using-git-worktrees` differ from canonical) as the warn-only baseline for design D-I; do not fix it in this change
 - [x] 1.5 Record the environment constraints that bound what may be claimed: host OS is `Darwin 22.6.0` with no Windows host available, and the repository has no `.github/workflows/`
+- [x] 1.7 **Fifteenth revision.** Add an explicit statement to `01-prerequisites-and-install.md`'s `ADOPT-03`, immediately before its `cp -rn` command: `<SPECBOOT_SOURCE>` is the same canonical source `ADOPT-00` already resolved and validated; read it from the machine-local `.specboot/local/canonical-source-path` store, never re-derive it from a fresh directory scan and never re-ask the operator for it (design D-Z, part 10)
 - [x] 1.6 **Eleventh revision.** Extend `ADOPT-02` in `01-prerequisites-and-install.md`: before the install/upgrade command, check whether an already-installed OpenSpec version already supports the documented keys this guide requires (`ADOPT-01`'s own criterion); where it does, skip the install/upgrade command and its approval gate entirely and proceed straight to `openspec init`, recording the reused version as evidence. Where it does not, or none is installed, the existing command and its `[HUMAN APPROVAL REQUIRED]` gate are unchanged (design D-Z, part 6)
 
 ## 2. RED Baseline: Skill Test Campaign Before Any Skill Body Exists (TDD Iron Law)

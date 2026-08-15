@@ -199,6 +199,13 @@ without overwriting existing project files.
 
 **Action:**
 
+**`<SPECBOOT_SOURCE>` is the same canonical source `ADOPT-00` already resolved and validated —
+never a new value to determine here.** Read it from the machine-local
+`.specboot/local/canonical-source-path` store `ADOPT-00` wrote. Do not re-derive it from a fresh
+directory scan, do not treat any other directory on this machine as a candidate, and do not ask
+the operator to name the source again — that value was already established, once, before this
+step was reached.
+
 ```bash
 cp -rn <SPECBOOT_SOURCE>/* <TARGET_REPOSITORY>/
 ```
