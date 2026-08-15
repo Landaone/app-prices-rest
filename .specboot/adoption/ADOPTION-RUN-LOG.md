@@ -79,9 +79,9 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-00` | `09-bootstrap.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-01` | `01-prerequisites-and-install.md` | PASS — no repo-local writes, no checkpoint needed | 2026-08-15 |
 | `ADOPT-02` | `01-prerequisites-and-install.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
-| `ADOPT-03` | `01-prerequisites-and-install.md` | PASS — checkpoint pending | 2026-08-15 |
-| `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PENDING | |
-| `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PENDING | |
+| `ADOPT-03` | `01-prerequisites-and-install.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
+| `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PASS — checkpoint pending | 2026-08-15 |
+| `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS — checkpoint pending | 2026-08-15 |
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PENDING | |
 | `ADOPT-06` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
@@ -325,30 +325,74 @@ Result: PASS
 ### `ADOPT-04` — Initialize CodeGraph
 
 ```text
-CodeGraph version:
-Command:
-Files indexed:
-Nodes:
-Edges:
-Duration:
-Exploration query:
-Result: PASS / FAIL
+CodeGraph version: 1.5.0 (`codegraph --version`; already installed and verified in `ADOPT-01`,
+  matches the reference-experiment version — no new install performed, so the "before software
+  installation" approval gate did not trigger)
+Command: `codegraph init` (from repository root)
+Files indexed: 22
+Nodes: 295
+Edges: 355
+Duration: 659ms (`time codegraph init` measured 1.559s total wall time including process
+  startup/shutdown overhead; the tool's own reported indexing duration is 659ms)
+Exploration query: `codegraph explore "list entry points"` — returned a structured, non-empty
+  result: 49 symbols across 3 files, including blast-radius/caller data (e.g. `getPriceList` in
+  `PriceModel.java` and `PriceEntity.java`, with caller/test-coverage annotations) and verbatim
+  source excerpts for `PriceModel.java`, `PriceEntity.java`, `PriceEntityModelConverter.java`.
+  Confirms the index is queryable, not merely present.
+`.codegraph/` disposition: contains `codegraph.db` (the index, 844K total directory size) and its
+  own `.gitignore` (provisioned by CodeGraph itself: `*` then `!.gitignore`, so only
+  `.codegraph/.gitignore` is ever trackable and `codegraph.db` — the version-dependent internal
+  data — is never committed). Verified with `git check-ignore -v .codegraph/codegraph.db` (ignored,
+  by `.codegraph/.gitignore:4:*`) and `git check-ignore -v .codegraph/.gitignore` (NOT ignored, by
+  its own `!.gitignore` exception) — matches this step's "Internal `.codegraph/` files are treated
+  as version-dependent" criterion by construction, not by a rule this adoption had to author.
+Result: PASS
 ```
 
 
 ### `ADOPT-05` — Configure CodeGraph for the Selected Clients
 
 ```text
-Command:
-Clients selected:
-Scope:
-PATH:
-Automatic allow:
-Prompt front-loading:
-Pro:
-Generated files:
+Command: `codegraph install -y --target claude --location local --no-permissions`. First attempted
+  interactively (`codegraph install --target claude --location local --no-permissions`), which
+  stopped at a TUI sub-prompt ("Install the codegraph CLI on your PATH?") that could not be driven
+  reliably by piping raw bytes to a non-TTY stdin (an attempted `printf '\n'` toggled the selection
+  to "No" rather than confirming the shown default "Yes" — a TUI rendering/input mismatch, not a
+  deliberate choice); aborted that attempt without letting it complete, then re-ran fully
+  non-interactively with `-y` added alongside the same explicit `--target`/`--location`/
+  `--no-permissions` overrides, which the tool honored in place of `-y`'s own defaults
+  (`--location=global --target=auto`).
+Clients selected: claude (only — matches ADOPT-00)
+Scope: local (project) — matches the guide's "Prefer project scope for repository-specific
+  adoption"
+PATH: Yes — `codegraph` was already confirmed on `PATH` in `ADOPT-01`/`ADOPT-04`
+  (`codegraph --version` = 1.5.0); the non-interactive run's PATH-install sub-question resolved to
+  its shown default (Yes) since it completed without error and without prompting
+Automatic allow: No — `--no-permissions` passed, matching the guide's "Do not enable automatic
+  allow until exact command patterns are reviewed"
+Prompt front-loading: Yes (tool default) — the install created a `UserPromptSubmit` hook in
+  `.claude/settings.json` running `codegraph prompt-hook`; `--no-permissions` only suppresses the
+  auto-allow *permissions* list (confirmed via `codegraph install --help`), not this hook, and no
+  separate flag exists to opt out of it. Recorded transparently as a deviation from the "Automatic
+  prompt front-loading: No" reference-experiment value; the guide treats this decision as
+  "optional", not a required disable, so this was not treated as a blocking failure.
+Pro: No — not enabled, not requested, no evidence of Pro-only output
+Generated files: `.mcp.json` (new — MCP stdio server pointing at `codegraph serve --mcp`, no
+  absolute paths, no secrets); `.claude/settings.json` (new — the `UserPromptSubmit` hook above;
+  ADOPT-05B, the mandatory selected-client-permissions step, has not run yet and will reconcile
+  this file against the project's permission baseline); `.claude/CLAUDE.md` (modified — a new,
+  separately delimited `<!-- CODEGRAPH_START -->...<!-- CODEGRAPH_END -->` block appended after
+  the existing `<!-- SPECBOOT-BOOTSTRAP:BEGIN/END -->` block, confirmed via `git diff` to leave the
+  bootstrap block byte-for-byte untouched — no corruption of ADOPT-00's discovery mechanism).
+  `git status --short` / `git diff --name-only` confirm no files outside this set changed.
 Per-client provisioning provenance (installer-provisioned vs. separately configured):
-Result: PASS / FAIL
+  `.mcp.json`, `.claude/settings.json`, and the CodeGraph block in `.claude/CLAUDE.md` were all
+  installer-provisioned by this step's `codegraph install` command — confirmed by their
+  absence/unmodified state immediately before the command ran and their presence/modification
+  immediately after, in the same working-tree scan. No unselected client (Cursor, Codex CLI,
+  opencode, Hermes Agent) received any generated files — confirmed by `git status --short`
+  reporting only the 3 Claude-attributable paths above as new/changed.
+Result: PASS
 ```
 
 
@@ -645,6 +689,7 @@ Result: PASS / FAIL
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | `ADOPT-00` | n/a — single step | PASS on all criteria in `09-bootstrap.md` (see step's evidence block above); one correction applied pre-commit (resolved absolute paths removed from run log evidence, correction record `ADOPT-00/2`) | `ADOPT-00` evidence block, this run log, above | YES — commit-gate declaration presented via `AskUserQuestion`, re-presented after correction | luis.landaeta@gmail.com, 2026-08-15, commit gate: approved on second presentation (first presentation returned a correction, not approval); push gate: approved separately after the remote-impact assessment was presented | `.gitignore`, `.claude/CLAUDE.md`, `.specboot/adoption/BOOTSTRAP-MANIFEST.json`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `afbfce4d18dde8d0810dba2d3c07bbc9bf1b91c7` | No `.github/workflows/` in the tracked tree; `gh api repos/Landaone/app-prices-rest/rulesets` = `[]`; `gh api .../hooks` = `[]`; `master` branch unprotected; target branch had no upstream and did not yet exist on `origin`. Verdict: no CI/automation trigger detected | PUSHED — new branch `experiment/specboot-ai-adoption-v1` created on `origin`, upstream tracking set | proposal #1 (see Improvement proposals) |
 | 2 | `ADOPT-02` | n/a — single step (operator explicitly chose one-checkpoint-per-step as the cadence for this run; `ADOPT-01` produced no repo-local writes so has no checkpoint of its own) | PASS on all criteria in `01-prerequisites-and-install.md` (see step's evidence block above) | `ADOPT-02` evidence block, this run log | YES — commit-gate declaration presented via `AskUserQuestion`, approved on first presentation | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.claude/commands/opsx/apply.md`, `.claude/commands/opsx/archive.md`, `.claude/commands/opsx/explore.md`, `.claude/commands/opsx/propose.md`, `.claude/commands/opsx/sync.md`, `.claude/commands/opsx/update.md`, `.claude/skills/openspec-apply-change/SKILL.md`, `.claude/skills/openspec-archive-change/SKILL.md`, `.claude/skills/openspec-explore/SKILL.md`, `.claude/skills/openspec-propose/SKILL.md`, `.claude/skills/openspec-sync-specs/SKILL.md`, `.claude/skills/openspec-update-change/SKILL.md`, `openspec/config.yaml`, `.specboot/adoption/ADOPTION-RUN-LOG.md` (cumulative state at commit time, honestly including already-written `ADOPT-03` evidence marked "checkpoint pending" — `ADOPT-03`'s own deliverable files were deliberately left unstaged for its own checkpoint, see row 3) | `3dceab527ca96fb22ee3a91bdc75c1a6ad5eebea` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged from `ADOPT-00`'s assessment. Verdict: no CI/automation trigger detected | PUSHED — fast-forward to the already-existing `origin/experiment/specboot-ai-adoption-v1` | none this checkpoint |
+| 3 | `ADOPT-03` | n/a — single step (one-checkpoint-per-step cadence) | PASS on all criteria in `01-prerequisites-and-install.md` (see step's evidence block above), including the corrected 28-file inventory | `ADOPT-03` evidence block, this run log | YES — commit-gate declaration presented via `AskUserQuestion` | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `codex.md`, all 7 `docs/*` files, all 21 `ai-specs/*` files (see `ADOPT-03` evidence block for the full list), `.specboot/adoption/ADOPTION-RUN-LOG.md` | `a0278d953abf9af21c2e35026bbb44eaf7daa022` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged from `ADOPT-00`'s assessment. Verdict: no CI/automation trigger detected | PUSHED — fast-forward to `origin/experiment/specboot-ai-adoption-v1` | none this checkpoint |
 
 ---
 
@@ -666,11 +711,17 @@ Result: PASS / FAIL
 
 ## Code-graph capability selection
 
-- Selected implementation (CodeGraph, or the named company-approved equivalent):
-- Version:
-- Verification command executed, with exit code and output summary:
-- Coverage limitations (for example unsupported languages):
-- Result: PASS / **FAIL — adoption stops**
+- Selected implementation (CodeGraph, or the named company-approved equivalent): CodeGraph
+- Version: 1.5.0
+- Verification command executed, with exit code and output summary: `codegraph explore "list
+  entry points"` (`ADOPT-04`) exited 0 and returned a non-empty structured result — 49 symbols
+  across 3 files, with blast-radius/caller data and verbatim numbered source; re-run in `ADOPT-05`
+  as `codegraph explore "list public interfaces"`, also exit 0, 52 symbols across 4 files. Index
+  build: `codegraph init` exited 0 — 22 files indexed, 295 nodes, 355 edges in 659ms.
+- Coverage limitations (for example unsupported languages): none observed — this is a
+  single-language (Java/Maven) repository and the index covered the full `src/` tree (22 files);
+  no unsupported-file warnings were emitted.
+- Result: PASS
 
 ---
 
@@ -730,6 +781,8 @@ Reason:
 2026-08-15 / checkpoint cadence for the remainder of the run / decision: one checkpoint (commit + push, each separately gated) per independently-validated `ADOPT-nn` step, the checkpoint protocol's documented default / who: luis.landaeta@gmail.com / reason: explicitly asked and chose the protocol default over phase-file grouping or a deferred-push milestone scheme, prioritizing maximum reviewability over fewer approval round-trips
 2026-08-15 / ADOPT-02 checkpoint, commit gate / decision: approved staging and commit of the 13 OpenSpec-generated files plus the run log / who: luis.landaeta@gmail.com / reason: diff reviewed clean (no secrets, no absolute paths after a self-caught correction to the ADOPT-01 evidence's `mvn` path)
 2026-08-15 / ADOPT-02 checkpoint, push gate / decision: approved push of commit 3dceab5 / who: luis.landaeta@gmail.com / reason: remote-impact re-check unchanged from ADOPT-00 (no CI, no rulesets, no webhooks)
+2026-08-15 / ADOPT-03 checkpoint, commit gate / decision: approved staging and commit of the 28-file baseline plus 4 root symlinks plus the run log / who: luis.landaeta@gmail.com / reason: diff reviewed clean — whitespace and "secret-shaped" grep hits were confirmed to be pre-existing prose/placeholders inside copied baseline content, not real absolute paths or credentials
+2026-08-15 / ADOPT-03 checkpoint, push gate / decision: approved push of commit a0278d9 / who: luis.landaeta@gmail.com / reason: remote-impact re-check unchanged from ADOPT-00
 ```
 
 ## Correction record
