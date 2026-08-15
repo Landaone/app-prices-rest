@@ -92,7 +92,7 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-12` | `05-agents-and-skills.md` | PASS — checkpoint committed and pushed (grouped with ADOPT-11) | 2026-08-15 |
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
-| `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING — requires a genuinely fresh Claude session; cannot be performed by the continuing session that created the adapters (this session started before `ADOPT-13`/`14` existed and, per this step's own rule, "a simulated or assumed fresh session is a FAIL") | |
+| `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PASS — genuinely fresh session's turn-1 transcript ran the canonical prompt verbatim with zero adoption-process framing; see evidence block | 2026-08-15 |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-18` | `10-debootstrap.md` | PENDING | |
@@ -971,6 +971,72 @@ Session note (2026-08-15, resume session, no step-state change): this session op
   hand off for a literal new session; accept the CodeGraph block as-is). Operator selected "stop,
   hand off manually." No evidence fabricated or recorded; status remains PENDING, unchanged from
   before this session.
+
+Fresh-session run (2026-08-15, separate session from the one above): this session's first-ever
+  user turn was the exact canonical `ADOPT-15` prompt, submitted verbatim with no SpecBoot,
+  `ADOPT-15`, run-log, or adoption-process framing anywhere in it — confirmed directly from this
+  session's own transcript (turn 1 text compared word-for-word against the canonical prompt in
+  `06-adapters-and-discovery.md`: identical). The instruction to record this run as `ADOPT-15`
+  evidence and resume the adoption arrived only in a second, later turn, submitted after the
+  review had already been fully performed and reported to the operator — so the review itself was
+  not biased by any adoption-process framing, satisfying the organic-discovery test the prior
+  attempt (above) failed. This is a first-hand within-session observation of the session's own
+  turn-1 transcript, not a secondhand self-report trusted across sessions. Only Claude is
+  SELECTED (Kiro, Codex NOT SELECTED per `ADOPT-00`), so one run satisfies "once per selected
+  client."
+
+  - Client and active agent/mode: Claude Code, VSCode native extension, primary interactive
+    session, default mode — no subagent spawned, no Plan mode.
+  - Root repository instruction files automatically loaded: `/CLAUDE.md` (symlink →
+    `docs/base-standards.md`) and `.claude/CLAUDE.md` — both injected verbatim via the harness's
+    own system-reminder ("claudeMd" block) at conversation start, before any tool call.
+  - Canonical/adapted agent definitions automatically discovered: the system-reminder's `Agent`
+    subagent-type listing surfaced `java-backend-developer` automatically (the `ADOPT-13`
+    adapter). Discovered, not invoked — the review was performed directly rather than delegated,
+    since it is read-only analysis, not code authoring. (2) explicit invocation did not occur;
+    per this step's interpretation rules that alone does not fail discovery.
+  - Skills automatically discovered: the full project skill catalog (including `code-auditing`,
+    `specboot-adopt`, the `openspec-*` set) was surfaced automatically via system-reminder. None
+    was formally invoked via the `Skill` tool for the review itself — `code-auditing` was read
+    manually afterward only to confirm it was not a closer fit; per the interpretation rules this
+    is category (3) normal task reading, not a discovery failure.
+  - CodeGraph: automatic — the `UserPromptSubmit` hook (`codegraph prompt-hook`, from
+    `.claude/settings.json`, `ADOPT-05`) fired on the very first prompt, before any tool call,
+    injecting `PriceService`/`PriceModel`/`PriceRepository` source and blast-radius data. Manual,
+    additive — one explicit `codegraph_explore` call tracing the `PriceController` →
+    `HttpErrorHandler` exception-dispatch path, which flagged `searchPriceForBrandTime` with "no
+    covering tests found."
+  - Project documentation consumed: `docs/base-standards.md` (auto-loaded); manually read —
+    `docs/backend-standards.md` (pointed at by `base-standards.md` §3; contains the "Known Risks
+    and Defects" section corroborating the finding below) and `docs/data-model.md`. Per the
+    interpretation rules this is category (3) — normal reading of documentation the base
+    instructions point at, not category (4) prohibited injection; no path was supplied by the
+    operator.
+  - Resources manually opened (all category (3), no operator-supplied paths, no category (4)
+    injection): `docs/backend-standards.md`, `docs/data-model.md`,
+    `ai-specs/skills/code-auditing/SKILL.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` (read for
+    extra adoption-state context, not required by the review prompt), and source files
+    (`PriceController.java`, `HttpErrorHandler.java`, `HttpException.java`,
+    `PriceControllerTest.java`, `V1_create_tables.sql`).
+  - Primary implementation risk reported: `HttpErrorHandler.unhandledExceptions`
+    (`src/main/java/com/llandaeta/prices/rest/exception/HttpErrorHandler.java:24-25`) is
+    annotated `@ExceptionHandler(Exception.class)` but its parameter is typed `HttpException`,
+    not `Exception` — Spring selects the method for any thrown exception but cannot bind a
+    non-`HttpException` instance to it, so the intended catch-all does not reliably produce the
+    documented structured error response. Directly reachable: `PriceController` parses
+    `applicationDate` with `LocalDateTime.parse(...)` and no try/catch
+    (`PriceController.java:28`), so a malformed date throws `DateTimeParseException` — exactly
+    the case the broken handler mis-handles. Independently corroborated by
+    `docs/backend-standards.md`'s own "Known Risks and Defects" §1 and §4 (pre-existing,
+    already-documented defects, not a new finding), by `PriceControllerTest.java` containing only
+    5 happy-path tests with zero error-path coverage, and by `codegraph_explore` flagging
+    `searchPriceForBrandTime` with "no covering tests found."
+  - Files modified during the review: none.
+  - PASS/FAIL for automatic runtime discovery, as reported by the session: PASS.
+
+Result: PASS — `ADOPT-15` fresh-session discovery-and-execution evidence recorded above,
+  observed first-hand from this session's own unbiased turn-1 transcript; validated per client
+  (Claude only, per `ADOPT-00`).
 ```
 
 
@@ -1191,6 +1257,7 @@ Reason:
 2026-08-15 / ADOPT-05B (supported-environment matrix, Step 2) / decision: declare Claude-only client, Java 11 + Maven stack, zsh/bash/PowerShell shells, macOS/Ubuntu/Windows operating systems / who: luis.landaeta@gmail.com / reason: team-declared matrix supplied directly, since this is project/team information not derivable from the repository or this machine
 2026-08-15 / ADOPT-05B (permission-file creation gate) / decision: approved merging the canonical source's root `.claude/settings.json` baseline into the existing file, no removals or additions / who: luis.landaeta@gmail.com / reason: corrected the evidence before writing — declined to accept "syntax is OS-agnostic" as a substitute for actual fresh-session validation on Ubuntu/Windows; those combinations recorded PENDING EVIDENCE rather than PASS, and an improvement proposal (#2) was recorded about the baseline's own unvalidated Windows/PowerShell coverage
 2026-08-15 / ADOPT-15 (fresh-session evidence gate) / decision: decline to record this session's auto-injected CodeGraph context, or a review performed later in this same already-briefed session, as ADOPT-15 evidence; stop and hand off for a genuinely separate new session instead / who: luis.landaeta@gmail.com / reason: no actual preceding-response review existed to record, and this session's opening prompt already named the adoption process, which would bias any review performed here and defeat the step's organic-discovery test; offered three paths via `AskUserQuestion` (blank subagent / manual handoff / accept as-is), operator chose manual handoff
+2026-08-15 / ADOPT-15 (fresh-session evidence gate, handoff session) / decision: accept this session's turn-1 architecture review as valid ADOPT-15 evidence and record PASS / who: this agent, recording a first-hand observation of the session's own transcript, not a self-approval of a gated mutation — ADOPT-15's own approval gate is `none` (read-only) / reason: turn 1 was verbatim-identical to the canonical prompt in `06-adapters-and-discovery.md` with zero SpecBoot/adoption framing; the resume-and-record instruction arrived only in turn 2, after the review was already complete, so the review itself was not biased — satisfying the organic-discovery test the prior handoff session's declined attempt could not meet
 ```
 
 ## Correction record
