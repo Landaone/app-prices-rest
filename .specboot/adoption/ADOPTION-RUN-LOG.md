@@ -84,8 +84,8 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS — checkpoint committed and pushed (smoke-test rows correctly PENDING EVIDENCE, not blocking) | 2026-08-15 |
 | `ADOPT-06` | `04-context-and-openspec.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
-| `ADOPT-07` | `04-context-and-openspec.md` | PASS — checkpoint pending | 2026-08-15 |
-| `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
+| `ADOPT-07` | `04-context-and-openspec.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
+| `ADOPT-08` | `04-context-and-openspec.md` | PASS — checkpoint pending | 2026-08-15 |
 | `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-10` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-11` | `05-agents-and-skills.md` | PENDING | |
@@ -618,16 +618,29 @@ Result: PASS
 ### `ADOPT-08` — Verify OpenSpec Configuration
 
 ```text
-Commands:
-Exit codes:
-Schema:
-Context:
-Rules:
-Operations:
-Agent references:
-Skill references:
-Warnings:
-Result: PASS / FAIL
+Commands (all read-only, none corrected any failure found — none were found):
+  `openspec --version`, `openspec doctor`, `python3 -c "import yaml; yaml.safe_load(...)"`,
+  `openspec schemas --json`, per-path `test -f`/`test -d` for every path referenced in
+  `openspec/config.yaml`'s `context`, a Python set-membership check of `rules` keys against the
+  real artifact IDs (`proposal`, `specs`, `design`, `tasks`) and `operations` keys against the
+  real operation IDs (`apply`, `archive`), and `grep -n "/Users/|C:\\\\" openspec/config.yaml`
+Exit codes: every command above exited 0
+Schema: `spec-driven` resolves (`openspec schemas --json` lists it; matches `config.yaml`'s
+  `schema:` value)
+Context: present, non-empty, all 7 referenced paths confirmed to exist
+  (`docs/base-standards.md`, `docs/backend-standards.md`, `docs/api-spec.yml`,
+  `docs/data-model.md`, `docs/frontend-standards.md`, `ai-specs/agents/backend-developer.md`,
+  `ai-specs/skills/`)
+Rules: all 4 keys (`proposal`, `specs`, `design`, `tasks`) are valid artifact IDs for the
+  `spec-driven` schema — confirmed programmatically, not by inspection alone
+Operations: both keys (`apply`, `archive`) are valid operation IDs — confirmed programmatically
+Agent references: `ai-specs/agents/backend-developer.md` (the agent named in `context`) exists
+Skill references: `ai-specs/skills/` exists and contains all 8 skills imported in `ADOPT-03`
+  (`code-auditing`, `commit`, `enrich-us`, `explain`, `meta-prompt`, `update-docs`,
+  `using-git-worktrees`, `writing-skills`)
+Warnings: NONE — `openspec doctor` reported zero warnings; no absolute machine-specific path found
+  in `openspec/config.yaml`
+Result: PASS
 ```
 
 
@@ -843,6 +856,7 @@ Result: PASS / FAIL
 | 5 | `ADOPT-05` | n/a — single step | PASS on all criteria in `02-codegraph.md` (see step's evidence block above) | `ADOPT-05` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.mcp.json`, `.claude/settings.json`, `.claude/CLAUDE.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `5aeb307c6bfe15b0844607e4131649ab0e148eea` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 6 | `ADOPT-05B` | n/a — single step | PASS — provisioning/reconciliation/safety complete; smoke-test table correctly PENDING EVIDENCE (see step's evidence block above) | `ADOPT-05B` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.claude/settings.json`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `03845b5ced51d69bbe7aa1ac77e49751b31f3f54` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | proposal #2 (see Improvement proposals) |
 | 7 | `ADOPT-06` | n/a — single step | PASS on all criteria in `04-context-and-openspec.md` (see step's evidence block above); two corrections applied pre-approval (`ADOPT-06/1` build-command online/offline ordering, `ADOPT-06/2` OpenAPI date-time format and response-schema honesty) | `ADOPT-06` evidence block, this run log | YES — content-approval gate presented via `AskUserQuestion`, first presentation interrupted (accidental empty response, treated as neither approval nor rejection, not proceeded on), re-presented and approved after corrections | luis.landaeta@gmail.com, 2026-08-15, content-approval gate, commit gate, and push gate each approved separately | `docs/api-spec.yml`, `docs/backend-standards.md`, `docs/base-standards.md`, `docs/data-model.md`, `docs/development_guide.md`, `docs/frontend-standards.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `ba7fa3faf3dbc919ee85f5c6d5740adccb780a0b` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
+| 8 | `ADOPT-07` | n/a — single step | PASS on all criteria in `04-context-and-openspec.md` (see step's evidence block above); `openspec doctor`/`openspec context` both zero warnings | `ADOPT-07` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately (no separate content-approval gate — the phase file specifies none for `ADOPT-07`) | `openspec/config.yaml`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `c21da332fff9049ff684baabd9b548bf2dadf748` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 
 ---
 
