@@ -1,0 +1,495 @@
+# SpecBoot Adoption Run Log
+
+Filled copy of `specboot-adoption/run-template/ADOPTION-RUN-LOG.template.md`. Filled as the run
+goes, not at the end. Evidence discipline per `00-conventions.md`: an unexecuted or failed command
+is FAIL, never an inferred PASS from empty output.
+
+---
+
+## Run identification
+
+```text
+Repository:              app-prices-rest (linked worktree: app-prices-rest-specboot-ai-adoption-v2)
+Branch:                  experiment/specboot-ai-adoption-v2
+Adoption date:           2026-08-15
+Operator:                Landaone
+Client(s) selected:      Claude
+CodeGraph adopted:       PENDING — ADOPT-04 / ADOPT-05 not yet reached
+Reason if not adopted:   n/a
+Guide revision used:     1271266d753c46c50e3b730c0b0284b19dc33648 (originally
+                          834ee535de598247318ed6beaccfb73793bfe064 at ADOPT-00's initial
+                          provisioning; advanced at this fresh-session resume — see Drift check
+                          table below)
+```
+
+---
+
+## Source and delivery mode
+
+```text
+Delivery mode:                              source-linked
+Guide checksum   (SPECBOOT_ADOPTION_GUIDE.md):
+                 sha256:2ee3e50945a987b07ef3fba2fa345621a47f0cfcaa42cd02843bd63be17d7ca0
+Skill checksum   (ai-specs/skills/specboot-adopt/SKILL.md):
+                 sha256:2448934c76467fb9f33a597169138eea7585b0e5c1d0f567e18fbb87be4f7fd3
+Git worktree state:                         clean
+Git status:                                 recorded
+Source Git commit:                          834ee535de598247318ed6beaccfb73793bfe064
+Git unavailable — reason:                   n/a (status is recorded)
+Observed HEAD (dirty worktree only):        n/a (worktree is clean)
+Local source path resolution:               The local canonical source path is resolved per machine
+                                            and is not recorded here.
+Source treated as read-only for the whole adoption: YES
+```
+
+**Source topology observed (context, not identity).** The canonical source is a detached-HEAD,
+**sparse-checkout** linked worktree of the *same underlying Git repository* as this target. Its
+sparse cone exposes exactly `/SPECBOOT_ADOPTION_GUIDE.md`, `/specboot-adoption/`, and
+`/ai-specs/skills/specboot-adopt/`. Its `.claude/skills/specboot-adopt` is tracked but flagged
+`skip-worktree`, which is why it is absent from disk while `git status` is legitimately empty.
+`worktree: clean` is therefore an accurate reading, not a missed dirty tree. A later reader
+resolving commit `834ee535` will find more files than the source worktree exposed; identity is
+unaffected, because the checksums were computed over the bytes actually read.
+
+### Drift check at each resume
+
+| Resumed at (date/time) | Local path obtained from | Guide checksum matches | Skill checksum matches | Commit matches | Verdict | Reconciliation decision |
+|---|---|---|---|---|---|---|
+| 2026-08-15 (fresh session per `ADOPT-00`'s handoff prompt) | `.specboot/local/canonical-source-path` (machine-local store; convenience, checksummed exactly as a typed path would be) | YES — `sha256:2ee3e50945a987b07ef3fba2fa345621a47f0cfcaa42cd02843bd63be17d7ca0` recomputed and matched | YES — `sha256:2448934c76467fb9f33a597169138eea7585b0e5c1d0f567e18fbb87be4f7fd3` recomputed and matched | **NO** — manifest recorded `834ee535de598247318ed6beaccfb73793bfe064`; source HEAD is `1271266d753c46c50e3b730c0b0284b19dc33648`. Verified via `git merge-base --is-ancestor`: the manifest commit **is** an ancestor of HEAD (clean fast-forward, one intervening commit, source worktree still clean). `git diff` of that one commit against the two checksummed files: **empty** — content identity independently confirmed, not merely inferred from the matching checksums. | Both checksums match exactly, so this is **not** the checksum-mismatch drift the handoff prompt names as blocking. But the one intervening commit ("Wire ADOPTION-AUTHORIZATION.md's creation into ADOPT-00") changes `09-bootstrap.md` — outside the two-file checksum baseline — to add `.specboot/adoption/ADOPTION-AUTHORIZATION.md` to `ADOPT-00`'s own mutation inventory and `Allowed modifications`, a requirement that did not exist when the previous session's Gate 1/Gate 2 approvals were granted. | Not silently absorbed. Treated as a **new gate** (Gate 3), consistent with non-negotiable 1 ("never self-approve") and the previous session's own Gate-2 precedent (new mechanism discovered mid-run ⇒ new gate, not an adjustment). Operator approved at Gate 3, 2026-08-15 — see the `ADOPT-00` evidence block below and the Decision record. |
+
+---
+
+## Client selection
+
+```text
+Route used: autodiscovery
+```
+
+| Client | Displayed as a candidate by autodiscovery | Explicitly SELECTED by the human | Recorded status |
+|---|---|---|---|
+| Claude | NO | YES | SELECTED |
+| Kiro | NO | NO | NOT SELECTED |
+| Codex | NO | NO | NOT SELECTED |
+
+Autodiscovery probe result: **no candidates found**. Probes run (all read-only existence/content
+reads): Claude — `.claude/`, `.claude/skills/`, `.claude/settings.json`, root `CLAUDE.md`; Kiro —
+`.kiro/`, `.kiro/skills/`, `.kiro/settings/`; Codex — `.agents/`, `.agents/skills/`, `AGENTS.md`,
+`codex.md`. Every one absent.
+
+Repository tree byte-for-byte unchanged when the findings were displayed: **YES**
+Finding nothing was treated as a finding and the operator was still asked: **YES** — Claude was
+then named explicitly by the human.
+
+### Two axes, never collapsed
+
+| Client | This adoption | Recipe status | Effect on this run |
+|---|---|---|---|
+| Claude | SELECTED | recipe available; this run records its own fresh-session result | gate outstanding — see `ADOPT-00` |
+| Kiro | NOT SELECTED | recipe available | none |
+| Codex | NOT SELECTED | **`PENDING EVIDENCE`** — gate parts 1–2 complete; part 3 not observed | **none** — nothing provisioned, nothing validated, nothing owed |
+
+Codex's outstanding obligation is **not** discharged by this run, which did not select it. It stays
+`PENDING EVIDENCE` as a shipped recipe, and is neither converted to PASS nor quietly dropped.
+
+---
+
+## Step state — resume checklist
+
+| Step | File | Status | Date |
+|---|---|---|---|
+| `ADOPT-00` | `09-bootstrap.md` | **PASS** — fresh-session discovery observed, Gate 3 resolved | 2026-08-15 |
+| `ADOPT-01` | `01-prerequisites-and-install.md` | PENDING | |
+| `ADOPT-02` | `01-prerequisites-and-install.md` | PENDING | |
+| `ADOPT-03` | `01-prerequisites-and-install.md` | PENDING | |
+| `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PENDING | |
+| `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PENDING | |
+| `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PENDING | |
+| `ADOPT-06` | `04-context-and-openspec.md` | PENDING | |
+| `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
+| `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
+| `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
+| `ADOPT-10` | `05-agents-and-skills.md` | PENDING | |
+| `ADOPT-11` | `05-agents-and-skills.md` | PENDING | |
+| `ADOPT-12` | `05-agents-and-skills.md` | PENDING | |
+| `ADOPT-13` | `06-adapters-and-discovery.md` | PENDING | |
+| `ADOPT-14` | `06-adapters-and-discovery.md` | PENDING | |
+| `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING | |
+| `ADOPT-16` | `07-baseline-and-checkpoint.md` | PENDING | |
+| `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
+| `ADOPT-18` | `10-debootstrap.md` | PENDING | |
+| `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
+| `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
+
+---
+
+## Evidence blocks
+
+### `ADOPT-00` — Bootstrap Client Discovery
+
+- Repository had SpecBoot files / AI configuration before this step: **NO**
+- **Cold-start state confirmed**: **YES, with one recorded deviation.** The *repository* is cold —
+  no `.specboot/`, no SpecBoot files, no repo-level OpenSpec artifacts (`openspec/`, `.openspec`,
+  `openspec.json`, `package.json`, `.mcp.json` all absent), no discoverable `specboot-adopt` skill.
+  **Deviation:** the *machine* carries `openspec` 1.7.0 and `codegraph` on PATH, and the
+  orchestrating session listed `/opsx:*` skills from user-level configuration. That is machine-level
+  tooling, not a repository installation, and it changes nothing procedurally — the embargo below
+  was honoured regardless. Recorded rather than ticked away, because the entry prompt's cold-start
+  premise asserts their absence.
+- **Canonical source supplied**: **SUPPLIED** (runtime input; checksums and Git disposition in the
+  *Source and delivery mode* block — the resolved path is recorded nowhere in this log)
+- **Three-artifact validation, run before any orchestration load and before the first write:**
+  - `SPECBOOT_ADOPTION_GUIDE.md` present: **YES** (343 lines, readable)
+  - `specboot-adoption/` present: **YES** (directory)
+  - `ai-specs/skills/specboot-adopt/SKILL.md` present **and readable as a file**: **YES** (70 lines)
+  - *(the launcher additionally validated a fourth artifact,
+    `specboot-adoption/bootstrap-kit/ADOPTION-ENTRY-PROMPT.md`: present and readable, 292 lines)*
+  - Verdict: **VALID** — missing: none
+  - If REJECTED, target left byte-for-byte unchanged: n/a — not rejected
+- **Self-adoption check (launcher Step 0), run before the four-artifact check:** resolved
+  symlink-free paths compared, plus device:inode. Target `16777220:6249477`, candidate
+  `16777220:6083352` — **distinct**. Git identity was deliberately **not** compared, and that
+  mattered here: the source and target are separate linked worktrees of the **same** underlying Git
+  repository, sharing common Git directory, root commit, and origin. A Git-identity comparison would
+  have produced a **false self-adoption refusal** against a legitimate setup.
+- **Refusals reached:**
+  - No canonical source supplied: **NONE**
+  - Supplied source failed the three-artifact validation: **NONE**
+  - No client selected: **NONE**
+  - Selected client has no recipe: **NONE**
+  - Selected client cannot discover the external skill without symlinks: **NONE** — symlink probe
+    passed, so R5 was not reached
+  - For every REFUSED row above: n/a — no refusal was reached
+- **Orchestration procedure obtained by a source-relative direct read of `SKILL.md`** (a direct
+  read, **not** native skill discovery): **YES** — path read (source-relative):
+  `ai-specs/skills/specboot-adopt/SKILL.md`
+- **Client-selection route:** autodiscovery
+- Selected client(s) (**declared by the operator, never inferred**): **Claude**
+- Every other supported client recorded `NOT SELECTED`: **Kiro — NOT SELECTED; Codex — NOT SELECTED**
+- OS / shell: **Darwin 22.6.0 (macOS) / zsh**
+- Symlink probe result (capability-detected, not assumed): **SUPPORTED** —
+  `ln -s . .specboot-symlink-probe` exit 0, symlink verified with `-L`, `rm` exit 0, residue check
+  clean, `git status` 0 changes afterwards. Probe deferred to provisioning time per
+  `client-autodiscovery.md`, because it needs to create a temporary file and therefore may not run
+  before the approval gate.
+- Pre-existing artifacts detected, and their disposition: **`.gitignore`** — pre-existing, 30 lines,
+  **modified by append only**, original content preserved byte-for-byte (backed up and diffed).
+  No other target path existed.
+- **Manifest entry count: 2**
+- **Preflight, run before the first write:**
+  - Paths resolved and classified: `.claude/`, `.claude/skills/`, `.claude/skills/specboot-adopt`,
+    `.claude/CLAUDE.md`, `.specboot/`, `.specboot/adoption/BOOTSTRAP-MANIFEST.json`,
+    `.specboot/adoption/ADOPTION-RUN-LOG.md`, `.specboot/local/`,
+    `.specboot/local/canonical-source-path`, `.git/info/exclude` — all **absent**;
+    `.gitignore` — **pre-existing** (append-only).
+  - Collisions detected: **NONE**
+- **Exact mutation inventory presented at the approval gate:** two Claude discovery entries
+  (`.claude/skills/specboot-adopt` as a symlink; `.claude/CLAUDE.md` as a real file carrying the
+  recipe's verbatim delimited block), their two container directories, the durable state
+  (`.specboot/adoption/BOOTSTRAP-MANIFEST.json`, `.specboot/adoption/ADOPTION-RUN-LOG.md`), the
+  machine-local store (`.specboot/local/canonical-source-path`), the two ignore-rule edits, and the
+  transient symlink probe — each named with its operation, mechanism, and reversibility.
+- **Manifest entry count corrected at the gate, before approval.** The inventory first stated 5
+  entries. The operator challenged it; re-verification against the schema and `10-debootstrap.md`
+  confirmed **2**. `.specboot/local/…`, `.git/info/exclude`, and `.gitignore` are *permitted
+  mutations that are not manifest entries*: none has a `source.canonicalPath` (a required field
+  defined as the source-relative canonical path the entry points at), `ADOPT-18` Step 5b removes
+  `.specboot/local/` **by name** — listed separately from the entry set in its `Allowed
+  modifications` — and neither ignore file appears anywhere in `ADOPT-18`'s allowed modifications,
+  so recording them as entries would oblige a step to act on paths it may not touch. The selected
+  client's recipe `## Entries` table **is** the manifest entry set: exactly two rows.
+- **Provisioning performed exactly that inventory and nothing outside it:** **YES**, after the
+  second gate below.
+- **A second approval gate was required mid-provisioning.** The approved inventory named
+  `.git/info/exclude` as a repository-local, machine-local file. This target is a **linked
+  worktree**: `.git` is a *file*, and `git rev-parse --git-path info/exclude` resolves to the
+  **shared common** Git directory read by **8 worktrees** — including the canonical source
+  worktree. That is a different mechanism and blast radius than the one approved, so it was treated
+  as a **new gate, not an adjustment**: provisioning stopped, the pre-provisioning state was
+  restored, the finding was reported, and the operator chose the mechanism. Approved: append the
+  delimited block to the shared common exclude. Rationale recorded: it is the kit's specified
+  mechanism resolved through git's own `--git-path`; the file already carries cross-worktree
+  `**/.claude/…` machine-local rules; it is never committed; and it is inert in the other 7
+  worktrees, where the path is either tracked (ignore rules never affect tracked files) or absent.
+- **Provisioning failure, if any** — pre-provisioning state restored with no partial discovery
+  entry, manifest, run log, ignore rule, or machine-local store: **RESTORED** (attempt 1 — see the
+  Correction record). Verified after rollback: `git status --porcelain` empty, `.gitignore`
+  byte-identical to its backup, `.claude/` absent, `.specboot/` absent, no probe residue.
+- **Obligations recorded** — payload: `SKIPPED — source-linked mode`;
+  container: `SKIPPED — source-linked mode`
+- `.specboot/bootstrap/` never created at any point: **YES**
+- No copied guide, phase file, or skill body anywhere in the project: **YES** — nothing canonical
+  was copied; the only reference is the symlink
+- Discovery entries point at the external canonical source, and none was staged for any checkpoint:
+  **YES** — nothing has been staged or committed by this session at all
+- Machine-local `.specboot/local/` store holds the resolved path and nothing else, and
+  `git check-ignore` reports it ignored: **YES** — one line, the path, nothing more
+- Client-selection record carries no placeholder: **YES** — `selected: ["claude"]`,
+  `notSelected: ["kiro","codex"]`; schema-rejected placeholders were negative-tested
+- Manifest validated against `BOOTSTRAP-MANIFEST.schema.json`: **PASS**. No `jsonschema` module was
+  available and installing one would have required unauthorized network access, so an offline
+  draft-07-subset validator was written against the canonical schema file and **negative-tested
+  against 10 deliberately invalid variants** — dirty-worktree-carrying-a-commit, placeholder
+  `selectedClient`, placeholder in `selected`, empty `selected`, a resolved absolute path in the
+  `source` block, a reworded `local-path-resolution` const, an entry missing `source.canonicalPath`,
+  the forbidden `pointer-file` mode, `not-a-repository` carrying `observed-head`, and a missing
+  `entries` — **all 10 correctly rejected**, and the real manifest passes.
+- **Session stopped after provisioning and generated the fresh-session handoff prompt:** **YES** —
+  recorded verbatim below.
+- **No OpenSpec or `/opsx:*` command used before `ADOPT-02` completed and its availability check
+  passed:** **YES** — none was invoked at any point in this session. `command -v openspec` is a
+  shell lookup, not an OpenSpec command, and was used only to record cold-start evidence.
+- `git check-ignore .specboot/bootstrap/…` verdict: **IGNORED**
+- `git check-ignore .specboot/local/…` verdict: **IGNORED**
+- `git check-ignore .specboot/adoption/…` verdict: **not ignored** (correct — durable evidence)
+- `git check-ignore .claude/skills/specboot-adopt` verdict: **IGNORED** (via the shared common
+  exclude)
+- No bare `.specboot/` rule written: **YES** — the two rules are `.specboot/bootstrap/` and
+  `.specboot/local/` only
+- Fresh-session discovery probe — exact prompt used: **see the handoff prompt below** (delivered
+  verbatim by the prior session; no operator-supplied path or content accompanied it)
+- Fresh-session outcome, verbatim: **OBSERVED, this session (2026-08-15).** Two independent pieces
+  of evidence: (1) `specboot-adopt` appeared, unprompted, in this session's system-reminder listing
+  of available skills — harness-populated from the provisioned discovery symlink
+  (`.claude/skills/specboot-adopt` → `/Users/landaeta/repos/specboot/ai-specs/skills/specboot-adopt`,
+  verified via `readlink`), not self-reported. (2) The `Skill` tool was invoked with
+  `skill: "specboot-adopt"` and no operator-supplied path; the tool result returned the skill's
+  `SKILL.md` body verbatim (Overview, Quick Reference table, ten Non-negotiables, Common Mistakes,
+  Red Flags, required-sub-skill note) — proof the client executed the adoption contract through
+  native discovery, not a direct file read. This satisfies the criterion the previous session could
+  not: "a genuinely fresh session ... surfaces `specboot-adopt` and reaches this guide with no
+  operator-supplied paths."
+- Fresh session resumed from the durable manifest and run log, with source identity verified:
+  **YES** — run log's step-state table read first (named `ADOPT-00` as next step before any other
+  action); local canonical source path obtained from `.specboot/local/canonical-source-path`
+  (machine-local store, not operator-typed); both checksums recomputed and matched the manifest's
+  `source` block exactly. Commit did not match byte-for-byte (see Drift check table) but was verified
+  a clean fast-forward ancestor with an empty diff on both checksummed files — content identity
+  independently confirmed, not inferred.
+- **Gate 3 — a new gate found mid-resume, not part of the original two.** Diffing the one commit
+  between the manifest's recorded source commit and current HEAD (routine due diligence once the
+  commit mismatch was observed, not reading ahead in the guide) showed `09-bootstrap.md` itself had
+  changed: `.specboot/adoption/ADOPTION-AUTHORIZATION.md` is now part of `ADOPT-00`'s own mutation
+  inventory and `Allowed modifications`, created by `ADOPT-00` rather than left for a later step to
+  find missing. Neither of the previous session's two gates covered this file. Per non-negotiable 1
+  ("never self-approve") and the previous session's own Gate-2 precedent, this was presented to the
+  operator as a new gate rather than silently created. Three sub-decisions, all 2026-08-15,
+  Landaone:
+  - **Approved** creating `.specboot/adoption/ADOPTION-AUTHORIZATION.md` now, assembled from
+    `run-template/ADOPTION-AUTHORIZATION.template.md`, with the client-selection section filled from
+    this step's own step-5 outcome (Claude, autodiscovery) and the OpenSpec-version and
+    code-graph-privilege-scope sections pre-filled with the template's stated defaults (no
+    deviation), explicitly marked for confirmation when `ADOPT-02`/`ADOPT-05` are reached per the
+    canonical progressive-update contract.
+  - **Granted** standing commit-and-push authorization for this run: scope = every checkpoint whose
+    staged file list is a subset of its step's declared `Allowed modifications`, on branch
+    `experiment/specboot-ai-adoption-v2`; conditions = fast-forward push only and remote-impact
+    assessment unchanged from the `ADOPT-00` baseline. Any staged path outside a step's allowlist
+    remains `FAIL_CLOSED` regardless, per the template's own Notes section.
+  - **Declared** the team environment matrix as scoped to this operator/machine only (Claude;
+    this repository's observed stack; zsh; macOS), evidence "none — declared directly," given this
+    is a single-operator lab/experiment repository — recorded now rather than deferred to
+    `ADOPT-05B`, since the question was already resolved as part of unblocking this gate.
+    `ADOPT-05B` confirms or corrects this recorded matrix when reached rather than asking blank.
+  - File created and verified present: `.specboot/adoption/ADOPTION-AUTHORIZATION.md`, 3068 bytes.
+    Not a manifest `entries` member (confirmed against
+    `bootstrap-kit/BOOTSTRAP-MANIFEST.schema.json`: `entries[]` has no field for it, and it carries
+    no `source.canonicalPath`) — it is a durable-state file alongside `BOOTSTRAP-MANIFEST.json` and
+    `ADOPTION-RUN-LOG.md`, per `09-bootstrap.md`'s own "Durable record" table. Manifest entry count
+    unaffected: still **2**.
+  - `git check-ignore -v .specboot/adoption/ADOPTION-AUTHORIZATION.md`: exit 1 (**not ignored**,
+    correct — committable durable evidence, same as the manifest and run log).
+  - External canonical source verified byte-for-byte unchanged throughout this session:
+    `git -C <source> status --porcelain` empty, HEAD unchanged at `1271266d753c46c50e3b730c0b0284b19dc33648`
+    before and after.
+- Approval (who, when, exactly what was approved):
+  - **Gate 1 — 2026-08-15, Landaone:** the exact mutation inventory, after the entry count was
+    corrected from 5 to 2 at their challenge.
+  - **Gate 2 — 2026-08-15, Landaone:** the shared common `info/exclude` mechanism, after the linked
+    worktree was discovered mid-provisioning.
+  - **Gate 3 — 2026-08-15, Landaone:** creation of `ADOPTION-AUTHORIZATION.md` with the content
+    above, standing commit-and-push authorization, and the single-operator/machine environment
+    matrix — see the three sub-decisions above and the Decision record.
+- Result: **PASS.** Every criterion `09-bootstrap.md` names is now satisfied on evidence: the
+  fresh-session discovery-and-execution gate observed (above); `.specboot/bootstrap/` never created;
+  no copied canonical content anywhere in the project; payload/container obligations
+  `SKIPPED — source-linked mode`; discovery entries resolve to the external canonical guide and
+  skill; external canonical source byte-identical throughout; manifest valid against schema (content
+  unchanged since the prior session's validation); `git check-ignore` verdicts correct for
+  `.specboot/bootstrap/`, `.specboot/local/`, `.specboot/adoption/`, and the new
+  `ADOPTION-AUTHORIZATION.md`; `clientSelection` carries no placeholder; no
+  `pre-existing-untouched` path modified. Not yet checkpointed (staged/committed/pushed) — that is
+  the checkpoint protocol's own separate procedure, taken up next.
+
+#### Handoff prompt, verbatim
+
+```text
+You are resuming a SpecBoot adoption in the repository this session is rooted at. This is the fresh
+session that `ADOPT-00` handed off to; the session that provisioned it has stopped.
+
+Do not re-run the adoption entry prompt, and do not re-ask questions already answered — the answers
+are recorded in durable state.
+
+1. Resume from the durable state, in this order:
+   - `.specboot/adoption/ADOPTION-RUN-LOG.md` — read the step-state table first and name the next
+     step before doing anything else.
+   - `.specboot/adoption/BOOTSTRAP-MANIFEST.json` — the durable control record.
+
+2. Obtain a local canonical source path:
+   - from `.specboot/local/canonical-source-path` where it exists on this machine — it is
+     git-ignored, holds the path and nothing else, and reading it is a convenience, never a
+     shortcut;
+   - otherwise by asking the operator, or by rediscovering the source. Being asked is the ordinary
+     case, not a failure: no path is recorded in the committed manifest, so none can be required to
+     exist.
+   Record in the run log where the path came from — never the path itself.
+
+3. Verify source identity by recomputing both checksums against whatever source you obtained,
+   however you obtained it, and comparing them with the manifest's `source` block plus the recorded
+   commit. A path is accepted only when they match. Reuse is not trust: a path read from the store
+   is checksummed exactly like one the operator just typed.
+
+4. Block on drift. A checksum mismatch means the canonical instructions changed underneath this
+   run — stop for human reconciliation rather than continuing against instructions nobody approved.
+
+5. Attempt native skill discovery here, and only here. This is the first session in which
+   `specboot-adopt` could be discoverable at all. Invoke it by name and let it execute the adoption
+   contract. Record the discovery-and-execution result verbatim in the run log as `ADOPT-00`'s
+   fresh-session evidence. Filesystem presence is not discovery, and the previous session's
+   source-relative direct read of `SKILL.md` is not discovery.
+
+6. `ADOPT-00` stays `PENDING` until that probe passes. When it does, record it `PASS` with its
+   evidence, then continue through every reachable adoption step, stopping only at documented
+   human-approval gates or genuine external blockers.
+
+Use no OpenSpec command and no `/opsx:*` command until `ADOPT-02` has completed and its OpenSpec
+availability check has explicitly passed. Until then OpenSpec's absence from this repository is the
+expected state — never a blocker and never an error.
+```
+
+---
+
+## Checkpoint ledger
+
+| # | Step or group | Grouping justification | Validation | Evidence pointers | Allowlist match | Ready declared | Approval | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| *(none yet)* | `ADOPT-00` | n/a | not complete — fresh-session gate outstanding | this run log | n/a | **NO** | n/a | n/a — nothing staged | n/a | not assessed | not pushed | 3 (below) |
+
+No checkpoint was declared. `ADOPT-00` has not reached PASS, and readiness is never declared while
+a covered step is PENDING. Nothing was staged, committed, or pushed by this session.
+
+---
+
+## Improvement proposals
+
+Raised after the checkpoint; **never applied during the run**. The canonical source is read-only
+for the whole adoption, including for these.
+
+| # | Checkpoint | Target file | Proposal | Status |
+|---|---|---|---|---|
+| 1 | `ADOPT-00` | `bootstrap-kit/discovery/symlink-fallback.md`, `bootstrap-kit/manifest.json`, `09-bootstrap.md` | **`.git/info/exclude` is specified as a literal path, which is wrong in a linked worktree.** There, `.git` is a *file* and the path resolves via `git rev-parse --git-path info/exclude` to the **shared common** Git directory, read by every worktree of the underlying repository. `mkdir -p .git/info` fails outright with "Not a directory". The kit should (a) specify resolution through `git rev-parse --git-path info/exclude` rather than a literal path, and (b) state the consequence — the exclusion is repository-wide across worktrees, not worktree-local — so a run can present the true blast radius at its gate instead of discovering it by a failed write. Note the launcher's Step 0 *already* anticipates linked worktrees; the bootstrap mechanics do not. | proposed |
+| 2 | `ADOPT-00` | `09-bootstrap.md`, `bootstrap-kit/manifest.json` | **The transient ignore-rule set is stated inconsistently.** `manifest.json#ignoreRules.transient` lists **three** paths (`.specboot/staging/`, `.specboot/bootstrap/`, `.specboot/local/`), while `ADOPT-00`'s validation criteria require only **two** (`.specboot/bootstrap/`, `.specboot/local/`) and the run-log template mentions `.specboot/staging/` in passing. This run provisioned exactly the two the approved inventory named, declining to widen an approved mutation set on its own authority. The canonical set should be stated once, in one place. | proposed |
+| 3 | `ADOPT-00` | `ADOPTION-ENTRY-PROMPT.md` §0 | **The cold-start premise asserts more than the adoption controls.** §0 states the target has "no OpenSpec installation and no `openspec` command" and "no `/opsx:*` commands". Those are *machine- and client-level* facts, not repository state: this run began with `openspec` 1.7.0 and `codegraph` on PATH and `/opsx:*` skills listed from user-level configuration, in a repository that was genuinely cold. The premise should be scoped to the repository, so an orchestrator records the machine-level presence as an observation rather than facing an apparent contradiction between the prompt and the evidence. | proposed |
+| 4 | `ADOPT-00` (resumed) | fresh-session handoff prompt (step 3); `00-conventions.md` drift language | **The two-checksum identity check has a real blind spot: a phase-file contract change lands invisibly.** The handoff prompt's step 3 ties blocking drift to a checksum mismatch on `SPECBOOT_ADOPTION_GUIDE.md` and `SKILL.md` only. This resume found the manifest's recorded commit (`834ee535`) one commit behind source HEAD (`1271266d`), where the intervening commit changed `09-bootstrap.md` — outside the checksum baseline — to add a new mandatory artifact to `ADOPT-00`'s own contract. Both checksums matched exactly throughout, so the documented blocking criterion alone would not have surfaced this; it was only found by independently diffing the intervening commit once the commit-mismatch (not checksum-mismatch) was noticed. A run that skipped that extra diff — reasonably, since the prompt's stated blocking condition was satisfied — would have declared `ADOPT-00` PASS against a stale contract. The guide should either checksum the full `specboot-adoption/` tree (or a manifest of per-file hashes) for identity, or explicitly instruct every resume to diff phase files touched by any intervening commits, not just the two named files. | proposed |
+
+---
+
+## Client- and company-specific adaptations
+
+| # | Adaptation | Reason | Blast radius |
+|---|---|---|---|
+| 1 | Machine-local exclusion written to the **shared common** `info/exclude` rather than a worktree-local file | The target is a linked worktree; no worktree-local `info/exclude` exists in Git | The rule is visible to all 8 worktrees sharing the common Git directory. Inert in the other 7: tracked in the canonical-source worktree (ignore rules never affect tracked files) and absent elsewhere. Removed at `ADOPT-18` by deleting the delimited block. |
+
+---
+
+## Code-graph capability selection
+
+- Selected implementation: **PENDING** — `ADOPT-04` / `ADOPT-05` not yet reached
+- Version: `codegraph` observed on PATH at `/Users/landaeta/.local/bin/codegraph` (machine-level
+  presence only; **not** installer provenance and **not** a capability verification)
+- Verification command executed, with exit code and output summary: **NOT YET RUN**
+- Coverage limitations: not yet assessed
+- Result: **PENDING** — a code-graph capability is mandatory; none usable is FAIL, with no waiver,
+  no skip, and no `PENDING EVIDENCE` at that step
+
+---
+
+## Permission decisions
+
+```text
+(none recorded this session)
+```
+
+---
+
+## Decision record
+
+```text
+2026-08-15 / launcher Step 0 / proceed — target and candidate source are distinct working trees
+  (resolved paths and inodes differ); Git identity deliberately not compared / Landaone (procedure) /
+  they are separate linked worktrees of one repository, which is legitimate, not self-adoption
+
+2026-08-15 / ADOPT-00 Q2 / client-selection route = autodiscovery / Landaone / operator chose to see
+  candidates before selecting
+
+2026-08-15 / ADOPT-00 Q3 / selected client = Claude; Kiro and Codex NOT SELECTED / Landaone /
+  explicit human declaration after the probe found no candidates
+
+2026-08-15 / ADOPT-00 gate 1 / exact mutation inventory approved, manifest entry count corrected
+  5 -> 2 before approval / Landaone / operator challenged the count; re-verification against the
+  schema and 10-debootstrap.md confirmed 2
+
+2026-08-15 / ADOPT-00 gate 2 / shared common info/exclude mechanism approved / Landaone / linked
+  worktree discovered mid-provisioning; treated as a new gate rather than an adjustment
+
+2026-08-15 / ADOPT-00 / staging, commit and push deliberately NOT performed / orchestrator
+  (procedure) / ADOPT-00 is PENDING; readiness is never declared while a covered step is PENDING
+
+2026-08-15 / ADOPT-00 gate 3a / create ADOPTION-AUTHORIZATION.md now, from the template, with
+  client selection filled and OpenSpec/code-graph sections left at documented defaults / Landaone /
+  09-bootstrap.md changed underneath the run (one intervening source commit) to require this file as
+  part of ADOPT-00's own mutation inventory; not covered by gates 1-2
+
+2026-08-15 / ADOPT-00 gate 3b / standing commit-and-push authorization GRANTED for this run, scoped
+  to branch experiment/specboot-ai-adoption-v2, conditioned on fast-forward-only push and unchanged
+  remote-impact vs. the ADOPT-00 baseline / Landaone / avoids a live question at every remaining
+  checkpoint while any staged path outside a step's Allowed modifications still FAIL_CLOSEDs
+  regardless
+
+2026-08-15 / ADOPT-00 gate 3c / declared team environment matrix = this operator/machine only
+  (Claude; zsh; macOS) / Landaone / single-operator lab/experiment repository; recorded now rather
+  than deferred to ADOPT-05B since the question was already resolved while unblocking gate 3
+```
+
+---
+
+## Correction record
+
+```text
+Step:      ADOPT-00
+Attempt:   1
+Failure:   Provisioning aborted at `mkdir -p .git/info` — "mkdir: .git: Not a directory".
+Diagnosis: The target is a linked worktree. `.git` is a FILE containing
+           "gitdir: /Users/landaeta/repos/labs/app-prices-rest/.git/worktrees/…", so `.git/info/`
+           cannot be created and the approved literal path does not exist. `git rev-parse
+           --git-path info/exclude` resolves to the SHARED common Git directory instead — a
+           different mechanism and a materially different blast radius than the one approved.
+Recovery:  Automatic rollback to the pre-provisioning state (all-or-nothing). Verified:
+           `git status --porcelain` empty, `.gitignore` byte-identical to its backup, `.claude/`
+           absent, `.specboot/` absent, no probe residue. Then STOPPED and re-gated rather than
+           substituting a mechanism on the orchestrator's own authority.
+Outcome:   Operator approved the shared common exclude at gate 2. Attempt 2 completed cleanly.
+
+Step:      ADOPT-00
+Attempt:   2
+Failure:   none
+Outcome:   PASS on every criterion observable in this session. Fresh-session discovery gate
+           outstanding by design.
+```
+
+---
+
+### Daily workflow pilot (not part of one-time adoption)
+
+```text
+(not reached — ADOPT-19)
+```
