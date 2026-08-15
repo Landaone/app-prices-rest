@@ -449,6 +449,23 @@
 >
 > **No implementation file is changed by this revision.**
 
+> **Eighteenth revision — the `Allowed modifications` sweep completed for every remaining step
+> (2026-08-15).** The tenth revision defined the field and populated it only for the phase files it
+> directly touched (`ADOPT-00`, `06`-`08`, `09`-`15`, `18`-`20`); the eleventh through seventeenth
+> revisions populated it for the specific steps each live-pilot finding required
+> (`ADOPT-02`/`05`/`13`). `ADOPT-01`, `03`, `04`, `05`, `05B`, `16`, and `17` remained undeclared —
+> a gap already flagged during the live pilot itself (their commit/push gates correctly fell back to
+> live questions, for exactly the reason design D-Z requires: no declared allowlist, no comparison
+> possible). Populated deliberately as one batch, at the operator's own request, rather than
+> continuing to close it one live-pilot finding at a time.
+>
+> **8 tasks are added** (1.10, 1.11, 1.12, 7.27, 7.28, 7.29, 7.30, 7.31 — one per step). **No task
+> is reopened**: this completes the tenth revision's own acknowledged follow-up, it does not correct
+> anything already delivered. Task counts move from **252 (229 done / 23 open)** to **260 (229 done
+> / 31 open)**.
+>
+> **No implementation file is changed by this revision.**
+
 ## 0. Setup: Feature Branch (MANDATORY — FIRST STEP)
 
 - [x] 0.1 Confirm the working branch is `feature/add-specboot-adoption-orchestrator` and record the starting HEAD; the branch already exists at `c900394104ca1be31d59684d31b2b2aa63fbd2f1`, so create it only if the check shows otherwise — never re-create or reset it
@@ -461,6 +478,9 @@
 - [x] 1.3 Record the current phase-file inventory (`00`–`08`, `19`, `22`) as evidence that `09`, `10`, and `11` are free, confirming design D-G
 - [x] 1.4 Record the current `packages/specboot/template/` drift set with evidence (`code-auditing`, `enrich-us`, `using-git-worktrees` differ from canonical) as the warn-only baseline for design D-I; do not fix it in this change
 - [x] 1.5 Record the environment constraints that bound what may be claimed: host OS is `Darwin 22.6.0` with no Windows host available, and the repository has no `.github/workflows/`
+- [x] 1.10 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-01` in `01-prerequisites-and-install.md`: none — global tooling only, no repository-local write
+- [x] 1.11 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-02`: closed exact list (`openspec/config.yaml`/`.yml`, the selected client's generated resources, `ADOPTION-AUTHORIZATION.md` update)
+- [x] 1.12 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-03`: closed rule (mirror of `packages/specboot/template/{docs,ai-specs}`, plus the 4 root symlinks)
 - [x] 1.9 **Seventeenth revision.** State explicitly in `01-prerequisites-and-install.md`'s `ADOPT-03` that the `docs/`/`ai-specs/` payload is `<SPECBOOT_SOURCE>/packages/specboot/template/`, never `<SPECBOOT_SOURCE>`'s own root (which is validated only for `ADOPT-00`'s three artifacts, not for freedom from the source repository's own project-specific content); update both `cp -rn` commands accordingly; state the `git archive` extraction technique for a sparse source (design D-Z, part 12)
 - [x] 1.8 **Sixteenth revision.** Extend `01-prerequisites-and-install.md`'s `ADOPT-03` approval gate: the file counts and names it presents are the literal output of the same `find` commands its `Validation` section already runs, executed before the gate is shown, never a recalled or summarized figure (design D-Z, part 11)
 - [x] 1.7 **Fifteenth revision.** Add an explicit statement to `01-prerequisites-and-install.md`'s `ADOPT-03`, immediately before its `cp -rn` command: `<SPECBOOT_SOURCE>` is the same canonical source `ADOPT-00` already resolved and validated; read it from the machine-local `.specboot/local/canonical-source-path` store, never re-derive it from a fresh directory scan and never re-ask the operator for it (design D-Z, part 10)
@@ -629,6 +649,11 @@
 - [x] 7.20 **Eleventh revision.** Extend `ADOPT-05` in `02-codegraph.md`: where the operator's `codegraph install` choices exactly match the step's own documented least-privilege defaults (project scope, automatic allow = No) and `ADOPTION-AUTHORIZATION.md`'s code-graph privilege-scope policy, the `[HUMAN APPROVAL REQUIRED]` configuration gate auto-approves — generated files remain fully diff-reviewable, only the live question is removed. Any deviation toward broader scope requires the live gate unchanged (design D-Z, part 6)
 - [x] 7.21 **Eleventh revision.** Extend `ADOPT-13` in `06-adapters-and-discovery.md`: where the adapter plan exposes exactly the agents and skills `ADOPT-09`–`ADOPT-12` already validated — no different selection, nothing not already in that evidence — the adapter-plan approval gate auto-approves, presented as evidence in the run log rather than as a live question. A plan that differs from that evidence requires the live gate unchanged (design D-Z, part 6)
 - [x] 7.23 **Thirteenth revision.** Add a pointer in `01-prerequisites-and-install.md`'s `ADOPT-02` and `02-codegraph.md`'s `ADOPT-05`: when reached, update `.specboot/adoption/ADOPTION-AUTHORIZATION.md`'s OpenSpec-version-policy and code-graph-privilege-scope sections respectively (filled from the template's default text where the run has no deviation to record), rather than asking the operator to author them from scratch (design D-Z, part 2a)
+- [x] 7.27 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-04` in `02-codegraph.md`: closed exact list (`.codegraph/`, only `.codegraph/.gitignore` trackable)
+- [x] 7.28 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-05`: closed exact list (`.mcp.json`, the selected client's permission file, the additive `CODEGRAPH_START/END` block, `ADOPTION-AUTHORIZATION.md` update)
+- [x] 7.29 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-05B` in `03-client-permissions.md`: closed exact list (the selected client's shared permission file, one per `SELECTED` client, `ADOPTION-AUTHORIZATION.md` update)
+- [x] 7.30 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-16` in `07-baseline-and-checkpoint.md`: none by default, generated build output relocation only behind its own approval gate
+- [x] 7.31 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-17`: not a list of its own — the cumulative union of every prior uncommitted step's own field
 - [x] 7.26 **Sixteenth revision.** Add a general rule to `00-conventions.md`'s evidence discipline: a count or enumeration presented at any approval gate is the literal, raw output of a mechanical command run against the actual source before that gate is presented, never a recalled, estimated, or summarized figure (design D-Z, part 11)
 - [x] 7.25 **Fourteenth revision.** Add an explicit negative to `00-conventions.md`'s checkpoint protocol, alongside its existing "record the checkpoint ledger entry and advance" instruction: advancing to the next step after a checkpoint reaches PASS is not a decision to present to the operator, and a stop between steps not backed by that next step's own named approval gate is not part of this contract (design D-Z, part 9)
 - [x] 7.24 **Thirteenth revision.** Add the equivalent pointer in `03-client-permissions.md`'s `ADOPT-05B`: when the declared team environment matrix is established (Step 2), record it into `.specboot/adoption/ADOPTION-AUTHORIZATION.md`'s environment-matrix section, the same file `ADOPT-00` created, not a new one (design D-Z, part 2a)

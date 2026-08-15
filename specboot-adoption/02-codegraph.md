@@ -87,6 +87,10 @@ Reference result — evidence from the reference repository, not a universal exp
 1.0 second
 ```
 
+**Allowed modifications:** a closed exact list — `.codegraph/` (the index directory; only
+`.codegraph/.gitignore`, provisioned by CodeGraph itself, is ever trackable — the index database
+inside it is version-dependent and always git-ignored). No other path.
+
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before software installation.
 
 **Validation:**
@@ -156,6 +160,13 @@ Rules:
 - Do not create adapters for unselected clients.
 - Generated files existing for a client only prove current availability, not which process
   provisioned them — see [`00-conventions.md`](00-conventions.md).
+
+**Allowed modifications:** a closed exact list — `.mcp.json`, the selected client's own permission
+file exactly as `codegraph install` generates it (for Claude: `.claude/settings.json`), the
+additive `CODEGRAPH_START/END` block appended to the client's root instruction file (for Claude:
+`.claude/CLAUDE.md` — never the canonical root symlink itself), and
+`.specboot/adoption/ADOPTION-AUTHORIZATION.md` (update only — design D-Z part 2a). Never an
+adapter or configuration file for a client not recorded `SELECTED`.
 
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before project-local configuration changes,
 **unless the actual choices exactly match the least-privilege defaults documented in the Rules

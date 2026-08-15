@@ -75,6 +75,12 @@ test` failed because the offline plugin cache lacked `maven-clean-plugin`; after
 `target/` was moved recoverably outside the repository, and `mvn -o test` then passed with
 8 tests, 0 failures, 0 errors, 0 skipped.
 
+**Allowed modifications:** none by default — this step runs the project's own build/test command
+and read-only inspection (`openspec doctor`, `git status`, `codegraph sync`), none of which writes
+adoption-tracked content. The single exception is removing or relocating generated build output
+(for example `target/`), and only behind the approval gate below, moved to a recoverable location
+rather than deleted.
+
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before removing or relocating generated
 build output.
 
@@ -152,6 +158,11 @@ Suggested message:
 ```text
 chore: adopt SpecBoot workflow
 ```
+
+**Allowed modifications:** not a list of its own — this step introduces no new paths. It is the
+final checkpoint of the adoption itself, covering the cumulative union of every prior step's own
+`Allowed modifications` for whatever those steps produced but a checkpoint has not yet committed.
+The staged-scope checklist below is what confirms the actual staged diff stays within that union.
 
 **Approval gate:** this step invokes
 [the checkpoint protocol](00-conventions.md#the-checkpoint-protocol) and takes its gates from

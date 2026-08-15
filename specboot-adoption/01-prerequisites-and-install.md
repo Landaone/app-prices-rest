@@ -74,6 +74,9 @@ codegraph --version
 `codegraph --version` applies only when CodeGraph is being adopted — see
 [`02-codegraph.md`](02-codegraph.md) for that decision.
 
+**Allowed modifications:** none — this step installs or verifies global tooling on the operator's
+machine (Node, npm, OpenSpec, CodeGraph, Git); it makes no repository-local write.
+
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before installing or upgrading software.
 
 **Validation:**
@@ -147,6 +150,12 @@ provenance".
 
 The installed version may generate either `openspec/config.yaml` or `openspec/config.yml`.
 Use the actual generated path.
+
+**Allowed modifications:** a closed exact list — `openspec/config.yaml` (or `.yml`, whichever the
+installed version generates), the selected client's own generated resources exactly as `openspec
+init --tools <selected>` reports them (for Claude: `.claude/commands/opsx/*.md` and
+`.claude/skills/openspec-*/SKILL.md`), and `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (update
+only — design D-Z part 2a, never a second file). Never a resource for an unselected client.
 
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before global installation or upgrade — reached
 only when the install/upgrade command above actually runs. Where an already-installed version
@@ -262,6 +271,12 @@ test -L codex.md && readlink codex.md
 ```
 
 Expect every command to print exactly `docs/base-standards.md`, and every symlink to resolve.
+
+**Allowed modifications:** a closed rule, not a fixed count — a byte-for-byte mirror of
+`<SPECBOOT_SOURCE>/packages/specboot/template/docs/` and `.../ai-specs/` into the target's `docs/`
+and `ai-specs/`, plus the 4 root instruction symlinks (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
+`codex.md`). Never a path outside those two mirrored trees and the 4 named symlinks, and never a
+hidden client directory (`cp -rn ... *` does not match dot-prefixed names by design).
 
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before repository-local writes. **The file counts
 and names presented at this gate are the literal output of the same `find` commands used for

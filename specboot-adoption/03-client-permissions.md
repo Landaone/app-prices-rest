@@ -179,6 +179,13 @@ rules:
     effect: allow
 ```
 
+**Allowed modifications:** a closed exact list — the selected client's own shared, versioned
+permission file (for Claude: `.claude/settings.json`; for Kiro: `.kiro/settings/permissions.yaml`),
+one per client explicitly `SELECTED` in `ADOPT-02` and never for any other, plus
+`.specboot/adoption/ADOPTION-AUTHORIZATION.md` (update only — design D-Z part 2a). Never
+`.claude/settings.local.json` or an equivalent personal-override file holding a second copy of the
+team allowlist.
+
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before creating the initial shared
 permission file or broadening it with a new command family. Subsequent changes follow
 normal repository review so the whole team receives the same policy.
