@@ -86,10 +86,10 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-06` | `04-context-and-openspec.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-07` | `04-context-and-openspec.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-08` | `04-context-and-openspec.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
-| `ADOPT-09` | `05-agents-and-skills.md` | PASS — checkpoint pending (grouped with ADOPT-10) | 2026-08-15 |
-| `ADOPT-10` | `05-agents-and-skills.md` | PASS — checkpoint pending (grouped with ADOPT-09) | 2026-08-15 |
-| `ADOPT-11` | `05-agents-and-skills.md` | PENDING | |
-| `ADOPT-12` | `05-agents-and-skills.md` | PENDING | |
+| `ADOPT-09` | `05-agents-and-skills.md` | PASS — checkpoint committed and pushed (grouped with ADOPT-10) | 2026-08-15 |
+| `ADOPT-10` | `05-agents-and-skills.md` | PASS — checkpoint committed and pushed (grouped with ADOPT-09) | 2026-08-15 |
+| `ADOPT-11` | `05-agents-and-skills.md` | PASS — checkpoint pending (grouped with ADOPT-12) | 2026-08-15 |
+| `ADOPT-12` | `05-agents-and-skills.md` | PASS — checkpoint pending (grouped with ADOPT-11) | 2026-08-15 |
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PENDING | |
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PENDING | |
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING | |
@@ -731,26 +731,101 @@ Result: PASS
 ### `ADOPT-11` — Inspect and Adapt Skills
 
 ```text
-Skills found:
-Skills preserved:
-Skills adapted:
-Assumptions:
-New dependencies:
-Corrections:
-Result: PASS / FAIL
+Skills found: 8, all under `ai-specs/skills/` — `code-auditing`, `commit`, `enrich-us`, `explain`,
+  `meta-prompt`, `update-docs`, `using-git-worktrees`, `writing-skills`. Every file read in full
+  before deciding preserve vs. adapt (no external web/GitHub/registry research performed or
+  needed).
+Skills preserved unchanged: `enrich-us` (already technology-agnostic — Jira/staging/proposal
+  workflow, no stack assumptions), `explain` (technology-agnostic teaching skill),
+  `meta-prompt` (technology-agnostic prompt rewriting), `update-docs` (references
+  `docs/documentation-standards.md`, confirmed to exist, no stack assumptions),
+  `writing-skills` (+ its 5 support files `anthropic-best-practices.md`,
+  `graphviz-conventions.dot`, `persuasion-principles.md`, `render-graphs.js`,
+  `testing-skills-with-subagents.md` — a meta-skill about *authoring* skills, not about this
+  repository's stack; one illustrative `"npm run build"` diagram-label example in
+  `graphviz-conventions.dot` is a style-guide example of literal command-text formatting, not an
+  executable assumption about this project's build tool, so left as-is)
+Skills adapted (3):
+  - `code-auditing/SKILL.md`: Phase 0 step 1 generalized from a Node/TS-only file check
+    (`package.json, tsconfig.json, etc.`) to explicitly detect Java/Maven/Gradle, Node/TypeScript,
+    and Python configuration files, whichever the repository actually has; the unconditional
+    "TypeScript/Type Safety" analysis category renamed "Static Type Safety (conditional on the
+    detected language)" with a parallel statically-typed-language (e.g. Java) bullet added; the
+    Dead Code "Tools:" list reframed as explicitly conditional-on-detected-language and
+    never-install-undeclared-tools, with an honest statement that this repository (Java, no
+    configured dead-code plugin in `pom.xml`) has no automated tool assumed — manual/IDE-assisted
+    review or `codegraph explore` instead, unless the project's own build later declares one.
+    `references/audit-methodology.md` and `references/dead-code-methodology.md` (632 lines
+    combined) were inspected and found extensively JS/TS/Python-specific (an entire "Phase 3.5:
+    TypeScript Types Verification" section, `knip` tool walkthroughs, etc.) but already
+    self-conditioning by clearly-labeled per-language section headings (e.g. "### Knip
+    (JavaScript/TypeScript)", "### Deadcode (Python)") that a reader would not apply to a Java
+    project by default — left unmodified as a deliberate scope decision (rewriting 632 lines of
+    supplementary reference detail for full multi-language parity goes beyond "adapt only skills
+    whose assumptions would select incorrect tools"; the SKILL.md entry point, which actually
+    drives tool/command selection, is what was adapted).
+  - `commit/SKILL.md`: two references to a "Git Workflow" section in `docs/frontend-standards.md`
+    were stale — `ADOPT-06` replaced that file's entire content with a Not Applicable notice, so
+    it no longer has that section. Both references corrected to cite only
+    `docs/backend-standards.md` (confirmed to still have a Git Workflow section) and to explain
+    why `frontend-standards.md` is excluded.
+  - `using-git-worktrees/SKILL.md`: Step 3 (Project Setup) and Step 4 (Verify Clean Baseline) had
+    conditional auto-detect branches for Node.js, Rust, Python, and Go, but no Java/Kotlin branch
+    at all — meaning this skill would silently skip project setup and baseline testing for this
+    repository's actual stack. Added `pom.xml` → `mvn validate` and
+    `build.gradle`/`build.gradle.kts` → `gradle help` branches to Step 3 (matching the exact
+    conditional-`if`-per-ecosystem style already used for the other four), and added `mvn test` /
+    `gradle test` to Step 4's baseline-test command list. Both additions use only the project's
+    own already-declared build tool (`mvn`, confirmed present and declared via `pom.xml`
+    throughout this adoption) — no new dependency introduced; the Gradle branch is dormant for
+    this specific repository (no `build.gradle` here) but correct for the generic, reusable
+    canonical skill.
+Assumptions found (that would have selected incorrect tools/commands/languages for this
+  repository, or silently skipped correct ones): Node/TS-only stack detection in `code-auditing`;
+  a now-nonexistent frontend Git Workflow section cited by `commit`; missing Java/Gradle branches
+  in `using-git-worktrees`'s auto-detect logic. All three corrected as above.
+New dependencies: NONE — every added/changed command resolves to a tool already declared by this
+  repository's own build (`mvn`, via `pom.xml`) or is conditionally dormant (the Gradle branch,
+  inert here) or explicitly declines to assume an undeclared tool (the Java dead-code-tool case in
+  `code-auditing`).
+Corrections: none needed to this step's own output (the fixes above are this step's designed
+  work, not corrections of a prior mistake within `ADOPT-11` itself).
+Result: PASS
 ```
 
 
 ### `ADOPT-12` — Validate Skills
 
 ```text
-Canonical skill count:
-Missing entry files:
-Missing resources:
-Unconditional stack assumptions:
-Undeclared dependencies:
-Generated-client content confused with canonical:
-Result: PASS / FAIL
+Commands run, with absolute executable paths (checked first: `find` is shell-shadowed on this
+  machine — `type -a find` shows a shell function from a Claude Code shell snapshot wrapping its
+  own `bfs`-based implementation, wrapping `/usr/bin/find`; `git` is not shadowed, `/usr/bin/git`
+  directly): `/usr/bin/find ai-specs/skills -mindepth 1 -maxdepth 2 -type f -print`;
+  `/usr/bin/find ai-specs/skills -type l -print -exec readlink {} \;`;
+  `/usr/bin/git diff -- ai-specs/skills`. All exited 0.
+Canonical skill count: 8 entry files (`SKILL.md`) found, matching `ADOPT-11`'s inventory exactly
+  — `code-auditing`, `commit`, `enrich-us`, `explain`, `meta-prompt`, `update-docs`,
+  `using-git-worktrees`, `writing-skills`
+Missing entry files: NONE
+Missing resources: NONE — `writing-skills`'s 5 supporting files
+  (`anthropic-best-practices.md`, `graphviz-conventions.dot`, `persuasion-principles.md`,
+  `render-graphs.js`, `testing-skills-with-subagents.md`) all present in the same `find` listing;
+  `code-auditing`'s 2 reference files (`references/audit-methodology.md`,
+  `references/dead-code-methodology.md`, at depth 3, outside this command's `-maxdepth 2` scope
+  by design) independently confirmed present and untouched via the `git diff` output below
+  (neither appears, meaning no changes — and they were already known to exist from `ADOPT-03`'s
+  import evidence)
+Unconditional stack assumptions: NONE remaining — `git diff -- ai-specs/skills` shows exactly 3
+  changed files (`code-auditing/SKILL.md`, `commit/SKILL.md`, `using-git-worktrees/SKILL.md`),
+  matching `ADOPT-11`'s adaptation list exactly; no unexpected file changed, no unrelated skill
+  touched
+Undeclared dependencies: NONE — re-confirms `ADOPT-11`'s finding; every changed command resolves
+  to a tool this repository's own build already declares (`mvn`) or is conditionally dormant
+Symlinks: NONE found under `ai-specs/skills` — correct and expected, since `ADOPT-13` (client
+  adapter creation) has not run yet
+Generated-client content confused with canonical: N/A — no client-generated skill directories
+  exist yet to confuse with the canonical source (`ADOPT-13` not yet run)
+Result: PASS
 ```
 
 
@@ -914,6 +989,7 @@ Result: PASS / FAIL
 | 7 | `ADOPT-06` | n/a — single step | PASS on all criteria in `04-context-and-openspec.md` (see step's evidence block above); two corrections applied pre-approval (`ADOPT-06/1` build-command online/offline ordering, `ADOPT-06/2` OpenAPI date-time format and response-schema honesty) | `ADOPT-06` evidence block, this run log | YES — content-approval gate presented via `AskUserQuestion`, first presentation interrupted (accidental empty response, treated as neither approval nor rejection, not proceeded on), re-presented and approved after corrections | luis.landaeta@gmail.com, 2026-08-15, content-approval gate, commit gate, and push gate each approved separately | `docs/api-spec.yml`, `docs/backend-standards.md`, `docs/base-standards.md`, `docs/data-model.md`, `docs/development_guide.md`, `docs/frontend-standards.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `ba7fa3faf3dbc919ee85f5c6d5740adccb780a0b` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 8 | `ADOPT-07` | n/a — single step | PASS on all criteria in `04-context-and-openspec.md` (see step's evidence block above); `openspec doctor`/`openspec context` both zero warnings | `ADOPT-07` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately (no separate content-approval gate — the phase file specifies none for `ADOPT-07`) | `openspec/config.yaml`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `c21da332fff9049ff684baabd9b548bf2dadf748` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 9 | `ADOPT-08` | n/a — single step | PASS — read-only re-verification, zero warnings, nothing corrected (see step's evidence block above) | `ADOPT-08` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `52b7531fb5f576fb536476e02d80d40e0a13afbd` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
+| 10 | `ADOPT-09` + `ADOPT-10` | grouped — `05-agents-and-skills.md` states explicitly: "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair," and `00-conventions.md` names this exact pair as one of its own worked examples of a structurally-justified group | PASS on all criteria in `05-agents-and-skills.md` for both steps (see each step's evidence block above); one correction applied pre-commit (checkpoint file count, `ADOPT-09/1`) | `ADOPT-09` and `ADOPT-10` evidence blocks, this run log | YES — commit-gate declaration presented via `AskUserQuestion`, first presentation returned a correction (not approval), re-presented and approved | luis.landaeta@gmail.com, 2026-08-15, commit gate: approved on second presentation; push gate: approved separately | `ai-specs/agents/backend-developer.md`, `ai-specs/agents/frontend-developer.md`, `ai-specs/agents/product-strategy-analyst.md`, `ai-specs/agents/java-backend-developer.md`, `openspec/config.yaml`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `c60dffdecd5510b0b59b3ec208e9d0b84398213b` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 
 ---
 

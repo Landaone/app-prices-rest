@@ -19,10 +19,15 @@ Comprehensive methodology for systematic code quality audits.
 ## Audit Phases
 
 ### Phase 0: Pre-Analysis Setup
-1. Check for project configuration files (package.json, tsconfig.json, etc.)
-2. Identify tech stack and main libraries
-3. Check for linting/formatting configs
-4. Run existing linting/testing commands as baseline
+1. Detect the actual project configuration files present (for example: `pom.xml`/`build.gradle`
+   for Java/Maven/Gradle, `package.json`/`tsconfig.json` for Node/TypeScript,
+   `requirements.txt`/`pyproject.toml` for Python — check what the repository actually has, never
+   assume one ecosystem)
+2. Identify tech stack and main libraries from what was actually detected
+3. Check for linting/formatting/static-analysis configs already declared by the project (do not
+   introduce a new one to perform this audit)
+4. Run existing linting/testing commands as baseline, using only commands the repository's own
+   build tooling already exposes
 5. Load documentation for identified core libraries
 
 ### Phase 1: Discovery
@@ -97,11 +102,12 @@ Generate detailed report with:
 - Missing caching opportunities
 - N+1 query patterns
 
-### TypeScript/Type Safety
-- Missing type annotations
-- Use of `any` type
-- Custom types duplicating official types
-- Missing @types packages
+### Static Type Safety (conditional on the detected language)
+- TypeScript: missing type annotations, use of `any`, custom types duplicating official types,
+  missing `@types` packages
+- Statically-typed languages generally (e.g. Java): raw types, unchecked casts, unnecessary
+  `Object`/wildcard typing where a concrete type is knowable
+- Only apply the checks relevant to the language actually detected in Phase 0
 
 ### Async/Promise Issues
 - Missing await keywords
@@ -116,9 +122,17 @@ Generate detailed report with:
 - Unused files (not imported anywhere)
 - Unused dependencies
 
-**Tools:**
-- JavaScript/TypeScript: `npx knip --reporter json`
+**Tools (conditional — use only the one matching the detected language, and only if it is already
+part of the repository's own declared toolchain; never install an undeclared tool merely to
+perform this audit):**
+- JavaScript/TypeScript: `npx knip --reporter json` (downloads `knip` on demand via `npx` — only
+  appropriate for a JS/TS repository)
 - Python: `deadcode . --dry`
+- Java or another language with no dead-code tool configured in this repository's build: no
+  automated tool is assumed; rely on manual/IDE-assisted review (unused-symbol warnings,
+  `codegraph explore`/`codegraph_explore` blast-radius data) unless the repository's own build
+  already declares a static-analysis plugin (e.g. a Maven/Gradle PMD, SpotBugs, or Checkstyle
+  plugin) to run instead
 
 **Important:** Always verify tool findings before reporting. Check for:
 - Dynamic imports (`import(variable)`)

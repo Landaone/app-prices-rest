@@ -62,7 +62,9 @@ If the user **explicitly** requested no git operations (e.g. "no PR", "only comm
 ## 3. Commit message
 
 - Write the commit message **in English** (per `docs/base-standards.md`).
-- Make it **descriptive** (per Git Workflow in `backend-standards.md` and `frontend-standards.md`).
+- Make it **descriptive** (per the Git Workflow guidance in the repository's applicable
+  `*-standards.md` file(s) — `backend-standards.md` for this repository, since it has no
+  frontend).
 - Structure it so that:
   - **Subject line**: Short, imperative summary (e.g. "Add candidate filters to position list", "Fix validation for application deadline"). Optionally prefix with a scope or ticket id (e.g. `SCRUM-123: Add candidate filters`).
   - **Body** (if needed): Bullet points or short paragraphs describing what changed and why (areas touched, new behavior, fixes). Reference ticket IDs here if they apply.
@@ -90,7 +92,9 @@ If the user **explicitly** requested no git operations (e.g. "no PR", "only comm
 # References
 
 - `docs/base-standards.md`: English-only for commit messages and technical artifacts.
-- `docs/backend-standards.md` and `docs/frontend-standards.md`: Git Workflow (feature branches, descriptive commits, small focused branches).
+- `docs/backend-standards.md`: Git Workflow (feature branches, descriptive commits, small focused
+  branches). `docs/frontend-standards.md` is Not Applicable in this repository (no frontend
+  exists) and carries no Git Workflow guidance of its own.
 - Repository git workflow conventions: Use `gh` for GitHub and PR creation; optional ticket-based branch and PR linking.
 
 # Notes
