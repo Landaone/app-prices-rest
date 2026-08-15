@@ -88,9 +88,9 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-08` | `04-context-and-openspec.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-09` | `05-agents-and-skills.md` | PASS — checkpoint committed and pushed (grouped with ADOPT-10) | 2026-08-15 |
 | `ADOPT-10` | `05-agents-and-skills.md` | PASS — checkpoint committed and pushed (grouped with ADOPT-09) | 2026-08-15 |
-| `ADOPT-11` | `05-agents-and-skills.md` | PASS — checkpoint pending (grouped with ADOPT-12) | 2026-08-15 |
-| `ADOPT-12` | `05-agents-and-skills.md` | PASS — checkpoint pending (grouped with ADOPT-11) | 2026-08-15 |
-| `ADOPT-13` | `06-adapters-and-discovery.md` | PENDING | |
+| `ADOPT-11` | `05-agents-and-skills.md` | PASS — checkpoint committed and pushed (grouped with ADOPT-12) | 2026-08-15 |
+| `ADOPT-12` | `05-agents-and-skills.md` | PASS — checkpoint committed and pushed (grouped with ADOPT-11) | 2026-08-15 |
+| `ADOPT-13` | `06-adapters-and-discovery.md` | PASS — checkpoint pending | 2026-08-15 |
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PENDING | |
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING | |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PENDING | |
@@ -832,15 +832,42 @@ Result: PASS
 ### `ADOPT-13` — Create Selected-Client Adapters
 
 ```text
-Selected clients:
-Canonical agents exposed:
-Canonical skills exposed:
-Symlinks:
-Real directories preserved:
-Unselected clients checked:
-Per-client provisioning provenance (installer-provisioned vs. separately configured):
-Corrections:
-Result: PASS / FAIL
+Selected clients: Claude only (per `ADOPT-00`; Kiro and Codex NOT SELECTED, reconfirmed
+  `.kiro` absent before and after this step)
+Canonical agents exposed (2, via relative symlink): `java-backend-developer.md` (matches this
+  repository's actual Java/Spring Boot stack), `product-strategy-analyst.md` (technology-agnostic
+  — exposed per this step's explicit rule not to skip a non-programming-stack agent, applicable
+  to product/scoping questions for any project including this one). NOT exposed:
+  `backend-developer.md` (TypeScript/Express/Prisma — wrong stack), `frontend-developer.md`
+  (React — no frontend exists) — both preserved unchanged and un-symlinked in `ai-specs/agents/`,
+  per the reasoning already recorded in `ADOPT-09`.
+Canonical skills exposed (8, via relative directory symlink — all canonical skills; none excluded
+  by applicability): `code-auditing`, `commit`, `enrich-us`, `explain`, `meta-prompt`,
+  `update-docs`, `using-git-worktrees`, `writing-skills`
+Symlinks (10 total, all created after explicit approval of the complete plan presented via
+  `AskUserQuestion`): `.claude/agents/java-backend-developer.md` ->
+  `../../ai-specs/agents/java-backend-developer.md`; `.claude/agents/product-strategy-analyst.md`
+  -> `../../ai-specs/agents/product-strategy-analyst.md`; `.claude/skills/{code-auditing, commit,
+  enrich-us, explain, meta-prompt, update-docs, using-git-worktrees, writing-skills}` ->
+  `../../ai-specs/skills/<same-name>` respectively (8 skill symlinks). All 10 confirmed resolving
+  (`test -e` on every symlink path, individually) and none broken (`find -L .claude/agents
+  .claude/skills -type l -print` returned empty, exit 0 — no symlink under either directory
+  dangles). `.claude/agents/` did not exist before this step; created only as the parent of these
+  2 symlinks.
+Real directories preserved (6, untouched — confirmed no collision with any of the 8 exposed
+  skill names): `.claude/skills/openspec-apply-change`, `openspec-archive-change`,
+  `openspec-explore`, `openspec-propose`, `openspec-sync-specs`, `openspec-update-change`
+  (all OpenSpec-generated in `ADOPT-02`). `.claude/skills/specboot-adopt` (the `ADOPT-00`
+  bootstrap discovery symlink, pointing at the external absolute source, a separate concern this
+  step did not touch) also confirmed still present and unmodified.
+Unselected clients checked: `.kiro/` confirmed absent both before and after this step — no Kiro
+  adapters created, none possible to accidentally create since no Kiro configuration exists
+Per-client provisioning provenance (installer-provisioned vs. separately configured): separately
+  configured — this step created the symlinks directly (an AI-agent orchestrated execution of the
+  documented plan-then-approve-then-create procedure), not via an automated client-adapter
+  installer CLI.
+Corrections: none needed this step
+Result: PASS
 ```
 
 
@@ -990,6 +1017,7 @@ Result: PASS / FAIL
 | 8 | `ADOPT-07` | n/a — single step | PASS on all criteria in `04-context-and-openspec.md` (see step's evidence block above); `openspec doctor`/`openspec context` both zero warnings | `ADOPT-07` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately (no separate content-approval gate — the phase file specifies none for `ADOPT-07`) | `openspec/config.yaml`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `c21da332fff9049ff684baabd9b548bf2dadf748` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 9 | `ADOPT-08` | n/a — single step | PASS — read-only re-verification, zero warnings, nothing corrected (see step's evidence block above) | `ADOPT-08` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `52b7531fb5f576fb536476e02d80d40e0a13afbd` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 10 | `ADOPT-09` + `ADOPT-10` | grouped — `05-agents-and-skills.md` states explicitly: "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair," and `00-conventions.md` names this exact pair as one of its own worked examples of a structurally-justified group | PASS on all criteria in `05-agents-and-skills.md` for both steps (see each step's evidence block above); one correction applied pre-commit (checkpoint file count, `ADOPT-09/1`) | `ADOPT-09` and `ADOPT-10` evidence blocks, this run log | YES — commit-gate declaration presented via `AskUserQuestion`, first presentation returned a correction (not approval), re-presented and approved | luis.landaeta@gmail.com, 2026-08-15, commit gate: approved on second presentation; push gate: approved separately | `ai-specs/agents/backend-developer.md`, `ai-specs/agents/frontend-developer.md`, `ai-specs/agents/product-strategy-analyst.md`, `ai-specs/agents/java-backend-developer.md`, `openspec/config.yaml`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `c60dffdecd5510b0b59b3ec208e9d0b84398213b` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
+| 11 | `ADOPT-11` + `ADOPT-12` | grouped — same structural justification as row 10 (`00-conventions.md`'s documented executed pair) | PASS on all criteria in `05-agents-and-skills.md` for both steps (see each step's evidence block above) | `ADOPT-11` and `ADOPT-12` evidence blocks, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `ai-specs/skills/code-auditing/SKILL.md`, `ai-specs/skills/commit/SKILL.md`, `ai-specs/skills/using-git-worktrees/SKILL.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `d9b1b04bf58a6b0402f9e1ab323367d5cea3153d` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 
 ---
 
