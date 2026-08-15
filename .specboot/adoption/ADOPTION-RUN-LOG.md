@@ -81,8 +81,8 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-02` | `01-prerequisites-and-install.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-03` | `01-prerequisites-and-install.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PASS — checkpoint committed and pushed | 2026-08-15 |
-| `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS — checkpoint pending | 2026-08-15 |
-| `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PENDING | |
+| `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS — checkpoint committed and pushed | 2026-08-15 |
+| `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS — checkpoint pending (smoke-test rows correctly PENDING EVIDENCE, not blocking) | 2026-08-15 |
 | `ADOPT-06` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
@@ -402,40 +402,108 @@ Result: PASS
 Clients selected:
 
 -- Provisioning (ADOPT-05B Step 1) --
-Source baseline located (where it came from):
-Target file existed before this step? (yes / no):
-Decision: COPY / MERGE, and why:
-Merge conflicts resolved, and how (none if COPY):
+Source baseline located (where it came from): the canonical SpecBoot source repository's own
+  root `.claude/settings.json`, at the pinned commit (`9f08281dae42eb65d0a349c1876e6b584fe6e791`),
+  read via `git show <commit>:.claude/settings.json` (no working-tree checkout — the source's own
+  sparse checkout was never widened). That repository is itself a SpecBoot-adopted, Java/Maven
+  project (same stack as this target repository), so its reviewed root permission file is a
+  directly applicable organizational baseline, not an illustrative example.
+Target file existed before this step? (yes) — `.claude/settings.json` was created in `ADOPT-05` by
+  `codegraph install`, containing only a `hooks.UserPromptSubmit` entry (`codegraph prompt-hook`)
+Decision: MERGE, and why: the target file already existed with a real entry from `ADOPT-05`
+  (`00-conventions.md` and this step's own rules both require merge-never-overwrite for an
+  existing file, since it "records decisions someone already made")
+Merge conflicts resolved, and how (none if COPY): no key-level conflicts — the baseline contributes
+  `$schema`, `enabledMcpjsonServers: ["codegraph"]`, and `permissions.allow` (63 entries); the
+  existing file contributed `hooks.UserPromptSubmit`. All four top-level keys coexist in the
+  merged file with no overlapping keys to reconcile.
 
 -- Supported-environment matrix (Step 2) --
-Clients supported by the project/team:
-Stacks supported:
-Shells supported:
-Operating systems supported:
+Clients supported by the project/team: Claude only (Kiro and Codex explicitly NOT SELECTED,
+  per `ADOPT-00` and reconfirmed by the operator for this step)
+Stacks supported: Java 11 + Maven (matches `ADOPT-01`'s identified project toolchain)
+Shells supported: zsh, bash, PowerShell (operator-declared)
+Operating systems supported: macOS, Ubuntu Linux, Windows (operator-declared) — this is a
+  **team-declared** matrix, not limited to the adopting machine (macOS/zsh only), per this step's
+  explicit instruction not to declare only the current machine's environment
 
 -- Reconciliation (Step 3) --
-Entries removed as out-of-matrix:
-Entries retained for supported environments not present on this machine:
-Entries added for the real project:
+Entries removed as out-of-matrix: none — every baseline entry (git/openspec/codegraph inspection,
+  `mvn`/`java` availability and offline validate/test, generic read-only POSIX utilities) is
+  relevant to the Claude-only, Java+Maven matrix; nothing Kiro-specific or otherwise
+  out-of-matrix was present in the source (the Kiro baseline lives in a separate file,
+  `.kiro/settings/permissions.yaml`, not copied here since Kiro is NOT SELECTED)
+Entries retained for supported environments not present on this machine: all 63 baseline entries
+  are Claude Code's own `Bash(<pattern>)` permission-matcher syntax, which is not OS- or
+  shell-specific text (Claude Code normalizes Bash-tool command matching independent of host
+  shell) — so there is no separate "Ubuntu variant" or "Windows variant" of the *syntax* to add or
+  remove. This is a claim about the permission file's textual portability only; it is NOT a claim
+  that the permission *behavior* has been verified on Ubuntu or Windows — that is a distinct,
+  unmet evidence requirement, recorded honestly below rather than inferred from syntax portability
+  (a correction the operator made explicitly during this step: an untested environment is not
+  evidence of a working one).
+Entries added for the real project: none needed — the baseline's `mvn -v`, `mvn -o validate`,
+  `mvn -o test`, `mvn -o -q -Dtest=* test`, `command -v mvn`, `command -v java` entries already
+  match this project's actual toolchain exactly (Spring Boot / Maven / Java 11), because the
+  baseline's source repository uses the same stack.
 
 -- Safety and syntax (Step 4) --
-Credentials / secret-shaped text found: none / list
-Personal absolute paths or home directories found: none / list
-Machine-specific dependency locations found: none / list
-Unsafe broad command patterns found: none / list
-Client-specific syntax validation (JSON / YAML / other):
+Credentials / secret-shaped text found: none
+Personal absolute paths or home directories found: none
+Machine-specific dependency locations found: none
+Unsafe broad command patterns found: none — every `Bash(...)` entry is read-only inspection
+  (`git status/diff/show/log/ls-files/ls-tree/check-ignore/rev-parse/...`, `find .`, `ls`, `grep`,
+  `rg`, `sed -n`, `test -f/-d/-L/-e`, etc., all scoped to the working directory, no in-place edit
+  flags) or a controlled, offline (`-o`), non-mutating Maven validate/test invocation; nothing
+  installs, deploys, publishes, or reaches an external service, and nothing auto-allows a generic
+  filesystem-wide glob or shell loop.
+Client-specific syntax validation (JSON / YAML / other): JSON — validated with
+  `python3 -c "import json; json.load(open('.claude/settings.json')); print('VALID JSON')"`,
+  printed `VALID JSON`, exit 0. No YAML file created (Kiro not selected).
 
 -- Smoke tests (one row per supported client/OS combination) --
 Client / OS | Available? | Result (PASS / FAIL / PENDING EVIDENCE) | Reason if pending
-Permission prompts triggered:
-File modifications during smoke test:
+Claude Code / macOS (zsh) | yes (this machine) | PENDING EVIDENCE | All 8 documented smoke-test
+  commands (`openspec --version`, `openspec doctor --json`, `openspec context --json`,
+  `openspec schemas`, `openspec templates`, `git status --short`, `git diff -- openspec/config.yaml`,
+  one CodeGraph exploration query) were run individually in this session and each executed
+  successfully (exit 0) with no file modification — a genuine **functional** pre-check. But this
+  step's own validation requires the smoke test to run in a **fresh session**, because permission
+  behavior (whether a command triggers an approval prompt) depends on `.claude/settings.json` as
+  loaded at session start, and this session was already active before the merged file was written.
+  A continuing session cannot demonstrate the absence of prompts a fresh session would show.
+  Genuinely fresh-session validation is deferred to `ADOPT-15`, which this guide designates as the
+  dedicated fresh-session discovery/runtime gate; recorded here as PENDING EVIDENCE rather than an
+  inferred PASS, per this step's own rule that an untested condition is never a PASS.
+Claude Code / Ubuntu Linux (bash) | no (not available on this machine) | PENDING EVIDENCE | no
+  Linux machine available during this adoption run
+Claude Code / Windows (PowerShell) | no (not available on this machine) | PENDING EVIDENCE | no
+  Windows machine available during this adoption run
+Permission prompts triggered: not applicable to the functional pre-check above (same continuing
+  session; prompt behavior for previously-unapproved patterns in this session was already resolved
+  earlier via this conversation's own tool-approval flow, before this merged file existed) — a
+  fresh session's prompt behavior is exactly what remains unverified, per the PENDING EVIDENCE rows
+  above.
+File modifications during smoke test: NONE — confirmed via `git status --short` immediately after
+  the pre-check commands, showing only this step's own already-in-progress edits
+  (`.claude/settings.json`, `ADOPTION-RUN-LOG.md`), nothing new.
 
 -- Integrity and provenance --
-Generic source baseline unchanged (confirmed):
-Per-client provisioning provenance (installer-provisioned vs. separately configured):
+Generic source baseline unchanged (confirmed): YES — `git -C <source> status --porcelain` reported
+  clean (no output) immediately after reading the baseline via `git show`, confirming the read-only
+  `git show` access left the source's working tree untouched.
+Per-client provisioning provenance (installer-provisioned vs. separately configured): separately
+  configured — this step performed the documented structured written procedure (locate baseline,
+  merge, reconcile, validate) directly; no installer CLI performs this merge automatically.
 
-Remaining limitations:
-Result: PASS / FAIL
+Remaining limitations: fresh-session smoke-test evidence for all three declared OS/shell
+  combinations is outstanding (see PENDING EVIDENCE rows above); Ubuntu and Windows are additionally
+  blocked on machine availability, not just session freshness.
+Result: PASS — provisioning, reconciliation, and safety/syntax validation all complete and
+  verified; the smoke-test validation table correctly records PENDING EVIDENCE (not PASS, not
+  FAIL) for every client/OS combination per this step's own rule that an unexercised combination is
+  never inferred as passing. This step's PASS reflects the file being correctly provisioned, not a
+  claim that fresh-session prompt behavior has been observed.
 ```
 
 
@@ -691,6 +759,7 @@ Result: PASS / FAIL
 | 2 | `ADOPT-02` | n/a — single step (operator explicitly chose one-checkpoint-per-step as the cadence for this run; `ADOPT-01` produced no repo-local writes so has no checkpoint of its own) | PASS on all criteria in `01-prerequisites-and-install.md` (see step's evidence block above) | `ADOPT-02` evidence block, this run log | YES — commit-gate declaration presented via `AskUserQuestion`, approved on first presentation | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.claude/commands/opsx/apply.md`, `.claude/commands/opsx/archive.md`, `.claude/commands/opsx/explore.md`, `.claude/commands/opsx/propose.md`, `.claude/commands/opsx/sync.md`, `.claude/commands/opsx/update.md`, `.claude/skills/openspec-apply-change/SKILL.md`, `.claude/skills/openspec-archive-change/SKILL.md`, `.claude/skills/openspec-explore/SKILL.md`, `.claude/skills/openspec-propose/SKILL.md`, `.claude/skills/openspec-sync-specs/SKILL.md`, `.claude/skills/openspec-update-change/SKILL.md`, `openspec/config.yaml`, `.specboot/adoption/ADOPTION-RUN-LOG.md` (cumulative state at commit time, honestly including already-written `ADOPT-03` evidence marked "checkpoint pending" — `ADOPT-03`'s own deliverable files were deliberately left unstaged for its own checkpoint, see row 3) | `3dceab527ca96fb22ee3a91bdc75c1a6ad5eebea` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged from `ADOPT-00`'s assessment. Verdict: no CI/automation trigger detected | PUSHED — fast-forward to the already-existing `origin/experiment/specboot-ai-adoption-v1` | none this checkpoint |
 | 3 | `ADOPT-03` | n/a — single step (one-checkpoint-per-step cadence) | PASS on all criteria in `01-prerequisites-and-install.md` (see step's evidence block above), including the corrected 28-file inventory | `ADOPT-03` evidence block, this run log | YES — commit-gate declaration presented via `AskUserQuestion` | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `codex.md`, all 7 `docs/*` files, all 21 `ai-specs/*` files (see `ADOPT-03` evidence block for the full list), `.specboot/adoption/ADOPTION-RUN-LOG.md` | `a0278d953abf9af21c2e35026bbb44eaf7daa022` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged from `ADOPT-00`'s assessment. Verdict: no CI/automation trigger detected | PUSHED — fast-forward to `origin/experiment/specboot-ai-adoption-v1` | none this checkpoint |
 | 4 | `ADOPT-04` | n/a — single step | PASS on all criteria in `02-codegraph.md` (see step's evidence block and the code-graph capability selection section above) | `ADOPT-04` evidence block, code-graph capability selection, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.codegraph/.gitignore`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `b9f9a249a71b22c993637ca415885967bb66763a` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
+| 5 | `ADOPT-05` | n/a — single step | PASS on all criteria in `02-codegraph.md` (see step's evidence block above) | `ADOPT-05` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.mcp.json`, `.claude/settings.json`, `.claude/CLAUDE.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `5aeb307c6bfe15b0844607e4131649ab0e148eea` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 
 ---
 
@@ -699,6 +768,7 @@ Result: PASS / FAIL
 | # | Checkpoint | Target file | Proposal | Status (`proposed` / `accepted` / `rejected` / `applied-in-change-<id>`) |
 |---|---|---|---|---|
 | 1 | ADOPT-00 (this run) | `specboot-adoption/bootstrap-kit/discovery/claude.md` | The Entries table's "Points to" column (`../../.specboot/bootstrap/skills/specboot-adopt`) and the verbatim `SPECBOOT-BOOTSTRAP` block text (`.specboot/bootstrap/SPECBOOT_ADOPTION_GUIDE.md`) still describe the deferred packaged-snapshot container path. `.specboot/bootstrap/` is never created under the current, sole source-linked delivery mode (per `09-bootstrap.md`, `bootstrap-and-debootstrap.md`, and `bootstrap-kit/README.md`, all of which state entries "point at the external source"). This run resolved the discrepancy by pointing the symlink directly at the external absolute source path and rewriting the CLAUDE.md block to resolve the source via `.specboot/local/` instead of a hardcoded container path. Recipe should be updated to match the source-linked-only mode so future runs don't have to re-derive this. | proposed |
+| 2 | ADOPT-05B (this run) | `.claude/settings.json` (canonical source's own root permission baseline, used as this run's `ADOPT-05B` source) | The canonical permission baseline was authored and, as far as this run could determine, only ever exercised on macOS/zsh: every allowed pattern is POSIX-style (`test -f`, `sed -n`, `find .`, `command -v`), and the Maven-related entries reference only `mvn` (system Maven), never `mvnw.cmd` (the Windows Maven-wrapper entry point) even though `03-client-permissions.md`'s Step 2/3 explicitly requires declaring and retaining Windows/PowerShell variants when a team supports them. Nothing in the baseline or its surrounding docs demonstrates PowerShell-native equivalents or `mvnw.cmd` coverage were ever validated. This run could not close that gap either (no Windows machine available — recorded as `PENDING EVIDENCE` in `ADOPT-05B`'s smoke-test table), so the gap is structural to the canonical baseline, not specific to this adoption. Recipe should either demonstrate a validated Windows/PowerShell smoke-test pass somewhere in its history, or explicitly document that Windows coverage is unvalidated rather than implying parity through silence. | proposed |
 
 ---
 
@@ -786,6 +856,8 @@ Reason:
 2026-08-15 / ADOPT-03 checkpoint, push gate / decision: approved push of commit a0278d9 / who: luis.landaeta@gmail.com / reason: remote-impact re-check unchanged from ADOPT-00
 2026-08-15 / ADOPT-05 (project-local configuration gate) / decision: approved `codegraph install --target claude --location local --no-permissions` as proposed / who: luis.landaeta@gmail.com / reason: matches the guide's stated defaults (project scope, automatic-allow off); ran into a TUI input-piping issue on the first interactive attempt (recorded in the ADOPT-05 evidence block), resolved by adding `-y` alongside the same explicit overrides
 2026-08-15 / ADOPT-04 checkpoint, commit and push gates / decision: approved both separately / who: luis.landaeta@gmail.com / reason: diff reviewed clean, remote-impact unchanged from ADOPT-00
+2026-08-15 / ADOPT-05B (supported-environment matrix, Step 2) / decision: declare Claude-only client, Java 11 + Maven stack, zsh/bash/PowerShell shells, macOS/Ubuntu/Windows operating systems / who: luis.landaeta@gmail.com / reason: team-declared matrix supplied directly, since this is project/team information not derivable from the repository or this machine
+2026-08-15 / ADOPT-05B (permission-file creation gate) / decision: approved merging the canonical source's root `.claude/settings.json` baseline into the existing file, no removals or additions / who: luis.landaeta@gmail.com / reason: corrected the evidence before writing — declined to accept "syntax is OS-agnostic" as a substitute for actual fresh-session validation on Ubuntu/Windows; those combinations recorded PENDING EVIDENCE rather than PASS, and an improvement proposal (#2) was recorded about the baseline's own unvalidated Windows/PowerShell coverage
 ```
 
 ## Correction record
