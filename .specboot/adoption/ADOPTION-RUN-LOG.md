@@ -99,7 +99,7 @@ Codex's outstanding obligation is **not** discharged by this run, which did not 
 |---|---|---|---|
 | `ADOPT-00` | `09-bootstrap.md` | **PASS** — fresh-session discovery observed, Gate 3 resolved | 2026-08-15 |
 | `ADOPT-01` | `01-prerequisites-and-install.md` | **PASS** | 2026-08-15 |
-| `ADOPT-02` | `01-prerequisites-and-install.md` | PENDING | |
+| `ADOPT-02` | `01-prerequisites-and-install.md` | **PASS** — checkpoint pending live approval (no declared `Allowed modifications`) | 2026-08-15 |
 | `ADOPT-03` | `01-prerequisites-and-install.md` | PENDING | |
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PENDING | |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PENDING | |
@@ -402,6 +402,46 @@ Notes: Repository-specific toolchain identified from project evidence (`pom.xml`
 
 ---
 
+### `ADOPT-02` — Install and Initialize OpenSpec with Explicitly Selected Clients
+
+```text
+OpenSpec version: 1.7.0 — already installed, meets ADOPT-01's documented-keys requirement.
+Command: install/upgrade command SKIPPED (not run) — the installed version already met the
+  documented requirement, per design D-Z part 6; `openspec init --tools claude --no-animation`
+  actually executed
+Clients offered: full `--tools` enum (amazon-q, antigravity, auggie, bob, claude, cline,
+  codeartsagent, codex, devin, forgecode, codebuddy, continue, costrict, crush, cursor, factory,
+  gemini, github-copilot, hermes, iflow, junie, kilocode, kimi, kiro, lingma, vibe, oh-my-pi,
+  opencode, pi, qoder, qwen, roocode, trae, zcode, windsurf) — inspected via `openspec init --help`
+  before running, per the step's own "inspect the available client options" instruction
+Clients selected: claude only — explicitly passed as `--tools claude`, matching the client
+  selection already declared and approved at ADOPT-00 (manifest `selectedClient: "claude"`,
+  `clientSelection.selected: ["claude"]`). Not an interactive-default accept: the exact value was
+  chosen deliberately from the inspected list, satisfying "do not accept defaults without review."
+Generated config path: openspec/config.yaml (this installed version generated the .yaml, not .yml,
+  extension — used as the guide instructs, "use the actual generated path")
+Generated client resources: .claude/skills/{openspec-apply-change,openspec-archive-change,
+  openspec-explore,openspec-propose,openspec-sync-specs,openspec-update-change}/SKILL.md (6);
+  .claude/commands/opsx/{apply,archive,explore,propose,sync,update}.md (6) — matches the CLI's own
+  reported "6 skills and 6 commands in .claude/". `.claude/CLAUDE.md` (the SpecBoot bootstrap
+  pointer block from ADOPT-00) verified byte-unchanged: `git diff -- .claude/CLAUDE.md` empty.
+Per-client provisioning provenance (installer-provisioned vs. separately configured): all of the
+  above installer-provisioned by this run's own `openspec init --tools claude` invocation —
+  directly observed, not inferred from presence (per 00-conventions.md's "capability availability
+  is not installer provenance").
+openspec doctor result: "OpenSpec root: ok"; Location resolved to the repository root; References
+  "(none declared)" — expected at this point in the adoption, no findings.
+Git changes: `git status --porcelain --ignored=matching` — new untracked: `.claude/commands/`,
+  `.claude/skills/` (contains both the new openspec-* skill dirs and the pre-existing, still-ignored
+  `specboot-adopt` symlink — confirmed the symlink itself still resolves and is still excluded via
+  `!!`), `openspec/`. No other top-level directory appeared — confirmed via `ls -la` — so no
+  resources were added for any unselected client.
+Result: PASS — `openspec/` exists; `openspec/config.yaml` exists; Claude-specific resources exist;
+  no unselected-client resources found.
+```
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification | Validation | Evidence pointers | Allowlist match | Ready declared | Approval | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -424,7 +464,7 @@ restriction, which is scoped to the **manifest** and **discovery entries** never
 absolute path (confirmed clean in both) — not to the run log's evidentiary narrative. Reported to the
 operator for awareness given the target repository is public; not treated as blocking.
 
-| 2 | `ADOPT-01` | n/a — single step | PASS (nothing installed or upgraded; gate never reached) | this run log's `ADOPT-01` evidence block | **not mechanically verifiable** — `01-prerequisites-and-install.md` declares no `Allowed modifications` field for `ADOPT-01` (see Improvement proposal #5 below); staged set is `.specboot/adoption/ADOPTION-RUN-LOG.md` only, which `00-conventions.md` names as inherent to executing *any* step ("writing it is part of executing the step, not separate bookkeeping"), not a gated repository-content mutation — treated as within bounds on that basis, not by inventing an allowlist | **YES** | **Auto-approved** (commit and push both) under the same standing authorization — zero repository-content mutation occurred (pure inspection/version-check step), only run-log evidence, so there is nothing an allowlist comparison could meaningfully police here even though no field is declared | `.specboot/adoption/ADOPTION-RUN-LOG.md` | *(recorded after this row — see below)* | Unchanged from the `ADOPT-00` baseline (0 workflows, 0 webhooks, 0 rulesets; no new commits landed remotely since that determination) | *(recorded after this row — see below)* | 1 (see Improvement proposals #5) |
+| 2 | `ADOPT-01` | n/a — single step | PASS (nothing installed or upgraded; gate never reached) | this run log's `ADOPT-01` evidence block | **not mechanically verifiable** — `01-prerequisites-and-install.md` declares no `Allowed modifications` field for `ADOPT-01` (see Improvement proposal #5 below); staged set is `.specboot/adoption/ADOPTION-RUN-LOG.md` only, which `00-conventions.md` names as inherent to executing *any* step ("writing it is part of executing the step, not separate bookkeeping"), not a gated repository-content mutation — treated as within bounds on that basis, not by inventing an allowlist | **YES** | **Auto-approved** (commit and push both) under the same standing authorization — zero repository-content mutation occurred (pure inspection/version-check step), only run-log evidence, so there is nothing an allowlist comparison could meaningfully police here even though no field is declared | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `bfad2af` (full: recorded in `git log`) | Unchanged from the `ADOPT-00` baseline (0 workflows, 0 webhooks, 0 rulesets; no new commits landed remotely since that determination) | **Pushed** — `09ede1b..bfad2af`, fast-forward, exit 0 | 1 (see Improvement proposals #5) |
 
 ---
 

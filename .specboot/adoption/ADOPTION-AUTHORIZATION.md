@@ -42,8 +42,10 @@ Evidence used to derive this matrix, if any (or "none — declared directly"): n
 Policy: reuse an installed version that already meets the documented minimum; do not silently
 upgrade a globally installed tool. Ask again only when the installed version is below the
 documented minimum, or when the operator explicitly requests staying current.
-Deviation from the default, if any: none recorded yet — confirmed default at ADOPT-00's gate;
-  ADOPT-02 updates this section when reached.
+Deviation from the default, if any: none. ADOPT-02 (2026-08-15) found OpenSpec 1.7.0 already
+  installed, meeting ADOPT-01's "installed version must support the documented keys" criterion, so
+  the install/upgrade command was skipped entirely per the default policy — no live gate was
+  reached, consistent with design D-Z part 6.
 ```
 
 ## Code-graph capability default privilege scope
