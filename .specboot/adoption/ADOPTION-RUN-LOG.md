@@ -96,7 +96,7 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PASS — `mvn clean test` exit 0, 8/8 tests passing, `openspec doctor` ok, CodeGraph current | 2026-08-15 |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-18` | `10-debootstrap.md` | PASS — de-bootstrap complete; `ADOPT-14` and `ADOPT-15` re-checks both PASS; checkpoint committed and pushed | 2026-08-15 |
-| `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
+| `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | BLOCKED — `specboot-verify`/`adversarial-review` capabilities missing from this repo; operator declined local import/reconstruction; routed to canonical `add-specboot-adoption-orchestrator` change | 2026-08-15 |
 | `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 
 ---
@@ -1364,18 +1364,64 @@ own evidence blocks below for status.
 
 ### `ADOPT-19` — Real-Project End-to-End Pilot
 
-- Pilot task, **named by the human**:
-- Pilot change name:
-- `enrich-us` → `READY FOR PROPOSAL`: PASS / FAIL
-- propose: PASS / FAIL
-- apply: PASS / FAIL
-- tests: PASS / FAIL
-- `specboot-verify`: PASS / PASS WITH GAPS / FAIL
-- `adversarial-review`: PASS / PASS WITH GAPS / FAIL — reviewer provenance (session/client):
-- docs and spec sync: PASS / FAIL
-- archive (both verdicts plus explicit human approval): PASS / FAIL
-- Deviations encountered and their recovery:
-- Result: PASS / FAIL
+- Pilot task, **named by the human** (2026-08-15): "Fix the REST API error-handling path so that a
+  malformed `applicationDate` request returns the documented structured HTTP 400 response, while
+  unexpected exceptions are handled by a correctly typed global exception handler. Add regression
+  tests for both behaviors and update the affected API or backend documentation only where
+  required to keep the documented contract aligned with the implementation." — this is the same
+  primary risk both fresh-session `ADOPT-15` runs (pre- and post-debootstrap) independently
+  surfaced.
+- Pilot change name: not reached — blocked before `enrich-us`
+- Pre-flight capability check (performed before starting the pilot, per the `specboot-adopt`
+  skill's own non-negotiable to invoke `enrich-us`/`specboot-verify`/`adversarial-review` "by
+  name; never reimplement"): `ai-specs/specboot-instructions.md` names **six required workflow
+  capabilities, in order**: `enrich-us`, `propose`, `apply`, `specboot-verify`,
+  `adversarial-review`, `archive`, and states `specboot-verify`'s "canonical logic" lives at
+  `ai-specs/skills/specboot-verify/SKILL.md`. That path does not exist, and no `adversarial-review`
+  skill exists anywhere in this repository either — confirmed via `ls ai-specs/skills/` (8 present:
+  `code-auditing`, `commit`, `enrich-us`, `explain`, `meta-prompt`, `update-docs`,
+  `using-git-worktrees`, `writing-skills`) and a repo-wide `grep -rni
+  "specboot-verify|adversarial-review"`, which found the two capabilities named only in
+  documentation (`ai-specs/specboot-instructions.md`, this run log, `enrich-us/SKILL.md`), never as
+  an actual skill directory. Cross-checked against `ADOPT-11`'s own recorded inventory ("Skills
+  found: 8, all under `ai-specs/skills/`") — the canonical source's own template never contained
+  these two skills at the time `ADOPT-03` imported it, so this is not something this adoption run
+  broke; it is a pre-existing gap in the canonical recipe, surfaced for the first time here because
+  `ADOPT-19` is the first step that actually needs these two capabilities.
+- `enrich-us` → `READY FOR PROPOSAL`: not run — blocked before this step, per the operator's
+  explicit decision below
+- propose: not run
+- apply: not run
+- tests: not run
+- `specboot-verify`: not run — capability unavailable in this repository (see pre-flight check
+  above)
+- `adversarial-review`: not run — capability unavailable in this repository (see pre-flight check
+  above)
+- docs and spec sync: not run
+- archive: not run
+- Deviations encountered and their recovery: the pre-flight capability check (above) found
+  `specboot-verify` and `adversarial-review` missing before any pilot step was started. Three
+  resolution paths were presented to the operator via `AskUserQuestion`: (1) re-resolve the
+  canonical source and import just the two missing skills; (2) have the operator supply the two
+  `SKILL.md` files directly; (3) proceed without them, degraded, using ad-hoc verification instead
+  and recording the gap. The operator declined all three and gave a fourth instruction instead: do
+  not import or reconstruct the missing skills inside this repository; make no project mutation;
+  record `ADOPT-19` as `BLOCKED`; and route the correction through the governed canonical
+  `add-specboot-adoption-orchestrator` change, since the completed adoption itself failed to
+  provision two permanent capabilities its own end-to-end workflow requires — the adoption
+  contract should provision and expose `specboot-verify`/`adversarial-review`, include them in the
+  checkpoint inventories, and validate their discovery before de-bootstrap (i.e., before
+  `ADOPT-18`, not discovered after it). No recovery was attempted in this repository; no file
+  outside `.specboot/adoption/ADOPTION-RUN-LOG.md` was touched.
+- Files modified: none (this evidence-recording write to the run log itself is the only change;
+  no application code, test, or documentation file was touched, per the operator's explicit "make
+  no project mutation" instruction)
+- Result: **BLOCKED** — distinct from FAIL: no pilot step was attempted and failed; the pilot
+  cannot legitimately start because two of the six mandatory workflow capabilities the adoption
+  itself was supposed to have provisioned do not exist in this repository. Not resumable from
+  within this repository or this continuing session — per the operator's explicit instruction, do
+  not resume `ADOPT-19` until the canonical `add-specboot-adoption-orchestrator` change corrects
+  the recipe and the required capabilities are installed through that corrected process.
 
 ---
 
@@ -1422,6 +1468,7 @@ own evidence blocks below for status.
 |---|---|---|---|---|
 | 1 | ADOPT-00 (this run) | `specboot-adoption/bootstrap-kit/discovery/claude.md` | The Entries table's "Points to" column (`../../.specboot/bootstrap/skills/specboot-adopt`) and the verbatim `SPECBOOT-BOOTSTRAP` block text (`.specboot/bootstrap/SPECBOOT_ADOPTION_GUIDE.md`) still describe the deferred packaged-snapshot container path. `.specboot/bootstrap/` is never created under the current, sole source-linked delivery mode (per `09-bootstrap.md`, `bootstrap-and-debootstrap.md`, and `bootstrap-kit/README.md`, all of which state entries "point at the external source"). This run resolved the discrepancy by pointing the symlink directly at the external absolute source path and rewriting the CLAUDE.md block to resolve the source via `.specboot/local/` instead of a hardcoded container path. Recipe should be updated to match the source-linked-only mode so future runs don't have to re-derive this. | proposed |
 | 2 | ADOPT-05B (this run) | `.claude/settings.json` (canonical source's own root permission baseline, used as this run's `ADOPT-05B` source) | The canonical permission baseline was authored and, as far as this run could determine, only ever exercised on macOS/zsh: every allowed pattern is POSIX-style (`test -f`, `sed -n`, `find .`, `command -v`), and the Maven-related entries reference only `mvn` (system Maven), never `mvnw.cmd` (the Windows Maven-wrapper entry point) even though `03-client-permissions.md`'s Step 2/3 explicitly requires declaring and retaining Windows/PowerShell variants when a team supports them. Nothing in the baseline or its surrounding docs demonstrates PowerShell-native equivalents or `mvnw.cmd` coverage were ever validated. This run could not close that gap either (no Windows machine available — recorded as `PENDING EVIDENCE` in `ADOPT-05B`'s smoke-test table), so the gap is structural to the canonical baseline, not specific to this adoption. Recipe should either demonstrate a validated Windows/PowerShell smoke-test pass somewhere in its history, or explicitly document that Windows coverage is unvalidated rather than implying parity through silence. | proposed |
+| 3 | ADOPT-19 (this run) | canonical adoption orchestrator (per the operator: the `add-specboot-adoption-orchestrator` change) and its template's `ai-specs/skills/` inventory | `ai-specs/specboot-instructions.md` names six required workflow capabilities in order (`enrich-us`, `propose`, `apply`, `specboot-verify`, `adversarial-review`, `archive`) and states `specboot-verify`'s canonical logic lives at `ai-specs/skills/specboot-verify/SKILL.md` — but the canonical template that `ADOPT-03` imports from never contained a `specboot-verify` or `adversarial-review` skill (confirmed against `ADOPT-11`'s own 8-skill inventory), and no later step in this run provisioned them either. The gap went undetected through `ADOPT-00`–`ADOPT-18` because nothing before `ADOPT-19` actually invokes these two capabilities — it surfaced only when the real pilot needed them, by which point `ADOPT-18` had already de-bootstrapped the canonical-source pointer, making an in-repo self-service fix impossible without re-resolving the source. Per the operator's explicit decision, no local import or reconstruction was performed (see `ADOPT-19` evidence, `Result: BLOCKED`). Recipe should provision and expose `specboot-verify`/`adversarial-review` as permanent artifacts (imported at `ADOPT-03` or a dedicated step), include them in every relevant checkpoint's staged-file inventory, and validate their discovery no later than `ADOPT-14`/`ADOPT-15` — before `ADOPT-18` removes the ability to self-correct the gap in-repo. | proposed |
 
 ---
 
@@ -1516,6 +1563,7 @@ Reason:
 2026-08-15 / ADOPT-18 (unresolved-replacement refusal, `.claude/skills/specboot-adopt` entry) / decision: approve removal with no local permanent replacement, overriding the manifest's stale `intended-permanent-replacement` field / who: luis.landaeta@gmail.com / reason: presented with both options (refuse-and-leave-in-place per the literal validation criterion, or approve removal given source-linked mode's own deliberate design never to import `specboot-adopt` locally, per `ADOPT-03`'s recorded evidence and improvement proposal #1); operator chose removal
 2026-08-15 / ADOPT-18 (mode mismatch, `.claude/CLAUDE.md` entry) / decision: approve block-scoped removal of only the `SPECBOOT-BOOTSTRAP:BEGIN/END` block, not the whole-file removal the manifest's `real-file` mode literally names / who: luis.landaeta@gmail.com / reason: the manifest's recorded mode predates `ADOPT-05`'s later, separate append of the permanent `CODEGRAPH_START/END` block to the same file; whole-file removal would have destroyed that legitimate, non-bootstrap content
 2026-08-15 / ADOPT-18 (fresh-session re-validation evidence) / decision: confirm that the post-debootstrap ADOPT-15 fresh session's first-ever user turn was the bare canonical prompt verbatim, with no adoption-process framing / who: luis.landaeta@gmail.com / reason: this continuing session could not independently observe that other session's transcript, so operator confirmation was the required gate before treating the supplied Discovery Report as ADOPT-18's closing PASS evidence rather than leaving it PENDING; offered via `AskUserQuestion` (yes-unbiased / had framing / not sure), operator confirmed yes-unbiased
+2026-08-15 / ADOPT-19 (missing-capability pre-flight gate) / decision: do not import or reconstruct `specboot-verify`/`adversarial-review` inside this repository; make no project mutation; record `ADOPT-19` as BLOCKED; route the correction through the governed canonical `add-specboot-adoption-orchestrator` change; do not resume `ADOPT-19` until that canonical process is corrected and the capabilities are installed through it / who: luis.landaeta@gmail.com / reason: offered three in-repo remediation paths via `AskUserQuestion` (re-resolve canonical source and import; operator supplies the skills directly; proceed degraded with ad-hoc verification) — operator declined all three, holding that the completed adoption itself failed to provision two capabilities its own end-to-end workflow requires, so the correction belongs in the canonical adoption recipe, not as a local workaround in an already-de-bootstrapped target repository
 ```
 
 ## Correction record
