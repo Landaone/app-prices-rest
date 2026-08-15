@@ -83,8 +83,8 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS — checkpoint committed and pushed (smoke-test rows correctly PENDING EVIDENCE, not blocking) | 2026-08-15 |
-| `ADOPT-06` | `04-context-and-openspec.md` | PASS — checkpoint pending | 2026-08-15 |
-| `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
+| `ADOPT-06` | `04-context-and-openspec.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
+| `ADOPT-07` | `04-context-and-openspec.md` | PASS — checkpoint pending | 2026-08-15 |
 | `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-10` | `05-agents-and-skills.md` | PENDING | |
@@ -578,14 +578,40 @@ Result: PASS
 ### `ADOPT-07` — Configure OpenSpec to Consume docs/ and ai-specs/
 
 ```text
-Prompt used:
-Config path:
-OpenSpec version:
-Rules:
-Operations:
-Warnings:
-Corrections:
-Result: PASS / FAIL
+Prompt used: this guide's `CANONICAL CONSOLIDATED PROMPT` for `ADOPT-07`, executed directly.
+  Before editing, inspected: installed OpenSpec version (`openspec --version` = 1.7.0), the
+  generated config file (`openspec/config.yaml`, present from `ADOPT-02`), the supported
+  configuration keys — read directly from the installed package's schema source
+  (`node_modules/@fission-ai/openspec/dist/core/project-config.js`'s `ProjectConfigSchema`, a Zod
+  schema: `schema` (required), `context`, `rules` (record of artifact-id → string[]),
+  `operations.{apply,archive}.guidance`, `references`, `store` — no `agents` key exists in this
+  installed version, so "agent selection" is expressed as prose in `context`, not a dedicated
+  key), and the actual artifact IDs for the `spec-driven` schema (`openspec schemas --json` /
+  `openspec templates` = `proposal`, `specs`, `design`, `tasks`) — and the existing files under
+  `docs/`, `ai-specs/agents/`, `ai-specs/skills/`.
+Config path: `openspec/config.yaml` (the only OpenSpec config file present; no `.yml` variant
+  exists)
+OpenSpec version: 1.7.0
+Rules: added for all 4 real artifact IDs (`proposal`, `specs`, `design`, `tasks`) — grounding
+  proposals/specs/design in the actual Java/Spring Boot/JPA/Flyway stack and the real single-table
+  data model, keeping specs consistent with the documented `GET /api/price` contract, requiring
+  design notes to acknowledge the 4 documented Known Risks rather than silently working around
+  them, and requiring tasks to include a test-run step and a docs-update step
+Operations: `apply` guidance (use system `mvn`, not the broken `./mvnw`) and `archive` guidance
+  (confirm `docs/api-spec.yml` and `docs/data-model.md` still match the implementation before
+  archiving) — both operation IDs (`apply`, `archive`) confirmed supported by this installed
+  version's `OPERATION_IDS` constant before use
+Warnings: NONE — `openspec doctor` exited 0 with "OpenSpec root: ok" and no warnings;
+  `openspec context` exited 0 and resolved the root cleanly with no errors
+Corrections: none required this step
+Additional validation performed: `python3 -c "import yaml; yaml.safe_load(...)"` confirmed valid
+  YAML with the 4 expected top-level keys (`schema`, `context`, `rules`, `operations`); every
+  path referenced in `context` (`docs/base-standards.md`, `docs/backend-standards.md`,
+  `docs/api-spec.yml`, `docs/data-model.md`, `docs/frontend-standards.md`,
+  `ai-specs/agents/backend-developer.md`, `ai-specs/skills/`) confirmed to exist with individual
+  `test -f`/`test -d` checks; `grep -n "/Users/" openspec/config.yaml` confirmed no absolute
+  machine-specific paths (only repository-relative paths used)
+Result: PASS
 ```
 
 
@@ -816,6 +842,7 @@ Result: PASS / FAIL
 | 4 | `ADOPT-04` | n/a — single step | PASS on all criteria in `02-codegraph.md` (see step's evidence block and the code-graph capability selection section above) | `ADOPT-04` evidence block, code-graph capability selection, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.codegraph/.gitignore`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `b9f9a249a71b22c993637ca415885967bb66763a` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 5 | `ADOPT-05` | n/a — single step | PASS on all criteria in `02-codegraph.md` (see step's evidence block above) | `ADOPT-05` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.mcp.json`, `.claude/settings.json`, `.claude/CLAUDE.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `5aeb307c6bfe15b0844607e4131649ab0e148eea` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 6 | `ADOPT-05B` | n/a — single step | PASS — provisioning/reconciliation/safety complete; smoke-test table correctly PENDING EVIDENCE (see step's evidence block above) | `ADOPT-05B` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.claude/settings.json`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `03845b5ced51d69bbe7aa1ac77e49751b31f3f54` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | proposal #2 (see Improvement proposals) |
+| 7 | `ADOPT-06` | n/a — single step | PASS on all criteria in `04-context-and-openspec.md` (see step's evidence block above); two corrections applied pre-approval (`ADOPT-06/1` build-command online/offline ordering, `ADOPT-06/2` OpenAPI date-time format and response-schema honesty) | `ADOPT-06` evidence block, this run log | YES — content-approval gate presented via `AskUserQuestion`, first presentation interrupted (accidental empty response, treated as neither approval nor rejection, not proceeded on), re-presented and approved after corrections | luis.landaeta@gmail.com, 2026-08-15, content-approval gate, commit gate, and push gate each approved separately | `docs/api-spec.yml`, `docs/backend-standards.md`, `docs/base-standards.md`, `docs/data-model.md`, `docs/development_guide.md`, `docs/frontend-standards.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `ba7fa3faf3dbc919ee85f5c6d5740adccb780a0b` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 
 ---
 

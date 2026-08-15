@@ -1,32 +1,43 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Project: app-prices-rest — a Java 11 / Spring Boot 2.4.5 REST API (Maven build) that resolves
+  the applicable price for a brand/product at a given point in time from a single PRICES table
+  (H2 in-memory, Flyway-migrated). See docs/base-standards.md for cross-cutting AI-agent rules,
+  docs/backend-standards.md for stack/architecture/testing conventions (including a documented
+  Known Risks section — do not "fix" those defects unless a change specifically asks to),
+  docs/api-spec.yml for the current API contract, and docs/data-model.md for the schema and
+  price-resolution business rule. There is no frontend (docs/frontend-standards.md is marked Not
+  Applicable) — never introduce frontend, browser, Playwright, or E2E requirements for this repo.
+  For backend implementation work, prefer the backend-developer canonical agent
+  (ai-specs/agents/backend-developer.md); ai-specs/skills/ holds workflow guidance (commit,
+  enrich-us, explain, update-docs, etc.) — load the matching skill when a request matches it, per
+  docs/base-standards.md section 4.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - Ground every proposal in the actual Java, Spring Boot, JPA, and Flyway stack described in
+      docs/backend-standards.md — never assume Node.js, TypeScript, Prisma, or a frontend.
+    - Reference the real single-table PRICES schema from docs/data-model.md, not an invented
+      domain model.
+  specs:
+    - Keep spec deltas consistent with the existing GET /api/price contract in docs/api-spec.yml
+      unless the change explicitly redefines it.
+  design:
+    - Note any interaction with the Known Risks documented in docs/backend-standards.md (the
+      HttpErrorHandler exception-handler mismatch, the NoPriceFoundException message typo, the
+      migration timestamp format, and unvalidated applicationDate) when a change touches that
+      code, rather than silently working around them.
+  tasks:
+    - Include a task step to run the test suite (mvn test, or mvn -o test once the local Maven
+      cache is warm) and to update the relevant docs markdown file alongside any code change.
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+operations:
+  apply:
+    guidance:
+      - Use the system mvn, not ./mvnw — the Maven wrapper is currently broken in this
+        repository (see docs/backend-standards.md).
+  archive:
+    guidance:
+      - Confirm docs/api-spec.yml and docs/data-model.md still match the implementation before
+        archiving.
