@@ -225,19 +225,26 @@ Adoption SHALL resolve the location of the canonical SpecBoot source as **runtim
 - **WHEN** any adoption step would create, modify, or delete a file inside the resolved canonical source
 - **THEN** the step does not perform it and is recorded FAIL, because the source is read-only for the whole adoption
 
-### Requirement: A target repository matching the canonical source's own identity fails closed before validation
+### Requirement: A target repository that is the canonical source's own working directory fails closed before validation
 
-Before the three-artifact source validation runs, the launcher SHALL compare the repository the current session is rooted at against the candidate canonical source: they SHALL NOT be the same filesystem location, and SHALL NOT be the same Git repository. Where they match, the run SHALL stop immediately with zero target-repository writes, reporting that the target and the candidate source are the same repository — adopting a repository into itself, or running the launcher inside the canonical source's own working tree, is not a supported operation. This check SHALL run **before**, not after, the existing four-artifact validation, since a matched identity makes that validation meaningless.
+Before the three-artifact source validation runs, the launcher SHALL compare the repository the current session is rooted at against the candidate canonical source **by resolved, symlink-free filesystem path only**. Where the two resolve to the same location, the run SHALL stop immediately with zero target-repository writes, reporting that the target and the candidate source are the same working directory — adopting a repository into itself is not a supported operation. This check SHALL run **before**, not after, the existing four-artifact validation, since a matched location makes that validation meaningless.
 
-#### Scenario: The launcher is pasted inside the canonical source's own repository
+**This comparison SHALL NOT extend to Git identity** — the common Git directory, root commit, or remote origin. Two directories that are separate linked worktrees of the same underlying repository SHALL NOT be treated as a match: each worktree has its own independent working tree, so no self-reference exists between them regardless of shared history. A check that compares Git identity produces a false positive for this legitimate, common topology and provides no protection the path comparison does not already provide.
 
-- **WHEN** the repository the session is rooted at is the same filesystem location, or the same Git repository, as the candidate `<SPECBOOT_SOURCE>`
-- **THEN** the run stops with zero target-repository writes, reports the identity match, and does not proceed to the four-artifact validation
+#### Scenario: The launcher is pasted inside the canonical source's own working directory
 
-#### Scenario: Target and source are genuinely distinct repositories
+- **WHEN** the repository the session is rooted at resolves to the same filesystem location as the candidate `<SPECBOOT_SOURCE>`
+- **THEN** the run stops with zero target-repository writes, reports the location match, and does not proceed to the four-artifact validation
 
-- **WHEN** the repository the session is rooted at is neither the same filesystem location nor the same Git repository as the candidate source
-- **THEN** this check passes and the existing four-artifact validation proceeds as before
+#### Scenario: Target and source are distinct working directories, even as worktrees of the same repository
+
+- **WHEN** the repository the session is rooted at resolves to a different filesystem location than the candidate source, even where both are linked worktrees sharing the same Git common directory, root commit, and origin
+- **THEN** this check passes — a shared Git identity between two distinct working trees is never treated as a match — and the existing four-artifact validation proceeds as before
+
+#### Scenario: A symlinked path resolves to the same location as the candidate source
+
+- **WHEN** the session's working directory is reached through a symlink that resolves to the same real path as the candidate source
+- **THEN** the comparison is made on resolved paths, so the match is still detected and the run stops
 
 ### Requirement: A step-level approval gate auto-approves when a deterministic policy or prior evidence already answers it
 

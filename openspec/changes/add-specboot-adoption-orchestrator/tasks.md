@@ -304,6 +304,38 @@
 > **No implementation file is changed by this revision**, matching the tenth revision's own
 > pattern — every correction is guide, launcher, or skill-reference text. `SKILL.md` is not edited.
 
+> **Twelfth revision — the repository-identity check false-positived on this project's own
+> worktree topology, found by a genuinely fresh session's first real run (2026-08-15).** A fresh
+> session, launched exactly as designed (`ADOPTION-LAUNCHER.template.md`, rooted at the new clean
+> `app-prices-rest-specboot-ai-adoption-v2` worktree, source `/Users/landaeta/repos/specboot`),
+> halted at the eleventh revision's own Step 0: the two paths are different filesystem locations,
+> but the same Git repository — `/Users/landaeta/repos/specboot` is a linked worktree of
+> `app-prices-rest`, sharing its `--git-common-dir`, root commit, and `origin` with every other
+> `app-prices-rest-specboot-*` worktree, including the target. Under the eleventh revision's
+> wording (design D-Z, part 7), that made every legitimate pairing in this project's own actual
+> setup indistinguishable from genuine self-adoption — a systematic false positive, not an edge
+> case, caught on the very first real attempt to use the mechanism.
+>
+> **The correction narrows the check to filesystem location only, comparing resolved
+> (symlink-free) paths, and removes the Git-identity comparison entirely** rather than softening it
+> to a warning: the operational risk — writing bootstrap artifacts into the files being read as the
+> source — is fully captured by whether the two working trees are the same directory. Two linked
+> worktrees of one repository have independent working trees and are never a self-reference,
+> regardless of shared history. `design.md`'s D-Z part 7 is corrected in place (not superseded by a
+> new part, since the eleventh revision's part 7 was never exercised in practice before this
+> correction), and the corresponding spec requirement is renamed and rewritten to state the
+> exclusion explicitly, with a new scenario for the worktree case and one for a symlinked path
+> still correctly matching.
+>
+> **1 task is added** (3.25, correcting the launcher text task 3.24 delivered). **No task is
+> reopened**: 3.24 delivered a check with the wrong criterion, corrected here rather than reworking
+> 3.24's own record, consistent with this change's practice of recording what was actually true at
+> each revision rather than rewriting history. Task counts move from **242 (219 done / 23 open)**
+> to **243 (219 done / 24 open)**.
+>
+> **No implementation file is changed by this revision.** The correction is launcher text and
+> planning artifacts only.
+
 ## 0. Setup: Feature Branch (MANDATORY — FIRST STEP)
 
 - [x] 0.1 Confirm the working branch is `feature/add-specboot-adoption-orchestrator` and record the starting HEAD; the branch already exists at `c900394104ca1be31d59684d31b2b2aa63fbd2f1`, so create it only if the check shows otherwise — never re-create or reset it
@@ -355,7 +387,8 @@
 - [x] 3.22 **Tenth revision.** Create `packages/specboot/template/ai-specs/skills/specboot-verify/SKILL.md` and `.../adversarial-review/SKILL.md`, client-neutral and stack-neutral like the existing `enrich-us` template skill, so `ADOPT-03`'s wholesale `ai-specs/` copy covers all six mandatory workflow capabilities `ai-specs/specboot-instructions.md` names (design D-Y). *(Corrected during apply: `bootstrap-kit/manifest.json` governs only the four bootstrap discovery entries — the guide, phase files, and the orchestration skill body — and has no per-skill registry; skills reach the target repository purely through `ADOPT-03`'s recursive `ai-specs/` copy, the same mechanism `enrich-us` and every other template skill already use, with no manifest entry of their own. No manifest edit was needed or made.)*
 - [x] 3.23 **Tenth revision.** Corrected the stale `Points to` entry in `specboot-adoption/bootstrap-kit/discovery/claude.md`'s `## Entries` table: `.claude/skills/specboot-adopt` read `../../.specboot/bootstrap/skills/specboot-adopt`, the deferred packaged-snapshot container path this change's own `D-R`/`D-W` never create in the delivered source-linked mode. Now points at the external canonical source, resolved relative to `<SPECBOOT_SOURCE>`. *(Found and fixed the same stale path a second time in the same file, within this task's scope: the literal `SPECBOOT-BOOTSTRAP:BEGIN/END` block text written into `.claude/CLAUDE.md` during bootstrap also named `.specboot/bootstrap/SPECBOOT_ADOPTION_GUIDE.md` — corrected to describe the source-linked resolution via `.specboot/local/canonical-source-path`, matching improvement proposal #1 from the pilot run log, which had already worked around this exact defect at runtime.)* This table is now the literal source the mechanical `Allowed modifications` check (design D-Z) reads for `ADOPT-00`
 
-- [x] 3.24 **Eleventh revision.** Add a target/source repository-identity check to `ADOPTION-LAUNCHER.template.md`, as the very first check — before the existing four-artifact validation, not after: the repository this session is rooted at must not be the same filesystem location as, and must not be the same Git repository as, the candidate `<SPECBOOT_SOURCE>`. A match stops the run immediately with zero writes, naming the failure as "target and source repository are the same" rather than routing through the four-artifact check, which would be meaningless against a self-referential candidate (design D-Z, part 7)
+- [x] 3.24 **Eleventh revision.** Add a target/source repository-identity check to `ADOPTION-LAUNCHER.template.md`, as the very first check — before the existing four-artifact validation, not after: the repository this session is rooted at must not be the same filesystem location as, and must not be the same Git repository as, the candidate `<SPECBOOT_SOURCE>`. A match stops the run immediately with zero writes, naming the failure as "target and source repository are the same" rather than routing through the four-artifact check, which would be meaningless against a self-referential candidate (design D-Z, part 7) *(Superseded by 3.25: the Git-repository criterion false-positived on this project's own worktree topology on its first real run. The filesystem-location criterion delivered here was correct and is unchanged.)*
+- [x] 3.25 **Twelfth revision.** Corrected `ADOPTION-LAUNCHER.template.md`'s Step 0: removed the Git-repository comparison entirely, kept only the filesystem-location comparison, made explicit it compares **resolved, symlink-free paths**, not literal strings, and stated explicitly that two linked worktrees of the same underlying repository are never treated as a match (design D-Z, part 7, corrected). Verified via grep: the corrected text is present, the removed criteria (common Git directory, root commit, origin) no longer appear as match conditions
 
 ## 4. RED: Installer Test Campaign Before Any Installer Change (design D-M)
 
