@@ -93,7 +93,7 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PASS — genuinely fresh session's turn-1 transcript ran the canonical prompt verbatim with zero adoption-process framing; see evidence block | 2026-08-15 |
-| `ADOPT-16` | `07-baseline-and-checkpoint.md` | PENDING | |
+| `ADOPT-16` | `07-baseline-and-checkpoint.md` | PASS — `mvn clean test` exit 0, 8/8 tests passing, `openspec doctor` ok, CodeGraph current | 2026-08-15 |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-18` | `10-debootstrap.md` | PENDING | |
 | `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
@@ -1043,16 +1043,43 @@ Result: PASS — `ADOPT-15` fresh-session discovery-and-execution evidence recor
 ### `ADOPT-16` — Run the Project Baseline
 
 ```text
-Failed attempts and diagnosis:
-Recovery performed:
-Baseline command:
-Exit code:
-Tests:
-Warnings:
-OpenSpec doctor:
-CodeGraph refresh:
-Git status:
-Result: PASS / FAIL
+Pre-inspection: no README, no CI configuration (`.github/` absent) in this repository;
+  baseline command derived from `docs/backend-standards.md`'s own "Development Workflow"
+  section and `ADOPT-01`'s finding that `./mvnw` is broken (`.mvn/wrapper/` absent from the
+  git tree) — system `mvn` used, confirmed on PATH via `command -v mvn` (resolved via the
+  same sdkman-managed install identified in `ADOPT-01`; machine-local install path
+  intentionally not recorded here), Apache Maven 3.9.16, Java 11.0.31 (Corretto), matching
+  `ADOPT-01`'s recorded toolchain exactly. `~/.m2/repository` confirmed present (dependencies
+  already cached from earlier steps in this adoption).
+Failed attempts and diagnosis: none — `target/` already contained compiled output from
+  2026-08-13 (predating this session), so per this step's own inline guidance ("Stale build
+  output can invalidate the baseline" / "Prefer a clean rebuild when the build tool supports
+  one"), `mvn clean test` (not bare `mvn test`) was chosen as the baseline command from the
+  start, avoiding the reference run's stale-`target/classes`-missing-Lombok-members failure
+  mode preemptively rather than hitting it and recovering. This is Maven's own built-in
+  `clean` goal removing its own `target/` output, not a manual deletion or relocation outside
+  the build tool — the `[HUMAN APPROVAL REQUIRED]` gate (which guards removing/relocating
+  generated output when normal build-tool cleanup is blocked and manual intervention is
+  needed) was not triggered.
+Recovery performed: n/a — no failure occurred.
+Baseline command: `mvn clean test` (online — no `-o`; matches
+  `docs/backend-standards.md`'s documented first-run guidance)
+Exit code: 0 (captured in the same shell invocation as the command, via `echo "MVN_EXIT_CODE=$?"`
+  immediately after — not inferred from a separate later shell)
+Tests: `Tests run: 8, Failures: 0, Errors: 0, Skipped: 0` — `BUILD SUCCESS`, total time 14.136s.
+  Matches this step's own reference evidence exactly ("8 tests, 0 failures, 0 errors, 0
+  skipped").
+Warnings: none observed in the build output beyond routine Spring Boot/Hibernate/HikariCP
+  startup and shutdown INFO logging.
+OpenSpec doctor: `openspec doctor` — exit 0, "OpenSpec root: ok", "References: (none
+  declared)" (expected — no `references` key configured; unchanged from `ADOPT-02`'s finding)
+CodeGraph refresh: `codegraph sync` — exit 0, "Already up to date" (index already current
+  from the automatic file-watcher; no re-scan needed)
+Git status: `git status --short` — only `.specboot/adoption/ADOPTION-RUN-LOG.md` modified
+  (this run's own in-progress evidence writes, including the `ADOPT-15` checkpoint-ledger row
+  added after that checkpoint's commit/push, per the established cumulative-run-log pattern
+  used at checkpoint 2/`ADOPT-02`); `target/` untracked and gitignored, does not appear.
+Result: PASS
 ```
 
 
@@ -1158,6 +1185,7 @@ Result: PASS / FAIL
 | 11 | `ADOPT-11` + `ADOPT-12` | grouped — same structural justification as row 10 (`00-conventions.md`'s documented executed pair) | PASS on all criteria in `05-agents-and-skills.md` for both steps (see each step's evidence block above) | `ADOPT-11` and `ADOPT-12` evidence blocks, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `ai-specs/skills/code-auditing/SKILL.md`, `ai-specs/skills/commit/SKILL.md`, `ai-specs/skills/using-git-worktrees/SKILL.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `d9b1b04bf58a6b0402f9e1ab323367d5cea3153d` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 12 | `ADOPT-13` | n/a — single step (`06-adapters-and-discovery.md` does not describe `ADOPT-13`/`ADOPT-14` as an executed pair the way `05-agents-and-skills.md` does for `09`/`10` and `11`/`12`, so the one-checkpoint-per-step default applies) | PASS on all criteria in `06-adapters-and-discovery.md` (see step's evidence block above) | `ADOPT-13` evidence block, this run log | YES — plan presented and approved via `AskUserQuestion` before any symlink was created | luis.landaeta@gmail.com, 2026-08-15, adapter-plan approval, commit gate, and push gate each approved separately | `.claude/agents/java-backend-developer.md`, `.claude/agents/product-strategy-analyst.md`, `.claude/skills/code-auditing`, `.claude/skills/commit`, `.claude/skills/enrich-us`, `.claude/skills/explain`, `.claude/skills/meta-prompt`, `.claude/skills/update-docs`, `.claude/skills/using-git-worktrees`, `.claude/skills/writing-skills`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `ca374ca14a83e7aabb2d8f2a35cfdfaf0e1408af` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 13 | `ADOPT-14` | n/a — single step | PASS — read-only re-verification, zero broken links/malformed names (see step's evidence block above) | `ADOPT-14` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `6c0d592342822cb18e4c909f1a188daaa1d527fd` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
+| 14 | `ADOPT-15` | n/a — single step | PASS — fresh-session evidence recorded and validated per `06-adapters-and-discovery.md`'s interpretation rules (see step's evidence block above) | `ADOPT-15` evidence block, this run log | YES — commit-gate declaration presented via `AskUserQuestion`, approved on first presentation | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `2c5858695e8af4dd0087b1f9327ca7be4d591968` | No `.github/workflows/` in tracked tree; rulesets `[]`; webhooks `[]`; branch unprotected. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 
 ---
 
