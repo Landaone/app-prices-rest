@@ -76,10 +76,10 @@ asked, rather than the run proceeding with no client: YES
 
 | Step | File | Status (PENDING / PASS / FAIL / SKIPPED) | Date |
 |---|---|---|---|
-| `ADOPT-00` | `09-bootstrap.md` | PASS (checkpoint commit pending — see checkpoint ledger) | 2026-08-15 |
-| `ADOPT-01` | `01-prerequisites-and-install.md` | PENDING | |
-| `ADOPT-02` | `01-prerequisites-and-install.md` | PENDING | |
-| `ADOPT-03` | `01-prerequisites-and-install.md` | PENDING | |
+| `ADOPT-00` | `09-bootstrap.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
+| `ADOPT-01` | `01-prerequisites-and-install.md` | PASS — no repo-local writes, no checkpoint needed | 2026-08-15 |
+| `ADOPT-02` | `01-prerequisites-and-install.md` | PASS — checkpoint pending | 2026-08-15 |
+| `ADOPT-03` | `01-prerequisites-and-install.md` | PASS — checkpoint pending | 2026-08-15 |
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PENDING | |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PENDING | |
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PENDING | |
@@ -195,56 +195,130 @@ asked, rather than the run proceeding with no client: YES
 - Approval (who, when, exactly what was approved): luis.landaeta@gmail.com, 2026-08-15, the exact
   7-path mutation inventory listed above, approved via explicit confirmation before any write
 - Result: PASS — provisioning (steps 1–8) and the fresh-session discovery-and-execution validation
-  (step 9) both complete; this checkpoint (commit) is separately gated below and has not yet been
-  approved or performed
+  (step 9) both complete; checkpoint committed (`afbfce4d18dde8d0810dba2d3c07bbc9bf1b91c7`) and
+  pushed to `origin/experiment/specboot-ai-adoption-v1` (new branch) — see checkpoint ledger
 
 ---
 
 ### `ADOPT-01` — Install Prerequisites
 
 ```text
-Date:
-Machine:
-Node:
-npm:
-OpenSpec:
-CodeGraph:
-Git:
-Project runtime:
-Project build tool:
-Result: PASS / FAIL
-Notes:
+Date: 2026-08-15
+Machine: Darwin 22.6.0 (x86_64) / zsh
+Node: v24.18.0 (`node --version`) — meets >= 20.19.0
+npm: 11.16.0 (`npm --version`)
+OpenSpec: 1.7.0 (`openspec --version`) — already installed, matches reference experiment version
+CodeGraph: 1.5.0 (`codegraph --version`) — already installed, matches reference experiment version
+Git: 2.39.2 (Apple Git-143) (`git --version`)
+Project runtime: Java 11 — `openjdk version "11.0.31"` (Corretto), matches `<java.version>11</java.version>` in pom.xml
+Project build tool: Maven — identified from `pom.xml` (Spring Boot 2.4.5 parent) at repo root; system `mvn` = Apache Maven 3.9.16 (resolved via `which mvn` from an sdkman-managed install; machine-local install path intentionally not recorded here), matches reference experiment version exactly. NOTE: the repo's own `./mvnw` wrapper is broken — `.mvn/wrapper/maven-wrapper.properties` and `maven-wrapper.jar` are absent from the git tree (confirmed via `git ls-tree -r HEAD --name-only | grep -i mvn` = empty), so `./mvnw --version` fails with `ClassNotFoundException: org.apache.maven.wrapper.MavenWrapperMain`. This is a pre-existing repository gap, out of this step's scope to fix (ADOPT-01 only inspects/verifies prerequisites); ADOPT-16's baseline will use the system `mvn` instead of `./mvnw`.
+Result: PASS
+Notes: No installation or upgrade performed — every tool was already present at or above the required version, so the ADOPT-01 approval gate ("before installing or upgrading software") did not trigger.
 ```
 
 
 ### `ADOPT-02` — Install and Initialize OpenSpec with Explicitly Selected Clients
 
 ```text
-OpenSpec version:
-Command:
-Clients offered:
-Clients selected:
-Generated config path:
-Generated client resources:
-Per-client provisioning provenance (installer-provisioned vs. separately configured):
-openspec doctor result:
-Git changes:
-Result: PASS / FAIL
+OpenSpec version: 1.7.0 (global upgrade to registry-latest 1.9.0 offered and explicitly declined
+  by the operator — see decision record; 1.7.0 already meets the guide's documented requirement
+  and matches the reference-experiment version, so `npm install -g @fission-ai/openspec@latest`
+  was not run)
+Command: `openspec init --tools claude --no-animation` (run from repository root; `--tools claude`
+  used for non-interactive, explicit, single-client selection instead of the interactive flow, per
+  ADOPT-00's client-selection record — Claude is the only SELECTED client)
+Clients offered (per `openspec init --help`'s `--tools` option): amazon-q, antigravity, auggie,
+  bob, claude, cline, codeartsagent, codex, devin, forgecode, codebuddy, continue, costrict, crush,
+  cursor, factory, gemini, github-copilot, hermes, iflow, junie, kilocode, kimi, kiro, lingma,
+  vibe, oh-my-pi, opencode, pi, qoder, qwen, roocode, trae, zcode (windsurf accepted as alias for
+  devin)
+Clients selected: claude (only — matches ADOPT-00's SELECTED client exactly)
+Generated config path: `openspec/config.yaml` (schema: spec-driven)
+Generated client resources: `.claude/skills/openspec-apply-change/SKILL.md`,
+  `.claude/skills/openspec-archive-change/SKILL.md`, `.claude/skills/openspec-explore/SKILL.md`,
+  `.claude/skills/openspec-propose/SKILL.md`, `.claude/skills/openspec-sync-specs/SKILL.md`,
+  `.claude/skills/openspec-update-change/SKILL.md` (6 skills); `.claude/commands/opsx/apply.md`,
+  `.claude/commands/opsx/archive.md`, `.claude/commands/opsx/explore.md`,
+  `.claude/commands/opsx/propose.md`, `.claude/commands/opsx/sync.md`,
+  `.claude/commands/opsx/update.md` (6 commands); `openspec/specs/`, `openspec/changes/`,
+  `openspec/changes/archive/` (empty directories, not tracked by git until populated). Confirmed
+  no resources were added for any unselected client.
+Per-client provisioning provenance (installer-provisioned vs. separately configured): all 6
+  `.claude/skills/openspec-*` entries and all 6 `.claude/commands/opsx/*.md` entries were
+  installer-provisioned by this step's `openspec init --tools claude` command — confirmed by their
+  absence before the command ran and presence immediately after, in the same working-tree scan.
+  `.claude/skills/specboot-adopt` (the bootstrap-provisioned discovery symlink from `ADOPT-00`) is
+  a separate, pre-existing entry, untouched by this step, and remains excluded from git via
+  `.git/info/exclude` — confirmed with `git add -n .claude/skills`, which lists only the 6
+  `openspec-*/SKILL.md` files and not `specboot-adopt`.
+openspec doctor result: exit 0 — "OpenSpec root: ok" at the repository root; "References: (none
+  declared)" (expected — `ADOPT-07` configures references to `docs/` and `ai-specs/`, not yet
+  reached)
+Git changes (`git status --porcelain=v1 --untracked-files=all`, excluding the pre-existing run-log
+  modification): `?? .claude/commands/opsx/apply.md`, `?? .claude/commands/opsx/archive.md`,
+  `?? .claude/commands/opsx/explore.md`, `?? .claude/commands/opsx/propose.md`,
+  `?? .claude/commands/opsx/sync.md`, `?? .claude/commands/opsx/update.md`,
+  `?? .claude/skills/openspec-apply-change/SKILL.md`,
+  `?? .claude/skills/openspec-archive-change/SKILL.md`, `?? .claude/skills/openspec-explore/SKILL.md`,
+  `?? .claude/skills/openspec-propose/SKILL.md`, `?? .claude/skills/openspec-sync-specs/SKILL.md`,
+  `?? .claude/skills/openspec-update-change/SKILL.md`, `?? openspec/config.yaml`. No other paths
+  changed; `.claude/skills/specboot-adopt` does not appear (excluded, as designed).
+Result: PASS
 ```
 
 
 ### `ADOPT-03` — Import SpecBoot
 
 ```text
-Source:
-Target:
-Exact command:
-Files added:
-Files skipped because they existed:
-Hidden directories expected but not copied:
-Root instruction symlinks resolve to docs/base-standards.md:
-Per-client provisioning provenance (installer-provisioned vs. separately configured):
-Result: PASS / FAIL
+Source: `packages/specboot/template/` inside the canonical SpecBoot source repository, pinned at
+  commit `9f08281dae42eb65d0a349c1876e6b584fe6e791` — confirmed as the true `<SPECBOOT_SOURCE>` by
+  reading `packages/specboot/bin/init.js`'s `TEMPLATE_DIR = path.join(__dirname, '..', 'template')`
+  constant and its `copyRecursive(TEMPLATE_DIR, target)` call (via `git show`, no working-tree
+  checkout). The source repository is itself a sparse checkout (only
+  `SPECBOOT_ADOPTION_GUIDE.md`, `specboot-adoption/`, `ai-specs/skills/specboot-adopt/` are
+  materialized on disk, per `git sparse-checkout list`), so the `docs/` and `ai-specs/` subtrees
+  needed here were not present in the source working tree. To read them without ever writing to
+  the read-only source, they were extracted with `git -C <source> archive
+  9f08281dae42eb65d0a349c1876e6b584fe6e791 packages/specboot/template | tar -x -C <scratch>` into
+  a scratch directory outside the source repository; the source's own working tree and
+  sparse-checkout state were never touched, confirmed by `git -C <source> status --porcelain`
+  reporting clean immediately after extraction and again after the copy below.
+Target: repository root (`/`, i.e. this project's checkout root)
+Exact command: `cp -rn <scratch>/packages/specboot/template/* .` (functionally identical to the
+  documented `cp -rn <SPECBOOT_SOURCE>/* <TARGET_REPOSITORY>/`, run against the scratch
+  extraction of the pinned source tree rather than the source's own, incompletely-materialized
+  working directory); then 4 `ln -s docs/base-standards.md <name>` calls, each preceded by an
+  existence check (skip if present) per the step's documented symlink behavior.
+Files added: 28 total — `docs/` (7: `api-spec.yml`, `backend-standards.md`, `base-standards.md`,
+  `data-model.md`, `development_guide.md`, `documentation-standards.md`, `frontend-standards.md`)
+  and `ai-specs/` (21: 3 under `agents/`, 1 under `scripts/`, 16 under `skills/` across
+  `code-auditing/`, `commit/`, `enrich-us/`, `explain/`, `meta-prompt/`, `update-docs/`,
+  `using-git-worktrees/`, `writing-skills/`, plus `ai-specs/specboot-instructions.md`). Count
+  independently verified against the pinned source commit with `git ls-tree -r --name-only
+  9f08281d... -- packages/specboot/template/docs packages/specboot/template/ai-specs` = 28, and
+  against the target working tree with `find docs ai-specs -type f | wc -l` = 28. A first-draft
+  approval-gate presentation miscounted `ai-specs/` as 15 (arithmetic error over an already-correct
+  file listing); caught by the operator before any write, recorded as correction `ADOPT-03/1` below,
+  and the gate was re-presented with the corrected 7 + 21 = 28 total before proceeding.
+Files skipped because they existed: none — `docs/`, `ai-specs/`, and all four root instruction
+  paths were confirmed absent from the target before the copy (`for f in docs ai-specs AGENTS.md
+  CLAUDE.md GEMINI.md codex.md; do [ -e "$f" ] ...`, all reported absent)
+Hidden directories expected but not copied: `packages/specboot/template/.cursor/`
+  (`rules/use-base-rules.mdc`, 1 file) — expected and correct: the unquoted `*` glob in `cp -rn
+  <SPECBOOT_SOURCE>/* <TARGET_REPOSITORY>/` does not expand dotfiles/dot-directories, matching this
+  step's documented behavior ("`*` does not copy hidden directories"); Cursor was not selected as a
+  client in `ADOPT-00` in any case, so this is doubly expected.
+Root instruction symlinks resolve to docs/base-standards.md: YES — `readlink AGENTS.md`,
+  `readlink CLAUDE.md`, `readlink GEMINI.md`, `readlink codex.md` each printed exactly
+  `docs/base-standards.md`; all four created fresh (none pre-existed, so none needed the
+  real-file-to-symlink recovery path)
+Per-client provisioning provenance (installer-provisioned vs. separately configured): separately
+  configured — this step ran the documented `cp -rn` / `ln -s` procedure directly (an AI-agent
+  orchestrated execution of the adoption guide's structured written procedure), not the packaged
+  `lidr-specboot` npm CLI installer (`packages/specboot/bin/init.js`) end-to-end. The baseline
+  content (`docs/`, `ai-specs/`, root symlinks) is client-agnostic and not itself attributable to
+  any single selected client; `ADOPT-13` is where client-specific adapter provenance is recorded.
+Result: PASS
 ```
 
 
@@ -569,7 +643,7 @@ Result: PASS / FAIL
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Ready declared | Approval (who / when / what) | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| | | | | | | | | | | | |
+| 1 | `ADOPT-00` | n/a — single step | PASS on all criteria in `09-bootstrap.md` (see step's evidence block above); one correction applied pre-commit (resolved absolute paths removed from run log evidence, correction record `ADOPT-00/2`) | `ADOPT-00` evidence block, this run log, above | YES — commit-gate declaration presented via `AskUserQuestion`, re-presented after correction | luis.landaeta@gmail.com, 2026-08-15, commit gate: approved on second presentation (first presentation returned a correction, not approval); push gate: approved separately after the remote-impact assessment was presented | `.gitignore`, `.claude/CLAUDE.md`, `.specboot/adoption/BOOTSTRAP-MANIFEST.json`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `afbfce4d18dde8d0810dba2d3c07bbc9bf1b91c7` | No `.github/workflows/` in the tracked tree; `gh api repos/Landaone/app-prices-rest/rulesets` = `[]`; `gh api .../hooks` = `[]`; `master` branch unprotected; target branch had no upstream and did not yet exist on `origin`. Verdict: no CI/automation trigger detected | PUSHED — new branch `experiment/specboot-ai-adoption-v1` created on `origin`, upstream tracking set | proposal #1 (see Improvement proposals) |
 
 ---
 
@@ -646,6 +720,12 @@ Reason:
 2026-08-15 / ADOPT-00 Step 3 (client selection) / decision: run read-only autodiscovery probe / who: luis.landaeta@gmail.com / reason: wanted to see what's on disk before naming a client
 2026-08-15 / ADOPT-00 Step 3 (client selection) / decision: select Claude; Kiro and Codex NOT SELECTED / who: luis.landaeta@gmail.com / reason: autodiscovery found no candidates; Claude named explicitly as the client in use for this session
 2026-08-15 / ADOPT-00 Step 4 (mutation gate) / decision: approved the exact 7-path mutation inventory / who: luis.landaeta@gmail.com / reason: reviewed and approved at the [HUMAN APPROVAL REQUIRED] gate
+2026-08-15 / ADOPT-00 checkpoint, commit gate, first presentation / decision: correction requested, not approval — resolved absolute paths must be removed from committed run-log evidence / who: luis.landaeta@gmail.com / reason: portable-evidence contract in 09-bootstrap.md applies to all committed evidence, not only the manifest; three occurrences fixed and recorded as correction ADOPT-00/2
+2026-08-15 / ADOPT-00 checkpoint, commit gate, second presentation / decision: approved staging and commit of exactly 4 files / who: luis.landaeta@gmail.com / reason: correction verified (zero absolute-path leaks across all 4 files), diff reviewed clean
+2026-08-15 / ADOPT-00 checkpoint, push gate / decision: approved push of commit afbfce4 to origin/experiment/specboot-ai-adoption-v1 / who: luis.landaeta@gmail.com / reason: remote-impact assessment showed no CI, no rulesets, no webhooks, no branch protection; new branch, no overwrite risk
+2026-08-15 / ADOPT-02 (global install/upgrade gate) / decision: decline the global upgrade of `@fission-ai/openspec` from 1.7.0 to registry-latest 1.9.0 / who: luis.landaeta@gmail.com / reason: 1.7.0 already meets this guide's documented minimum and matches the reference-experiment version; `openspec init` proceeded with 1.7.0
+2026-08-15 / ADOPT-03 (repository-local write gate), first presentation / decision: correction requested, not approval — `ai-specs/` file count stated as 15 must be re-derived from the pinned source commit / who: luis.landaeta@gmail.com / reason: independent `git ls-tree` recount showed 21, not 15; corrected count (28 total) recorded as correction ADOPT-03/1
+2026-08-15 / ADOPT-03 (repository-local write gate), second presentation / decision: approved copying the 28-file `docs/` + `ai-specs/` baseline and creating the 4 root instruction symlinks / who: luis.landaeta@gmail.com / reason: corrected count verified against the pinned source commit, no collisions, `.cursor/` correctly excluded
 ```
 
 ## Correction record
@@ -654,4 +734,5 @@ Reason:
 Step / attempt / failure / diagnosis / recovery / outcome:
 ADOPT-00 / 1 / discovery/claude.md's Entries table and delimited block reference a `.specboot/bootstrap/…` container path that the sole source-linked delivery mode never creates / diagnosis: recipe file predates or was not updated alongside the source-linked-only deferral documented in 09-bootstrap.md, bootstrap-and-debootstrap.md, and bootstrap-kit/README.md / recovery: pointed the symlink and CLAUDE.md block at the external source directly instead of the never-created container path, per the authoritative phase-file and reference-doc statements; recorded as improvement proposal #1 rather than editing the canonical source / outcome: provisioning proceeded correctly, discrepancy preserved as a proposal for the canonical source's maintainers
 ADOPT-00 / 2 / fresh-session evidence written into this run log recorded three resolved absolute machine paths (the canonical source path in the drift-check row and resume evidence; this project's own absolute checkout path in the fresh-session discovery outcome) / diagnosis: `09-bootstrap.md`'s evidence-to-record clause ("the statement that the local source path is resolved per machine and is not committed. Never the resolved absolute path... never manifest content") and the run log's own pre-existing "Local source path resolution" field state the principle applies to portable, committed evidence generally, not only to the manifest file narrowly — the run log is equally committed (`.specboot/adoption/` is not git-ignored) and equally travels into every clone; the drafting agent applied the rule too narrowly on first pass / recovery: the operator flagged it before the commit gate was approved (correction caught pre-commit, not post-commit); all three occurrences replaced with mechanism-only descriptions (how the path was obtained, that identity was verified) with resolved values omitted, consistent with the pre-existing "Local source path resolution" field / outcome: run log now carries portable evidence only; commit gate re-presented after this correction
+ADOPT-03 / 1 / the first ADOPT-03 approval-gate presentation stated the `ai-specs/` portion of the import inventory as 15 files, when the actual count at the pinned source commit (`9f08281dae42eb65d0a349c1876e6b584fe6e791`) is 21 / diagnosis: arithmetic error made while summarizing the already-correct raw file listing (the listing itself, obtained via `find` on the `git archive`-extracted scratch copy, was complete and accurate — the error was only in the count stated in the approval-gate summary) / recovery: recounted independently with `git ls-tree -r --name-only <source-commit> -- packages/specboot/template/docs packages/specboot/template/ai-specs`, confirming 7 + 21 = 28 files total; gate re-presented with the corrected count before any write / outcome: caught before any write occurred; no file was copied under the incorrect count
 ```
