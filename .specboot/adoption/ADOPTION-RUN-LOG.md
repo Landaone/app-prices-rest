@@ -82,8 +82,8 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-03` | `01-prerequisites-and-install.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PASS — checkpoint committed and pushed | 2026-08-15 |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS — checkpoint committed and pushed | 2026-08-15 |
-| `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS — checkpoint pending (smoke-test rows correctly PENDING EVIDENCE, not blocking) | 2026-08-15 |
-| `ADOPT-06` | `04-context-and-openspec.md` | PENDING | |
+| `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS — checkpoint committed and pushed (smoke-test rows correctly PENDING EVIDENCE, not blocking) | 2026-08-15 |
+| `ADOPT-06` | `04-context-and-openspec.md` | PASS — checkpoint pending | 2026-08-15 |
 | `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
@@ -510,13 +510,68 @@ Result: PASS — provisioning, reconciliation, and safety/syntax validation all 
 ### `ADOPT-06` — Adapt the Repository Technical Context
 
 ```text
-Prompt used:
-Files changed:
-Template contamination found:
-Corrections needed:
+Prompt used: this guide's `CANONICAL CONSOLIDATED PROMPT` for `ADOPT-06`, executed directly by this
+  agent (single-agent session, not a separate sub-agent invocation) against repository evidence
+  gathered first: full `src/` tree, `pom.xml`, `HELP.md`, `application.yaml`,
+  `db/migration/V1_create_tables.sql`, and all 4 test classes, read in full before any doc edit.
+Files changed: `docs/backend-standards.md` (full rewrite), `docs/frontend-standards.md` (full
+  rewrite, replaced with a Not Applicable notice), `docs/api-spec.yml` (full rewrite),
+  `docs/data-model.md` (full rewrite), `docs/development_guide.md` (full rewrite),
+  `docs/base-standards.md` (one-line fix: stale cross-reference to frontend-standards.md's old
+  content, needed for cross-document consistency). `docs/documentation-standards.md` inspected and
+  left unchanged — already generic, no LTI/stack-specific contamination found.
+Template contamination found: `backend-standards.md` (Node.js/TypeScript/Express/Prisma/
+  PostgreSQL/AWS Lambda/Serverless, full DDD tutorial content for a "Candidate" domain),
+  `frontend-standards.md` (React/TypeScript/Cypress/Bootstrap), `api-spec.yml` (candidate/position/
+  interview-flow/recruitment OpenAPI schema, `LIDR-academy` GitHub org reference),
+  `data-model.md` (12-entity recruitment/ATS data model with no relation to this repository),
+  `development_guide.md` (Docker Compose + PostgreSQL + Node/npm setup, a `git clone` URL pointing
+  at `LIDR-academy/AI4Devs-LTI-extended`, `.env` template with `DB_PASSWORD`/`LTIdb` placeholders).
+  Verified fully removed with `grep -rniE "LTI|candidate|prisma|typescript|react|node\.js|express|
+  postgres|cypress|serverless|aws lambda|LIDR-academy" docs/` — the only remaining hits after the
+  rewrite are false positives (substring matches inside unrelated words like "reactive", and this
+  agent's own prose explaining what was removed) or correct negative statements ("No Docker,
+  Node.js... is required").
+Corrections needed: two, both caught by the operator before the content-approval gate was granted
+  (recorded as run-log corrections `ADOPT-06/1` and `ADOPT-06/2`): (1) the drafted build
+  instructions defaulted to offline `mvn -o` even for a first run after cloning, when a first run
+  needs network access — corrected to show online `mvn validate`/`mvn test` first, `-o` as an
+  optional once-cached speedup, in both `development_guide.md` and `backend-standards.md`;
+  (2) the drafted `api-spec.yml` used OpenAPI `format: date-time` for fields that are actually
+  timezone-free `LocalDateTime` values, and unconditionally promised the custom `Error` schema for
+  500 responses despite this step's own documented `HttpErrorHandler` defect making that
+  unreliable, with no 400 category documented at all — corrected to document the real
+  `yyyy-MM-ddTHH:mm:ss` shape, to state the 500 body shape is not guaranteed (citing the Known
+  Risks section), and to add a 400 response describing Spring's own default error body for
+  parameter-binding failures.
 Validation:
-Prompt changes required:
-Result: PASS / FAIL
+  - documented stack vs. `pom.xml`: PASS — Java 11, Spring Boot 2.4.5 parent, Maven, confirmed by
+    direct comparison (`grep -E "java.version|spring-boot-starter-parent" pom.xml`)
+  - architecture vs. source structure: PASS — package listing in `backend-standards.md` matches
+    `find src -type f` exactly (rest/controllers, rest/dto, rest/exception, core/services(+impl),
+    core/converters, core/model, core/exception, db/entities, db/repositories)
+  - API docs vs. controller: PASS — `api-spec.yml`'s `PriceModel` properties match
+    `PriceModel.java`'s fields field-for-field (`brandId, startDate, endDate, productId,
+    priceList, priority, price, curr`); confirmed by direct side-by-side comparison
+  - data model vs. entities/migrations: PASS — `data-model.md`'s `PRICES` column list matches
+    `PriceEntity.java`'s `@Column` mappings and `V1_create_tables.sql`'s `CREATE TABLE` column-for-
+    column
+  - build/test commands vs. repository configuration: PASS — `mvn`/`mvn spring-boot:run`/
+    `mvn -Dtest=...` commands match the Maven/Spring Boot project type; the "system `mvn`, not
+    `./mvnw`" note matches `ADOPT-01`'s finding that `.mvn/wrapper/` is absent from this repo
+  - absence of unrelated template terminology: PASS — see the grep result above
+  - frontend correctly marked not applicable, no frontend/Playwright/E2E requirements introduced:
+    PASS — `frontend-standards.md` states Not Applicable with the concrete evidence (no
+    `frontend/`, no `package.json`, no `.js`/`.jsx`/`.ts`/`.tsx` anywhere in the repo);
+    `base-standards.md`'s pre-existing conditional Playwright/E2E guidance was left as-is (already
+    scoped to "when applicable" / frontend workflows, never triggered by this repository) rather
+    than introduced by this step
+  - consistency across all changed documents: PASS after the operator-flagged base-standards.md
+    cross-reference fix — no other cross-document inconsistencies found on review
+Prompt changes required: none — the canonical prompt's requirements were followable as written;
+  the two corrections were content-accuracy defects in this agent's execution, not gaps in the
+  prompt itself.
+Result: PASS
 ```
 
 
@@ -760,6 +815,7 @@ Result: PASS / FAIL
 | 3 | `ADOPT-03` | n/a — single step (one-checkpoint-per-step cadence) | PASS on all criteria in `01-prerequisites-and-install.md` (see step's evidence block above), including the corrected 28-file inventory | `ADOPT-03` evidence block, this run log | YES — commit-gate declaration presented via `AskUserQuestion` | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `codex.md`, all 7 `docs/*` files, all 21 `ai-specs/*` files (see `ADOPT-03` evidence block for the full list), `.specboot/adoption/ADOPTION-RUN-LOG.md` | `a0278d953abf9af21c2e35026bbb44eaf7daa022` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged from `ADOPT-00`'s assessment. Verdict: no CI/automation trigger detected | PUSHED — fast-forward to `origin/experiment/specboot-ai-adoption-v1` | none this checkpoint |
 | 4 | `ADOPT-04` | n/a — single step | PASS on all criteria in `02-codegraph.md` (see step's evidence block and the code-graph capability selection section above) | `ADOPT-04` evidence block, code-graph capability selection, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.codegraph/.gitignore`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `b9f9a249a71b22c993637ca415885967bb66763a` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 5 | `ADOPT-05` | n/a — single step | PASS on all criteria in `02-codegraph.md` (see step's evidence block above) | `ADOPT-05` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.mcp.json`, `.claude/settings.json`, `.claude/CLAUDE.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `5aeb307c6bfe15b0844607e4131649ab0e148eea` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
+| 6 | `ADOPT-05B` | n/a — single step | PASS — provisioning/reconciliation/safety complete; smoke-test table correctly PENDING EVIDENCE (see step's evidence block above) | `ADOPT-05B` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.claude/settings.json`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `03845b5ced51d69bbe7aa1ac77e49751b31f3f54` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | proposal #2 (see Improvement proposals) |
 
 ---
 
@@ -867,4 +923,6 @@ Step / attempt / failure / diagnosis / recovery / outcome:
 ADOPT-00 / 1 / discovery/claude.md's Entries table and delimited block reference a `.specboot/bootstrap/…` container path that the sole source-linked delivery mode never creates / diagnosis: recipe file predates or was not updated alongside the source-linked-only deferral documented in 09-bootstrap.md, bootstrap-and-debootstrap.md, and bootstrap-kit/README.md / recovery: pointed the symlink and CLAUDE.md block at the external source directly instead of the never-created container path, per the authoritative phase-file and reference-doc statements; recorded as improvement proposal #1 rather than editing the canonical source / outcome: provisioning proceeded correctly, discrepancy preserved as a proposal for the canonical source's maintainers
 ADOPT-00 / 2 / fresh-session evidence written into this run log recorded three resolved absolute machine paths (the canonical source path in the drift-check row and resume evidence; this project's own absolute checkout path in the fresh-session discovery outcome) / diagnosis: `09-bootstrap.md`'s evidence-to-record clause ("the statement that the local source path is resolved per machine and is not committed. Never the resolved absolute path... never manifest content") and the run log's own pre-existing "Local source path resolution" field state the principle applies to portable, committed evidence generally, not only to the manifest file narrowly — the run log is equally committed (`.specboot/adoption/` is not git-ignored) and equally travels into every clone; the drafting agent applied the rule too narrowly on first pass / recovery: the operator flagged it before the commit gate was approved (correction caught pre-commit, not post-commit); all three occurrences replaced with mechanism-only descriptions (how the path was obtained, that identity was verified) with resolved values omitted, consistent with the pre-existing "Local source path resolution" field / outcome: run log now carries portable evidence only; commit gate re-presented after this correction
 ADOPT-03 / 1 / the first ADOPT-03 approval-gate presentation stated the `ai-specs/` portion of the import inventory as 15 files, when the actual count at the pinned source commit (`9f08281dae42eb65d0a349c1876e6b584fe6e791`) is 21 / diagnosis: arithmetic error made while summarizing the already-correct raw file listing (the listing itself, obtained via `find` on the `git archive`-extracted scratch copy, was complete and accurate — the error was only in the count stated in the approval-gate summary) / recovery: recounted independently with `git ls-tree -r --name-only <source-commit> -- packages/specboot/template/docs packages/specboot/template/ai-specs`, confirming 7 + 21 = 28 files total; gate re-presented with the corrected count before any write / outcome: caught before any write occurred; no file was copied under the incorrect count
+ADOPT-06 / 1 / the first drafted `docs/development_guide.md` and `docs/backend-standards.md` recommended `mvn -o` (offline) as the primary build/test command even for a first run after cloning, when a first run needs network access to download dependencies into an empty local Maven repository / diagnosis: `-o` was copied from the reviewed `ADOPT-05B` permission baseline (which allowlists exactly `mvn -o validate`/`mvn -o test`, correctly, since that baseline assumes a warm cache) without separately checking whether the *documentation* should present offline as the default for a reader's very first run / recovery: both files corrected to show plain `mvn validate`/`mvn test` first, with `-o` presented as an optional speed-up "once dependencies are already cached" / outcome: caught by the operator before the ADOPT-06 content gate was approved (the gate's first presentation was interrupted by an accidental empty response, not an approval); corrected in the same drafted-but-uncommitted state
+ADOPT-06 / 2 / the first drafted `docs/api-spec.yml` used OpenAPI `format: date-time` for `PriceModel.startDate`/`endDate`, and unconditionally pointed both the 404 and 500 responses at the custom `Error` schema / diagnosis: `format: date-time` in OpenAPI implies an RFC 3339 timestamp with a timezone/offset, but the actual field is a Java `LocalDateTime` serialized without one (confirmed against `PriceModel.java` and `PriceControllerTest`'s own assertions, e.g. `"2020-06-14T15:00:00"`) — copying the OpenAPI convention wholesale mismatched the real serialization; separately, the 500 response claimed the `Error` schema without accounting for the documented `HttpErrorHandler` defect (`ADOPT-06`'s own Known Risks section) that makes that handler unable to bind non-`HttpException` exceptions, and no 400 category was documented at all for Spring's own parameter-binding rejections (missing/non-numeric `brandId`/`productId`) / diagnosis root cause: the spec was written to look like a conventional OpenAPI document before being checked against the specific defects already documented in `backend-standards.md`'s own Known Risks section written moments earlier in the same step / recovery: removed `format: date-time`, documented the real `yyyy-MM-ddTHH:mm:ss` shape with examples; reworded the 500 response to state the body shape is not guaranteed, citing the same Known Risks section; added a 400 response describing Spring's default (non-custom) error body for parameter-binding failures / outcome: caught by the operator before the gate was approved; corrected in the same drafted-but-uncommitted state; YAML re-validated (`python3 -c "import yaml; yaml.safe_load(...)"`) after the fix
 ```

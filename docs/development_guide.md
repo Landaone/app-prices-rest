@@ -1,153 +1,87 @@
 # Development Guide
 
-This guide provides step-by-step instructions for setting up the development environment and running tests for the LTI ATS system.
+This guide provides step-by-step instructions for setting up the development environment,
+running, and testing the `app-prices-rest` service.
 
-## 🚀 Setup Instructions
+## Prerequisites
 
-### Prerequisites
-
-Ensure you have the following installed:
-- **Node.js** (v16 or higher)
-- **npm** (v8 or higher)
-- **Docker** and **Docker Compose**
+- **Java 11** (matches `<java.version>11</java.version>` in `pom.xml`)
+- **Maven** — use the system `mvn` (Apache Maven 3.9.x tested); the checked-in `./mvnw`/
+  `mvnw.cmd` wrapper is currently broken because `.mvn/wrapper/maven-wrapper.properties` and
+  `maven-wrapper.jar` are not present in this repository
 - **Git**
 
-### 1. Clone the Repository
+No Docker, Node.js, or external database is required to run or test this service: it uses an
+in-memory H2 database (see `application.yaml`), and the schema is created automatically by Flyway
+on startup.
+
+## 1. Clone the Repository
 
 ```bash
-git clone git@github.com:LIDR-academy/AI4Devs-LTI-extended.git
-cd AI4Devs-LTI-extended
+git clone git@github.com:Landaone/app-prices-rest.git
+cd app-prices-rest
 ```
 
-### 2. Environment Configuration
+## 2. Build
 
-Create environment files for both backend and frontend:
-
-**Backend Environment** (`backend/.env`):
-```env
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=LTIdbUser
-DB_PASSWORD=<DB_PASSWORD>
-DB_NAME=LTIdb
-
-# Application Configuration
-PORT=3000
-NODE_ENV=development
-
-# Prisma Database URL
-DATABASE_URL="postgresql://LTIdbUser:<DB_PASSWORD>@localhost:5432/LTIdb"
-```
-
-**Frontend Environment** (`frontend/.env`):
-```env
-REACT_APP_API_URL=http://localhost:3000
-```
-
-### 3. Database Setup (PostgreSQL with Docker)
-
-Start the PostgreSQL database using Docker Compose:
+For the first build after cloning, use normal (online) Maven so dependencies can be downloaded:
 
 ```bash
-# Start PostgreSQL container
-docker-compose up -d
-
-# Verify the database is running
-docker-compose ps
+mvn validate
+mvn test
 ```
 
-The PostgreSQL database will be available at:
-- **Host**: `localhost`
-- **Port**: `5432`
-- **Database**: `LTIdb`
-- **Username**: `LTIdbUser`
-- **Password**: `<DB_PASSWORD>`
-
-### 4. Backend Setup
+Once dependencies are cached locally, `-o` (offline mode) can be added to skip the network check on
+subsequent runs:
 
 ```bash
-# Navigate to backend directory
-cd backend
-
-# Install dependencies
-npm install
-
-# Generate Prisma client
-npm run prisma:generate
-
-# Run database migrations
-npx prisma migrate deploy
-
-# (Optional) Seed the database with sample data
-npx prisma db seed
-
-# Start the development server
-npm run dev
+mvn -o validate
+mvn -o test
 ```
 
-The backend API will be available at `http://localhost:3000`
-
-### 5. Frontend Setup
+## 3. Run
 
 ```bash
-# Navigate to frontend directory (from project root)
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start the development server
-npm start
+mvn spring-boot:run
 ```
 
-The frontend application will be available at `http://localhost:3001`
+The application starts on the default Spring Boot port (`8080`, not overridden in
+`application.yaml`). Flyway applies `src/main/resources/db/migration/V1_create_tables.sql`
+automatically on startup, seeding the in-memory H2 database with 4 sample price rows for
+`brandId=1`, `productId=35455`.
 
-### 6. Cypress Testing Suite Setup
+### Environment variables (optional)
+
+`application.yaml` reads these with safe defaults, so none are required for local development:
+
+```text
+DATABASE_URL   # default: jdbc:h2:mem:testdb
+DATABASE_USER  # default: sa
+DATABASE_PASS  # default: (empty)
+```
+
+## 4. Try the API
 
 ```bash
-# From the frontend directory
-cd frontend
-
-# Install Cypress (if not already installed)
-npm install
-
-# Open Cypress Test Runner (Interactive)
-npm run cypress:open
-
-# Or run tests headlessly
-npm run cypress:run
+curl "http://localhost:8080/api/price?brandId=1&productId=35455&applicationDate=2020-06-14%2016:00:00"
 ```
 
-## 🧪 Testing
+Expected: a `200` response with the price rule active at that timestamp (`priceList: 2`,
+`price: 25.45`, per the seed data in `V1_create_tables.sql`).
 
-### Backend Testing
+## 5. H2 Console (optional)
+
+The H2 web console is enabled (`spring.h2.console.enabled: true`) and available at
+`http://localhost:8080/h2-console` while the application is running. Use JDBC URL
+`jdbc:h2:mem:testdb`, user `sa`, empty password, to inspect the seeded `test.PRICES` table.
+
+## Testing
 
 ```bash
-cd backend
-
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
+mvn test                                 # run the full test suite (online, for a first run)
+mvn -o test                              # offline, once dependencies are already cached
+mvn -o -q -Dtest=PriceControllerTest test   # run a single test class (offline, once cached)
 ```
 
-### Frontend Testing
-
-```bash
-cd frontend
-
-# Run unit tests
-npm test
-
-# Run E2E tests with Cypress
-npm run cypress:run
-
-# Open Cypress Test Runner
-npm run cypress:open
-```
-
+Tests use an embedded Spring context and the same in-memory H2 database/Flyway migration as local
+development — no separate test database setup is required.

@@ -28,7 +28,7 @@ alwaysApply: true
 For detailed standards and guidelines specific to different areas of the project, refer to:
 
 - [Backend Standards](./backend-standards.md) - API development, database patterns, testing, security and backend best practices
-- [Frontend Standards](./frontend-standards.md) - React components, UI/UX guidelines, and frontend architecture
+- [Frontend Standards](./frontend-standards.md) - Not applicable to this repository (backend-only REST API, no frontend module)
 - [Documentation Standards](./documentation-standards.md) - Technical documentation structure, formatting, and maintenance guidelines, including AI standards like this document
 
 ## 4. Project Skills
