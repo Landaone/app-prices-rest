@@ -98,7 +98,7 @@ Codex's outstanding obligation is **not** discharged by this run, which did not 
 | Step | File | Status | Date |
 |---|---|---|---|
 | `ADOPT-00` | `09-bootstrap.md` | **PASS** — fresh-session discovery observed, Gate 3 resolved | 2026-08-15 |
-| `ADOPT-01` | `01-prerequisites-and-install.md` | PENDING | |
+| `ADOPT-01` | `01-prerequisites-and-install.md` | **PASS** | 2026-08-15 |
 | `ADOPT-02` | `01-prerequisites-and-install.md` | PENDING | |
 | `ADOPT-03` | `01-prerequisites-and-install.md` | PENDING | |
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PENDING | |
@@ -368,6 +368,40 @@ expected state — never a blocker and never an error.
 
 ---
 
+### `ADOPT-01` — Install Prerequisites
+
+```text
+Date: 2026-08-15
+Machine: Darwin 22.6.0 (macOS), zsh
+Node: v24.18.0 (>= 20.19.0 required — PASS)
+npm: 11.16.0 (bundled with Node)
+OpenSpec: 1.7.0 (already on PATH; machine-level presence, not yet installer-provenanced — ADOPT-02
+  determines whether this run's own install/upgrade command runs or is skipped)
+CodeGraph: 1.5.0 (already on PATH; same caveat — capability availability is not installer
+  provenance, per 00-conventions.md)
+Git: 2.39.2 (Apple Git-143)
+Project runtime: Java 11 (pom.xml `<java.version>11</java.version>`; installed JVM confirmed via
+  `java -version`: OpenJDK Corretto-11.0.31)
+Project build tool: Maven — `pom.xml` present, Spring Boot 2.4.5 parent (`spring-boot-starter-data-jpa`,
+  `spring-boot-starter-web`). The repo's own `./mvnw` wrapper is broken (`.mvn/wrapper/` was never
+  committed to this repository — confirmed via `git log --all -- .mvn`, empty; a pre-existing repo
+  defect, not something this step's Action names or this adoption is scoped to fix — recovery table
+  says "Project build tool missing -> follow the repository development guide"). System Maven
+  3.9.16 (`which mvn` -> `/Users/landaeta/.sdkman/candidates/maven/current/bin/mvn`) is available and
+  usable instead, and matches this guide's own "Reference experiment" column value for this exact
+  tool (`Java 11 + Maven 3.9.16`) — strong evidence this repository (or a sibling worktree of it) is
+  the guide's own reference experiment repo.
+Result: PASS — every required executable already present and meeting or exceeding the documented
+  minimum. Nothing installed or upgraded, so the `[HUMAN APPROVAL REQUIRED]` gate (which applies
+  "before installing or upgrading software") was never reached — there was no installation or
+  upgrade action to gate.
+Notes: Repository-specific toolchain identified from project evidence (`pom.xml`, `mvnw`), not
+  assumed. No `README.md` at repo root (only `HELP.md`, a Spring Initializr default) — did not
+  affect toolchain identification, since `pom.xml` was sufficient and present.
+```
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification | Validation | Evidence pointers | Allowlist match | Ready declared | Approval | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -390,6 +424,8 @@ restriction, which is scoped to the **manifest** and **discovery entries** never
 absolute path (confirmed clean in both) — not to the run log's evidentiary narrative. Reported to the
 operator for awareness given the target repository is public; not treated as blocking.
 
+| 2 | `ADOPT-01` | n/a — single step | PASS (nothing installed or upgraded; gate never reached) | this run log's `ADOPT-01` evidence block | **not mechanically verifiable** — `01-prerequisites-and-install.md` declares no `Allowed modifications` field for `ADOPT-01` (see Improvement proposal #5 below); staged set is `.specboot/adoption/ADOPTION-RUN-LOG.md` only, which `00-conventions.md` names as inherent to executing *any* step ("writing it is part of executing the step, not separate bookkeeping"), not a gated repository-content mutation — treated as within bounds on that basis, not by inventing an allowlist | **YES** | **Auto-approved** (commit and push both) under the same standing authorization — zero repository-content mutation occurred (pure inspection/version-check step), only run-log evidence, so there is nothing an allowlist comparison could meaningfully police here even though no field is declared | `.specboot/adoption/ADOPTION-RUN-LOG.md` | *(recorded after this row — see below)* | Unchanged from the `ADOPT-00` baseline (0 workflows, 0 webhooks, 0 rulesets; no new commits landed remotely since that determination) | *(recorded after this row — see below)* | 1 (see Improvement proposals #5) |
+
 ---
 
 ## Improvement proposals
@@ -402,6 +438,7 @@ for the whole adoption, including for these.
 | 1 | `ADOPT-00` | `bootstrap-kit/discovery/symlink-fallback.md`, `bootstrap-kit/manifest.json`, `09-bootstrap.md` | **`.git/info/exclude` is specified as a literal path, which is wrong in a linked worktree.** There, `.git` is a *file* and the path resolves via `git rev-parse --git-path info/exclude` to the **shared common** Git directory, read by every worktree of the underlying repository. `mkdir -p .git/info` fails outright with "Not a directory". The kit should (a) specify resolution through `git rev-parse --git-path info/exclude` rather than a literal path, and (b) state the consequence — the exclusion is repository-wide across worktrees, not worktree-local — so a run can present the true blast radius at its gate instead of discovering it by a failed write. Note the launcher's Step 0 *already* anticipates linked worktrees; the bootstrap mechanics do not. | proposed |
 | 2 | `ADOPT-00` | `09-bootstrap.md`, `bootstrap-kit/manifest.json` | **The transient ignore-rule set is stated inconsistently.** `manifest.json#ignoreRules.transient` lists **three** paths (`.specboot/staging/`, `.specboot/bootstrap/`, `.specboot/local/`), while `ADOPT-00`'s validation criteria require only **two** (`.specboot/bootstrap/`, `.specboot/local/`) and the run-log template mentions `.specboot/staging/` in passing. This run provisioned exactly the two the approved inventory named, declining to widen an approved mutation set on its own authority. The canonical set should be stated once, in one place. | proposed |
 | 3 | `ADOPT-00` | `ADOPTION-ENTRY-PROMPT.md` §0 | **The cold-start premise asserts more than the adoption controls.** §0 states the target has "no OpenSpec installation and no `openspec` command" and "no `/opsx:*` commands". Those are *machine- and client-level* facts, not repository state: this run began with `openspec` 1.7.0 and `codegraph` on PATH and `/opsx:*` skills listed from user-level configuration, in a repository that was genuinely cold. The premise should be scoped to the repository, so an orchestrator records the machine-level presence as an observation rather than facing an apparent contradiction between the prompt and the evidence. | proposed |
+| 5 | `ADOPT-01` | `01-prerequisites-and-install.md` (`ADOPT-01`, `ADOPT-02`, `ADOPT-03`) | **No `Allowed modifications` field is declared for `ADOPT-01`, `ADOPT-02`, or `ADOPT-03`.** `00-conventions.md` states this field is a required, ninth part of the step contract for every executable step, authored by the guide maintainer in advance so the checkpoint protocol's standing-authorization mechanism can mechanically verify `staged_files ⊆ Allowed modifications(step)` without the orchestrator ever deriving or widening it live. `grep -c "Allowed modifications" 01-prerequisites-and-install.md` returns 0. The design history for this guide (task 15.13) records that a prior revision populated this field into six other steps found missing it (`ADOPT-00`, `ADOPT-13`, `ADOPT-14`, `ADOPT-15`, `ADOPT-18`, `ADOPT-19`, `ADOPT-20`) but that pass never touched this phase file, so the gap survived. Consequence observed live: `ADOPT-01`'s checkpoint produced no repository-content mutation, so the gap was harmless here, but `ADOPT-02` (`openspec init`, generating `openspec/` and client resources) and `ADOPT-03` (`cp -rn` importing the SpecBoot baseline) will produce real repository content with no declared allowlist to mechanically check the staged set against — meaning standing authorization's core condition cannot be verified for those two steps' checkpoints as written today, and this run is treating their commit/push gates as requiring live approval rather than auto-approving, pending this gap's resolution in the canonical guide. | proposed |
 | 4 | `ADOPT-00` (resumed) | fresh-session handoff prompt (step 3); `00-conventions.md` drift language | **The two-checksum identity check has a real blind spot: a phase-file contract change lands invisibly.** The handoff prompt's step 3 ties blocking drift to a checksum mismatch on `SPECBOOT_ADOPTION_GUIDE.md` and `SKILL.md` only. This resume found the manifest's recorded commit (`834ee535`) one commit behind source HEAD (`1271266d`), where the intervening commit changed `09-bootstrap.md` — outside the checksum baseline — to add a new mandatory artifact to `ADOPT-00`'s own contract. Both checksums matched exactly throughout, so the documented blocking criterion alone would not have surfaced this; it was only found by independently diffing the intervening commit once the commit-mismatch (not checksum-mismatch) was noticed. A run that skipped that extra diff — reasonably, since the prompt's stated blocking condition was satisfied — would have declared `ADOPT-00` PASS against a stale contract. The guide should either checksum the full `specboot-adoption/` tree (or a manifest of per-file hashes) for identity, or explicitly instruct every resume to diff phase files touched by any intervening commits, not just the two named files. | proposed |
 
 ---
