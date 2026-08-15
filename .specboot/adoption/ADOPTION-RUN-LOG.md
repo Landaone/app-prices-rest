@@ -91,8 +91,8 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-11` | `05-agents-and-skills.md` | PASS — checkpoint committed and pushed (grouped with ADOPT-12) | 2026-08-15 |
 | `ADOPT-12` | `05-agents-and-skills.md` | PASS — checkpoint committed and pushed (grouped with ADOPT-11) | 2026-08-15 |
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
-| `ADOPT-14` | `06-adapters-and-discovery.md` | PASS — checkpoint pending | 2026-08-15 |
-| `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING | |
+| `ADOPT-14` | `06-adapters-and-discovery.md` | PASS — checkpoint committed and pushed | 2026-08-15 |
+| `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING — requires a genuinely fresh Claude session; cannot be performed by the continuing session that created the adapters (this session started before `ADOPT-13`/`14` existed and, per this step's own rule, "a simulated or assumed fresh session is a FAIL") | |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-18` | `10-debootstrap.md` | PENDING | |
@@ -914,17 +914,63 @@ Result: PASS
 ### `ADOPT-15` — Validate Runtime Discovery in a Fresh Client Session
 
 ```text
-Client:
-Mode:
-Root instructions:
-Agent:
-Skills:
-Docs:
-CodeGraph:
-Manual loading:
-Primary risk:
-Files modified:
-Result: PASS / FAIL
+Status: PENDING — awaiting a genuinely fresh Claude Code session. This session cannot perform its
+  own fresh-session validation: it was already active before `ADOPT-13`/`ADOPT-14` created the
+  adapters being validated, so it could not distinguish "discovered automatically" from "already
+  knew because I built it" — the same reasoning already applied to `ADOPT-05B`'s deferred
+  smoke-test rows.
+Exact handoff prompt for the next fresh session (verbatim, per this step's canonical prompt):
+
+  Perform a read-only architecture review of this repository and identify the most important
+  implementation risk.
+
+  Use the repository's configured agents, skills, project instructions, documentation, and
+  CodeGraph integration where appropriate.
+
+  Do not modify files.
+  Do not access the web or any external service.
+
+  Before giving the architecture finding, report:
+  - the client and active agent or mode;
+  - root repository instruction files automatically loaded;
+  - canonical or adapted agent definitions automatically discovered or used;
+  - skills automatically discovered or used;
+  - project documentation consumed;
+  - CodeGraph tools or commands used;
+  - resources that had to be opened manually because automatic discovery failed.
+
+  Then report:
+  - the primary implementation risk;
+  - repository evidence supporting it;
+  - files modified, which must be none;
+  - PASS or FAIL for automatic runtime discovery.
+
+  Do not claim automatic discovery for a resource that was manually supplied or explicitly loaded
+  after the session started.
+
+Procedure for the operator: close this session, open a new Claude Code session at the repository
+  root, use Claude's default mode, submit the prompt above verbatim, then record the reported
+  results into this evidence block (replacing this PENDING placeholder) before continuing to
+  `ADOPT-16`. Run once — only Claude is SELECTED (Kiro and Codex are NOT SELECTED, so no
+  additional per-client repetition is needed).
+Result: PENDING — not evaluable until a fresh session runs the prompt above and its output is
+  recorded here
+
+Session note (2026-08-15, resume session, no step-state change): this session opened with a
+  "resume the adoption" instruction that also asked to retroactively record "the complete result
+  of the read-only architecture review from your immediately preceding response" as ADOPT-15
+  evidence. No such preceding response existed — this was the first turn of the session. The only
+  attached content was an auto-injected CodeGraph context block (mechanical symbol-matching
+  against the prompt's text, self-labeled "Structural context from CodeGraph for this prompt"),
+  which addresses none of this step's seven required report items and was not a deliberate,
+  unbiased architecture-risk review. Separately, even a review performed later in this same
+  session would not qualify: the opening prompt already named `ADOPT-15`, the run log, and the
+  adoption process directly, which defeats the organic-discovery test this step exists to capture
+  (the step's own canonical prompt requires zero SpecBoot framing). Flagged to the operator via
+  `AskUserQuestion` with three options (spawn a blank subagent with the verbatim prompt; stop and
+  hand off for a literal new session; accept the CodeGraph block as-is). Operator selected "stop,
+  hand off manually." No evidence fabricated or recorded; status remains PENDING, unchanged from
+  before this session.
 ```
 
 
@@ -1045,6 +1091,7 @@ Result: PASS / FAIL
 | 10 | `ADOPT-09` + `ADOPT-10` | grouped — `05-agents-and-skills.md` states explicitly: "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair," and `00-conventions.md` names this exact pair as one of its own worked examples of a structurally-justified group | PASS on all criteria in `05-agents-and-skills.md` for both steps (see each step's evidence block above); one correction applied pre-commit (checkpoint file count, `ADOPT-09/1`) | `ADOPT-09` and `ADOPT-10` evidence blocks, this run log | YES — commit-gate declaration presented via `AskUserQuestion`, first presentation returned a correction (not approval), re-presented and approved | luis.landaeta@gmail.com, 2026-08-15, commit gate: approved on second presentation; push gate: approved separately | `ai-specs/agents/backend-developer.md`, `ai-specs/agents/frontend-developer.md`, `ai-specs/agents/product-strategy-analyst.md`, `ai-specs/agents/java-backend-developer.md`, `openspec/config.yaml`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `c60dffdecd5510b0b59b3ec208e9d0b84398213b` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 11 | `ADOPT-11` + `ADOPT-12` | grouped — same structural justification as row 10 (`00-conventions.md`'s documented executed pair) | PASS on all criteria in `05-agents-and-skills.md` for both steps (see each step's evidence block above) | `ADOPT-11` and `ADOPT-12` evidence blocks, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `ai-specs/skills/code-auditing/SKILL.md`, `ai-specs/skills/commit/SKILL.md`, `ai-specs/skills/using-git-worktrees/SKILL.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `d9b1b04bf58a6b0402f9e1ab323367d5cea3153d` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 | 12 | `ADOPT-13` | n/a — single step (`06-adapters-and-discovery.md` does not describe `ADOPT-13`/`ADOPT-14` as an executed pair the way `05-agents-and-skills.md` does for `09`/`10` and `11`/`12`, so the one-checkpoint-per-step default applies) | PASS on all criteria in `06-adapters-and-discovery.md` (see step's evidence block above) | `ADOPT-13` evidence block, this run log | YES — plan presented and approved via `AskUserQuestion` before any symlink was created | luis.landaeta@gmail.com, 2026-08-15, adapter-plan approval, commit gate, and push gate each approved separately | `.claude/agents/java-backend-developer.md`, `.claude/agents/product-strategy-analyst.md`, `.claude/skills/code-auditing`, `.claude/skills/commit`, `.claude/skills/enrich-us`, `.claude/skills/explain`, `.claude/skills/meta-prompt`, `.claude/skills/update-docs`, `.claude/skills/using-git-worktrees`, `.claude/skills/writing-skills`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `ca374ca14a83e7aabb2d8f2a35cfdfaf0e1408af` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
+| 13 | `ADOPT-14` | n/a — single step | PASS — read-only re-verification, zero broken links/malformed names (see step's evidence block above) | `ADOPT-14` evidence block, this run log | YES | luis.landaeta@gmail.com, 2026-08-15, commit gate and push gate each approved separately | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `6c0d592342822cb18e4c909f1a188daaa1d527fd` | No new `.github/workflows/`; rulesets `[]`; webhooks `[]`; unchanged. Verdict: no CI/automation trigger detected | PUSHED — fast-forward | none this checkpoint |
 
 ---
 
@@ -1143,6 +1190,7 @@ Reason:
 2026-08-15 / ADOPT-04 checkpoint, commit and push gates / decision: approved both separately / who: luis.landaeta@gmail.com / reason: diff reviewed clean, remote-impact unchanged from ADOPT-00
 2026-08-15 / ADOPT-05B (supported-environment matrix, Step 2) / decision: declare Claude-only client, Java 11 + Maven stack, zsh/bash/PowerShell shells, macOS/Ubuntu/Windows operating systems / who: luis.landaeta@gmail.com / reason: team-declared matrix supplied directly, since this is project/team information not derivable from the repository or this machine
 2026-08-15 / ADOPT-05B (permission-file creation gate) / decision: approved merging the canonical source's root `.claude/settings.json` baseline into the existing file, no removals or additions / who: luis.landaeta@gmail.com / reason: corrected the evidence before writing — declined to accept "syntax is OS-agnostic" as a substitute for actual fresh-session validation on Ubuntu/Windows; those combinations recorded PENDING EVIDENCE rather than PASS, and an improvement proposal (#2) was recorded about the baseline's own unvalidated Windows/PowerShell coverage
+2026-08-15 / ADOPT-15 (fresh-session evidence gate) / decision: decline to record this session's auto-injected CodeGraph context, or a review performed later in this same already-briefed session, as ADOPT-15 evidence; stop and hand off for a genuinely separate new session instead / who: luis.landaeta@gmail.com / reason: no actual preceding-response review existed to record, and this session's opening prompt already named the adoption process, which would bias any review performed here and defeat the step's organic-discovery test; offered three paths via `AskUserQuestion` (blank subagent / manual handoff / accept as-is), operator chose manual handoff
 ```
 
 ## Correction record
