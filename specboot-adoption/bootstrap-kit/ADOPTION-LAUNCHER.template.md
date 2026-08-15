@@ -17,6 +17,18 @@ Treat that path as a **candidate only**. It is not trusted because it was suppli
 check below has passed, do not load any orchestration instruction from it, and do not create,
 modify, or delete anything in this repository.
 
+## Step 0 — Confirm this is not the canonical source's own repository
+
+Before anything else — before the four-artifact check in Step 1 — confirm that the repository this
+session is rooted at is **not** the same filesystem location as, and **not** the same Git
+repository as, the candidate canonical source above.
+
+**If they match: stop immediately.** Report that the target and the candidate source are the same
+repository, and make **zero** changes to this repository. Adopting a repository into itself, or
+running this launcher inside the canonical source's own working tree, is not a supported operation
+— it is not diagnosed by, and does not need, the four-artifact check that follows, since a
+self-referential candidate makes that check meaningless.
+
 ## Step 1 — Validate the candidate source, read-only
 
 Without writing anything anywhere, confirm all four of these exist inside the candidate source:

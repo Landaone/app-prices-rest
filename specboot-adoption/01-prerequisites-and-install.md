@@ -109,10 +109,19 @@ that will use the project.
 
 **Action:**
 
+**Check before installing.** Run `openspec --version` first. If a version is already installed and
+it supports the documented keys this guide requires (`ADOPT-01`'s own "Installed version must
+support the documented keys" criterion), **skip the install/upgrade command below entirely** and
+proceed straight to `openspec init` — nothing is being installed or upgraded, so the approval gate
+this step documents for that action does not trigger. Record the reused version as evidence. Only
+where no version is installed, or the installed version does not meet that criterion, run:
+
 ```bash
 npm install -g @fission-ai/openspec@latest
 openspec --version
 ```
+
+— behind the `[HUMAN APPROVAL REQUIRED]` gate below, exactly as documented.
 
 Then, from the repository root:
 
@@ -134,7 +143,10 @@ provenance".
 The installed version may generate either `openspec/config.yaml` or `openspec/config.yml`.
 Use the actual generated path.
 
-**Approval gate:** **[HUMAN APPROVAL REQUIRED]** before global installation or upgrade.
+**Approval gate:** **[HUMAN APPROVAL REQUIRED]** before global installation or upgrade — reached
+only when the install/upgrade command above actually runs. Where an already-installed version
+already meets the documented requirement, this gate is never presented: nothing is being installed
+or upgraded (design D-Z, part 6).
 
 **Validation:**
 
@@ -152,9 +164,11 @@ PASS criteria:
 - Client-specific OpenSpec resources exist for selected clients.
 - No resources are added for unselected clients unless the installed version requires them.
 
-**Evidence to record:** run-log `ADOPT-02` — OpenSpec version, command, clients offered,
-clients selected, generated config path, generated client resources, per-client
-provisioning provenance, `openspec doctor` result, Git changes, result.
+**Evidence to record:** run-log `ADOPT-02` — OpenSpec version, whether the install/upgrade
+command ran or was skipped because an already-installed version already met the documented
+requirement, command, clients offered, clients selected, generated config path, generated
+client resources, per-client provisioning provenance, `openspec doctor` result, Git changes,
+result.
 
 **On failure:** recovery is **inline in this step** (contract form A, see
 [`00-conventions.md`](00-conventions.md)) — the table below is the documented recovery for

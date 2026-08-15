@@ -128,6 +128,10 @@ discovery surface `ADOPT-13` provisions. Where disposition touched only the `boo
 entries, record `ADOPT-14`'s re-check as the explicit substitute evidence rather than leaving the
 fresh-session field blank or silently treating filesystem presence as equivalent to discovery —
 `ADOPT-00`'s own validation text already draws that line, and this narrowing does not blur it.
+**When the full fresh-session check is required, it is not a decision to present to the operator.**
+Generate the exact prompt and stop; do not ask whether to continue in this session instead — the
+same rule `09-bootstrap.md`'s own handoff states, applied here rather than restated with different
+wording.
 
 Also remove the machine-local `.specboot/local/` store, and **preserve** the committed manifest and
 run log. Act only on manifest entries — never on path patterns, never on what looks like a bootstrap

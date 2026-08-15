@@ -101,7 +101,12 @@ artifacts, and never an adapter path for a client not recorded `SELECTED`.
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before creating symlinks or modifying
 client directories. The prompt above additionally requires presenting the complete adapter
 plan and obtaining explicit approval before any directory or symlink is created — that is
-the same gate, stated at the point of mutation.
+the same gate, stated at the point of mutation. **Where the adapter plan exposes exactly the
+agents and skills `ADOPT-09`–`ADOPT-12` already validated and reported — no different
+selection, nothing not already in that evidence — the gate auto-approves**, and the plan is
+recorded as evidence in the run log rather than presented as a live question. A plan that
+differs from that already-validated evidence reaches the live gate exactly as documented
+(design D-Z, part 6).
 
 **Validation:** the prompt's own per-client filesystem validation. Then run `ADOPT-14`.
 Do not claim runtime discovery has passed; that requires `ADOPT-15`.

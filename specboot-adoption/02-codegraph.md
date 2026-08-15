@@ -157,7 +157,12 @@ Rules:
 - Generated files existing for a client only prove current availability, not which process
   provisioned them — see [`00-conventions.md`](00-conventions.md).
 
-**Approval gate:** **[HUMAN APPROVAL REQUIRED]** before project-local configuration changes.
+**Approval gate:** **[HUMAN APPROVAL REQUIRED]** before project-local configuration changes,
+**unless the actual choices exactly match the least-privilege defaults documented in the Rules
+above (project scope, automatic allow = No) and `ADOPTION-AUTHORIZATION.md`'s code-graph
+privilege-scope policy** — in that case the gate auto-approves, and the generated files remain
+fully diff-reviewable evidence rather than a live question. Any deviation toward broader scope or
+automatic allow reaches the live gate exactly as documented (design D-Z, part 6).
 
 **Validation:**
 

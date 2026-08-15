@@ -225,6 +225,44 @@ Adoption SHALL resolve the location of the canonical SpecBoot source as **runtim
 - **WHEN** any adoption step would create, modify, or delete a file inside the resolved canonical source
 - **THEN** the step does not perform it and is recorded FAIL, because the source is read-only for the whole adoption
 
+### Requirement: A target repository matching the canonical source's own identity fails closed before validation
+
+Before the three-artifact source validation runs, the launcher SHALL compare the repository the current session is rooted at against the candidate canonical source: they SHALL NOT be the same filesystem location, and SHALL NOT be the same Git repository. Where they match, the run SHALL stop immediately with zero target-repository writes, reporting that the target and the candidate source are the same repository — adopting a repository into itself, or running the launcher inside the canonical source's own working tree, is not a supported operation. This check SHALL run **before**, not after, the existing four-artifact validation, since a matched identity makes that validation meaningless.
+
+#### Scenario: The launcher is pasted inside the canonical source's own repository
+
+- **WHEN** the repository the session is rooted at is the same filesystem location, or the same Git repository, as the candidate `<SPECBOOT_SOURCE>`
+- **THEN** the run stops with zero target-repository writes, reports the identity match, and does not proceed to the four-artifact validation
+
+#### Scenario: Target and source are genuinely distinct repositories
+
+- **WHEN** the repository the session is rooted at is neither the same filesystem location nor the same Git repository as the candidate source
+- **THEN** this check passes and the existing four-artifact validation proceeds as before
+
+### Requirement: A step-level approval gate auto-approves when a deterministic policy or prior evidence already answers it
+
+Where a step's own approval gate would otherwise ask a live question, and a deterministic policy recorded in `ADOPTION-AUTHORIZATION.md` or prior validated evidence from an earlier step already answers it unambiguously, the gate SHALL auto-approve and record the answer as evidence rather than asking. This SHALL apply narrowly, to exactly the conditions each step's own text defines, and SHALL NEVER apply where the actual choice deviates from the recorded policy or evidence — a deviation SHALL always reach the live gate.
+
+#### Scenario: An already-sufficient tool version needs no install decision
+
+- **WHEN** a step's action would install or upgrade a tool, and the already-installed version already meets the step's own documented requirement
+- **THEN** the install/upgrade command and its approval gate are skipped entirely, and the reused version is recorded as evidence
+
+#### Scenario: A configuration choice matches the documented default
+
+- **WHEN** a step's configuration choices exactly match that step's own documented least-privilege defaults and the corresponding `ADOPTION-AUTHORIZATION.md` policy
+- **THEN** the step's approval gate auto-approves, and the generated configuration remains fully diff-reviewable evidence
+
+#### Scenario: An exposure plan matches prior validated evidence exactly
+
+- **WHEN** a step's proposed plan exposes exactly what an earlier step already validated and recorded, with nothing different or additional
+- **THEN** the step's approval gate auto-approves, recording the plan as evidence rather than presenting it as a live question
+
+#### Scenario: A deviation always reaches the live gate
+
+- **WHEN** an install choice, a configuration choice, or an exposure plan differs in any way from the recorded policy or prior evidence
+- **THEN** the step's approval gate is presented as a live `[HUMAN APPROVAL REQUIRED]` question, exactly as it would be without this mechanism
+
 ### Requirement: Source-linked mode copies no canonical content into the adopting project
 
 In source-linked mode the adoption SHALL NOT copy the adoption guide, the phase files, the run-log template, or the orchestration skill body into the project, and SHALL NOT create `.specboot/bootstrap/` at all. It SHALL store only project-specific durable state under `.specboot/adoption/`. It SHALL provision only the declared client's **temporary** discovery entries, each pointing at the external canonical guide and skill rather than at a local copy. Those entries name an absolute path valid on one machine only: they SHALL be excluded from every checkpoint's staged scope, SHALL NEVER be committed, and SHALL be removed — or the file they were appended to byte-restored — by `ADOPT-18`. The same rule SHALL apply to the machine-local source-path store under `.specboot/local/`. No committed artifact produced by a source-linked run SHALL contain an absolute external path.
@@ -953,12 +991,17 @@ The orchestrator SHALL NOT write or modify a client's `model`, reasoning-effort,
 
 ### Requirement: Fresh-session requirements are handed off, never simulated
 
-Where the adoption contract requires a genuinely fresh client session, the orchestrator SHALL stop, state the exact prompt to run in the fresh session, and hand off to the operator. It SHALL NEVER simulate, assume, or claim a fresh session it did not observe.
+Where the adoption contract requires a genuinely fresh client session, the orchestrator SHALL stop, state the exact prompt to run in the fresh session, and hand off to the operator. It SHALL NEVER simulate, assume, or claim a fresh session it did not observe. **This handoff SHALL NEVER be presented as a choice.** The orchestrator SHALL NOT ask whether to continue in the current session instead of handing off — once the contract determines a fresh session is required, generating the handoff prompt and stopping is the only action, not one of two options offered to the operator.
 
 #### Scenario: Fresh-session discovery check is required
 
 - **WHEN** a step requires a fresh client session to validate discovery
 - **THEN** the orchestrator stops with an explicit handoff naming the prompt to run, and records the result only after the operator reports it
+
+#### Scenario: A required handoff is never framed as optional
+
+- **WHEN** the contract determines a fresh session is required (an initial `ADOPT-00` handoff, or a mandatory `ADOPT-18` re-validation)
+- **THEN** the orchestrator generates the exact handoff prompt and stops; it does not ask the operator whether to continue in the current session instead
 
 ### Requirement: The bootstrap kit contains no duplicated canonical content
 

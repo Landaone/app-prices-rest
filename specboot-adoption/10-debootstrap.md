@@ -175,7 +175,9 @@ references.
    to an unexercised fresh-session test. Where disposition touched anything else, the full
    fresh-session check remains mandatory and is never skipped on the strength of a filesystem
    re-check alone. The fresh-session check, when required, is a stop-and-hand-off, never
-   simulated.
+   simulated. **This is not a decision to present to the operator**: where the check is required,
+   generate the exact fresh-session prompt and stop — never ask whether to continue in this
+   session instead, for the same reason `ADOPT-00`'s own handoff cannot be treated as optional.
 
 8. **Write back** each entry's `cleanup-status` and `final-disposition`, plus the re-validation
    results, and commit the updated manifest as part of this checkpoint.

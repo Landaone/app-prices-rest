@@ -198,6 +198,10 @@ later step must be able to create as a symlink.
    work is done: what it just provisioned *is* client discovery, and discovery can only be
    evidenced by a session that started **after** it existed. Generate the exact fresh-session
    prompt and hand off. Native skill discovery is attempted only in that fresh session.
+   **This is not a decision to present to the operator.** There is no "continue in this session
+   instead" option to offer — a continuing session cannot evidence what it just provisioned, so
+   presenting the handoff as a choice between two valid paths misstates the situation. Generate
+   the prompt and stop.
 
    **No OpenSpec command and no `/opsx:*` command is used** at any point before `ADOPT-02` has
    completed and its OpenSpec availability check has explicitly passed. OpenSpec is installed *by*
