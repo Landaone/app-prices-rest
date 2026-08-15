@@ -164,6 +164,10 @@ privilege-scope policy** — in that case the gate auto-approves, and the genera
 fully diff-reviewable evidence rather than a live question. Any deviation toward broader scope or
 automatic allow reaches the live gate exactly as documented (design D-Z, part 6).
 
+**Update `.specboot/adoption/ADOPTION-AUTHORIZATION.md`'s code-graph-privilege-scope section**
+(created by `ADOPT-00`, design D-Z part 2a) with this step's actual choices. This updates the
+existing file; it does not create a second one.
+
 **Validation:**
 
 ```bash

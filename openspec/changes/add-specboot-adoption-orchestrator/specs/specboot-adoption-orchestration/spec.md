@@ -800,12 +800,24 @@ Every `ADOPT` step SHALL carry an `Allowed modifications` field as part of its s
 
 ### Requirement: A per-run authorization file records standing grants, never one file per step
 
+**`ADOPT-00` SHALL create `.specboot/adoption/ADOPTION-AUTHORIZATION.md` from the canonical template as part of its own provisioning**, adding it to that step's mutation inventory. The standing commit-and-push authorization SHALL be requested within `ADOPT-00`'s own existing human-approval gate — the one already presenting the exact mutation inventory — and SHALL NOT be a separate question. `ADOPT-02`, `ADOPT-05`, and `ADOPT-05B` SHALL each update this same file's corresponding section when reached (OpenSpec version policy, code-graph privilege scope, and the declared environment matrix respectively), and SHALL NOT create a second file.
+
 Each adoption run MAY have exactly one `ADOPTION-AUTHORIZATION.md`, recording what the human granted for that run: the selected client or clients; the declared team environment matrix; the OpenSpec version policy; the code-graph capability's default privilege scope; and the standing commit-and-push authorization with its conditions. A separate authorization file per `ADOPT` step SHALL NOT be created, since the per-step allowlist already lives in the canonical phase file and a second per-step file would duplicate it, drifting from the canonical source it was meant to mirror. Where the declared team environment matrix cannot be derived from repository evidence — CI workflow `runs-on` values, a Windows-wrapper script's presence, container or devcontainer configuration, CONTRIBUTING or README platform statements — the orchestrator SHALL present a derived-with-evidence matrix for the human to confirm or correct rather than asking a blank question, and SHALL NOT infer a narrower matrix merely from an absence of evidence.
 
 #### Scenario: One authorization file for the whole run
 
 - **WHEN** an adoption run records its granted authorizations
 - **THEN** they live in exactly one `ADOPTION-AUTHORIZATION.md`, never in a file created per `ADOPT` step
+
+#### Scenario: The file is created by ADOPT-00, not left for a later step to discover missing
+
+- **WHEN** `ADOPT-00` provisions its mutation inventory
+- **THEN** `.specboot/adoption/ADOPTION-AUTHORIZATION.md` is among the paths created, and the standing commit-and-push authorization is requested in that same step's existing approval gate
+
+#### Scenario: Later steps update the same file rather than creating a new one
+
+- **WHEN** `ADOPT-02`, `ADOPT-05`, or `ADOPT-05B` reaches the point where its corresponding policy becomes known
+- **THEN** it updates the relevant section of the already-existing `ADOPTION-AUTHORIZATION.md`, and no second authorization file is created
 
 #### Scenario: Environment matrix is proposed from evidence, not asked blank
 

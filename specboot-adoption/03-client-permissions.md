@@ -63,6 +63,10 @@ Before reconciling anything, declare what the adopting **project and team** supp
 **Declare the team's environments, not this machine's.** The matrix is the reconciliation
 target for Step 3.
 
+**Record this declared matrix into `.specboot/adoption/ADOPTION-AUTHORIZATION.md`'s
+environment-matrix section** (created by `ADOPT-00`, design D-Z part 2a) — the same file, updated
+here, not a second one.
+
 ### Step 3 — Reconcile the copy against the matrix
 
 - **Remove** permissions outside the declared matrix — entries for clients, stacks, shells, or

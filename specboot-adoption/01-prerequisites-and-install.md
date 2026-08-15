@@ -123,6 +123,11 @@ openspec --version
 
 — behind the `[HUMAN APPROVAL REQUIRED]` gate below, exactly as documented.
 
+**Update `.specboot/adoption/ADOPTION-AUTHORIZATION.md`'s OpenSpec-version-policy section** (created
+by `ADOPT-00`, design D-Z part 2a) with the outcome of the check above — the template's default
+policy text applies unless this run's evidence required a deviation. This updates the existing
+file; it does not create a second one.
+
 Then, from the repository root:
 
 ```bash

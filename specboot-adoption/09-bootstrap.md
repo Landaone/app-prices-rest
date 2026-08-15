@@ -163,6 +163,15 @@ later step must be able to create as a symlink.
 7. **Run the complete preflight, then present the exact mutation inventory and stop at the approval
    gate below.**
 
+   **The exact mutation inventory includes `.specboot/adoption/ADOPTION-AUTHORIZATION.md`**,
+   assembled from `run-template/ADOPTION-AUTHORIZATION.template.md` with its client-selection
+   section filled from step 5's outcome. This is the run's one standing-authorization file — never
+   one per `ADOPT` step — and later steps (`ADOPT-02`, `ADOPT-05`, `ADOPT-05B`) update its remaining
+   sections when reached rather than creating a second file. **The approval gate below additionally
+   asks whether to grant this run's standing commit-and-push authorization** — one line within the
+   same gate, not a second question — and records the answer (granted or declined, and its exact
+   conditions) into the file before provisioning completes.
+
    **Preflight resolves every target path before any of them is written** — discovery entries,
    instruction-file blocks, `.specboot/adoption/`, the ignore rules, and the machine-local
    source-path store — and classifies each as *absent*, `pre-existing-untouched`, or *colliding*.
@@ -179,7 +188,7 @@ later step must be able to create as a symlink.
    | | What lands in the project |
    |---|---|
    | Transient payload | **never created** — `.specboot/bootstrap/` belongs to the deferred mode |
-   | Durable record | `.specboot/adoption/` (committed) — `BOOTSTRAP-MANIFEST.json` and the filled `ADOPTION-RUN-LOG.md` |
+   | Durable record | `.specboot/adoption/` (committed) — `BOOTSTRAP-MANIFEST.json`, the filled `ADOPTION-RUN-LOG.md`, and `ADOPTION-AUTHORIZATION.md` |
    | Discovery entries | point at the **external** canonical guide and skill; nothing canonical is copied |
    | Machine-local store | `.specboot/local/` (git-ignored) — the resolved path and nothing else |
 
@@ -219,9 +228,10 @@ with an `intended-permanent-replacement` so `ADOPT-18` converts it.
 is selected — the selected client's `bootstrap-kit/discovery/<client>.md` `## Entries` table (a
 pre-authored, per-client exact list), plus the fixed durable-state paths every client shares:
 `.specboot/adoption/BOOTSTRAP-MANIFEST.json`, `.specboot/adoption/ADOPTION-RUN-LOG.md`,
-`.specboot/local/` (the machine-local source-path store), and the two ignore-rule edits
-(`.gitignore`, `.git/info/exclude`). Never a path outside the selected client's discovery-recipe
-table plus this fixed set.
+`.specboot/adoption/ADOPTION-AUTHORIZATION.md` (design D-Z, part 2a), `.specboot/local/` (the
+machine-local source-path store), and the two ignore-rule edits (`.gitignore`,
+`.git/info/exclude`). Never a path outside the selected client's discovery-recipe table plus this
+fixed set.
 
 **Approval gate:** **[HUMAN APPROVAL REQUIRED]** before the first repository-local write. What is
 approved is the **exact mutation inventory** the preflight produced in action 7 — every path, its
