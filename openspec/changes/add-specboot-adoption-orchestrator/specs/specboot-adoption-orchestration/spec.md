@@ -289,6 +289,20 @@ Where a step's own approval gate would otherwise ask a live question, and a dete
 - **WHEN** an install choice, a configuration choice, or an exposure plan differs in any way from the recorded policy or prior evidence
 - **THEN** the step's approval gate is presented as a live `[HUMAN APPROVAL REQUIRED]` question, exactly as it would be without this mechanism
 
+### Requirement: The docs/ai-specs import payload is a deliberately generic subpath, never the canonical source's own root
+
+The `docs/`/`ai-specs/` payload imported into the adopting project SHALL be read from `<SPECBOOT_SOURCE>/packages/specboot/template/`, never from `<SPECBOOT_SOURCE>`'s own root. The bare root SHALL be treated as validated only for the three artifacts `ADOPT-00` checks — it SHALL NOT be treated as validated for freedom from the canonical source repository's own project-specific content, since a canonical source that doubles as a real, self-adopted repository carries its own domain-specific `docs/`/`ai-specs/` at that root. Where the resolved source is a sparse checkout that does not materialize `packages/` on disk, the payload SHALL be extracted via a mechanism that reads it from the pinned commit (for example `git archive`) rather than assumed absent.
+
+#### Scenario: The canonical source doubles as a self-adopted repository
+
+- **WHEN** the canonical source's own root `docs/`/`ai-specs/` contain that repository's project-specific adopted content rather than a generic template
+- **THEN** the import payload is still read from `packages/specboot/template/`, and the root's own project-specific content is never copied into the target
+
+#### Scenario: A sparse source does not materialize the payload on disk
+
+- **WHEN** the resolved canonical source is a sparse checkout that does not include `packages/specboot/template/` among its materialized paths
+- **THEN** the payload is extracted from the pinned commit by a mechanism that does not require it to be present in the working tree, and the source's own working tree is confirmed unmodified afterward
+
 ### Requirement: Source-linked mode copies no canonical content into the adopting project
 
 In source-linked mode the adoption SHALL NOT copy the adoption guide, the phase files, the run-log template, or the orchestration skill body into the project, and SHALL NOT create `.specboot/bootstrap/` at all. It SHALL store only project-specific durable state under `.specboot/adoption/`. It SHALL provision only the declared client's **temporary** discovery entries, each pointing at the external canonical guide and skill rather than at a local copy. Those entries name an absolute path valid on one machine only: they SHALL be excluded from every checkpoint's staged scope, SHALL NEVER be committed, and SHALL be removed — or the file they were appended to byte-restored — by `ADOPT-18`. The same rule SHALL apply to the machine-local source-path store under `.specboot/local/`. No committed artifact produced by a source-linked run SHALL contain an absolute external path.

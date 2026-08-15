@@ -206,14 +206,18 @@ directory scan, do not treat any other directory on this machine as a candidate,
 the operator to name the source again — that value was already established, once, before this
 step was reached.
 
+**The `docs/`/`ai-specs/` payload this step imports is `<SPECBOOT_SOURCE>/packages/specboot/template/`, never `<SPECBOOT_SOURCE>`'s own root.** `<SPECBOOT_SOURCE>`'s bare root is validated and used for `ADOPT-00`'s three artifacts (the guide, `specboot-adoption/`, the orchestration skill) — it is never validated as free of the source repository's *own* content. Where the canonical source is itself a real, adopted repository (its own root `docs/`/`ai-specs/` populated with *that* repository's project-specific content, not a generic template — exactly the case where the canonical source doubles as a working reference implementation), copying from the bare root would import that repository's own domain-specific baseline into an unrelated target, precisely the template-contamination failure `ADOPT-06` exists to detect downstream rather than prevent at the source. `packages/specboot/template/` is the deliberately generic, redistributable payload — confirm it is what is actually copied, not the source repository's own root.
+
+Where the resolved source is a **sparse** checkout that does not materialize `packages/`, extract the payload with `git archive` against the pinned commit rather than assuming it is present on disk — matching the reference experiment's own recorded technique — and confirm the extraction left the read-only source's working tree untouched.
+
 ```bash
-cp -rn <SPECBOOT_SOURCE>/* <TARGET_REPOSITORY>/
+cp -rn <SPECBOOT_SOURCE>/packages/specboot/template/* <TARGET_REPOSITORY>/
 ```
 
 Reference experiment command:
 
 ```bash
-cp -rn <SPECBOOT_SOURCE>/* .
+cp -rn <SPECBOOT_SOURCE>/packages/specboot/template/* .
 ```
 
 Important shell behavior:
