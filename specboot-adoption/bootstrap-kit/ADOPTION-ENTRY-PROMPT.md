@@ -95,6 +95,27 @@ was performed by the launcher or here, it is complete **before** anything is loa
 
 **If no source is supplied, or validation fails**, stop. See §7 — this is a refusal, not a fallback.
 
+## 2a. Before asking anything — check whether this is a resume, not a cold start
+
+**This check runs before `Q2`/`Q3` below, every time, regardless of why this session started.** A
+prior session on this same adoption may have ended for any reason — the designed stop-and-hand-off
+of §5, or an unplanned interruption (a usage limit, a crash, a closed terminal) at any other point.
+Both look identical from here: a new session, reading this same file. Only the target repository's
+own durable state distinguishes them.
+
+Check whether `.specboot/adoption/ADOPTION-RUN-LOG.md` exists **and** already records a client
+selection.
+
+- **If it does not** (or records no selection yet): this is a genuine cold start. Continue to §3
+  below and ask `Q2`/`Q3` as written.
+- **If it does**: this is a **resume**, not a cold start. Do **not** ask `Q2`/`Q3` again — the
+  selection already made is binding. Skip §3 through §6 entirely and go directly to §8's resume
+  procedure, generalized as stated there for exactly this case.
+
+This is the same two-file mechanism §9 describes, used for both purposes — it is not a third
+artifact, and it asks no new question: the run log already exists precisely so this determination
+never has to be asked.
+
 ## 3. Step 3 — an explicit, supported client selection
 
 Ask these, and wait for real answers.
@@ -224,7 +245,12 @@ available here; do not attempt to improvise one.
 
 ## 8. Step 7, in the fresh session — resume, verify, and only now discover
 
-The fresh session you handed off to:
+**This procedure serves two arrivals, not one: the designed stop-and-hand-off of §5-6, and any
+later, undesigned interruption §2a routed here (a usage limit, a crash, a closed terminal — at any
+step, not only right after `ADOPT-00`).** Both resume the same way. The only thing that changes
+between them is point 5 below.
+
+The session resuming here:
 
 1. **resumes** from the durable manifest and the adoption run log — never by re-running this prompt
    from scratch and never by re-asking questions already answered and recorded;
@@ -245,10 +271,13 @@ The fresh session you handed off to:
    the operator just typed;
 4. **blocks on drift.** A checksum mismatch means the canonical instructions changed underneath the
    run. Stop for human reconciliation rather than continuing against instructions nobody approved;
-5. **attempts native skill discovery — here, and only here.** This is the first point at which
-   `specboot-adopt` could be discoverable at all. Record the fresh-session discovery-and-execution
-   result as the probe's evidence. Filesystem presence is not discovery, and the §2 direct read is
-   not discovery.
+5. **attempts native skill discovery only when `ADOPT-00` has not already recorded that evidence.**
+   Right after the designed §5-6 handoff, this is the first point at which `specboot-adopt` could be
+   discoverable at all — attempt it, and record the discovery-and-execution result as the probe's
+   evidence. Filesystem presence is not discovery, and the §2 direct read is not discovery. **Where
+   the run log already shows `ADOPT-00` `PASS` with that evidence recorded** (an interruption at some
+   later step, routed here by §2a), that evidence already exists — do not re-attempt discovery and
+   do not ask the question again; skip straight to continuing from the step named in point 1 above.
 
 From there, continue through every reachable adoption step, stopping only at documented
 human-approval gates or genuine external blockers.
