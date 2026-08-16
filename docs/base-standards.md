@@ -47,7 +47,9 @@ This requirement applies to:
 - `openspec-propose` (creates a new OpenSpec change and its artifacts; supersedes the retired `openspec-ff-change`)
 - `openspec-update-change` (revises or continues an existing change's artifacts; supersedes the retired `openspec-continue-change`)
 
-Before starting any of these workflows, verify the session is using Opus high reasoning. If it is not, **self-correct** by adding `"model": "claude-opus-4-7"` to `.claude/settings.json` (use the `update-config` skill or edit directly), then continue — do not stop and ask the user. Do the same to come back to sonnet medium for any other step.
+Before starting any of these workflows, verify the session is using Opus high reasoning. If it is not, **self-correct** by adding `"model": "claude-opus-5"` to `.claude/settings.json` (use the `update-config` skill or edit directly), then continue — do not stop and ask the user. Do the same to come back to sonnet medium for any other step.
+
+**Do not let this key leak into a distributed permission baseline.** A `.claude/settings.json` that also serves as a reference/reviewed permission baseline for another process (for example, SpecBoot's `ADOPT-05B`) must not carry this `model` key when copied or merged elsewhere — it is a per-project planning override, never a permission entry, and propagating it would install a model override somewhere it was never reviewed for.
 
 ## 6. Symlink Integrity and Multi-Agent Portability
 
