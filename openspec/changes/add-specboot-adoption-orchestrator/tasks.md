@@ -466,6 +466,43 @@
 >
 > **No implementation file is changed by this revision.**
 
+> **Nineteenth revision — three more step-level gates join the conditional set, and two more are
+> confirmed to need no change (2026-08-16).** Following the eighteenth revision's completed
+> `Allowed modifications` sweep, this revision extends design D-Z's part-6 conditional-approval
+> treatment (`ADOPT-02`/`05`/`13`) to two steps whose own pre-write gates were still unconditional
+> despite now having everything the mechanism needs: `ADOPT-04` (`02-codegraph.md`) gains the same
+> skip-when-already-satisfied clause `ADOPT-02` already carries, closing a gap a completed pilot run
+> (`app-prices-rest-specboot-ai-adoption-v2`) already worked around by interpretation but the guide
+> never stated as a rule; `ADOPT-03` (`01-prerequisites-and-install.md`) joins the conditional set on
+> the same closed-rule-plus-mechanical-count basis already established for it by the tenth, sixteenth,
+> and seventeenth revisions. `ADOPT-05B` (`03-client-permissions.md`) has its single gate split into
+> the two decisions its own wording already names side by side: creating/merging within the
+> already-reviewed generic baseline auto-approves; broadening beyond it stays live, because that is a
+> new privilege change to the file the standing-authorization mechanism itself depends on.
+>
+> **Two gates considered for the same treatment are confirmed to need no change, recorded in
+> `design.md` (D-Z, part 16) so neither is re-proposed without the reasoning that already answered
+> it**: `ADOPT-06` stays live because its dominant content (`docs/backend-standards.md`,
+> `docs/frontend-standards.md`) is a synthesized convention across many code instances, and the
+> code-graph citation-check proves a cited claim is real, never that it is representative — a
+> different failure mode than the deterministic-copy cases this revision and part 6 cover.
+> `ADOPT-09`/`ADOPT-10` needs no change because its gate, read against its own wording, already fires
+> only on an actual collision with pre-existing content, never on ordinary creation in a genuine
+> cold-start repository.
+>
+> **A third candidate, `ADOPT-14`, was proposed mid-review and withdrawn on direct inspection**:
+> `06-adapters-and-discovery.md` shows `ADOPT-14` is a pure read-only re-verification with no
+> `[HUMAN APPROVAL REQUIRED]` gate of its own — the only gate governing adapter creation belongs to
+> `ADOPT-13`, already conditional since the eleventh revision. Recorded in `design.md` as a
+> correction rather than silently dropped.
+>
+> **4 tasks are added** (1.13, 7.32, 7.33, 15.19). **No task is reopened**: this adds new conditional
+> treatment, it does not correct anything already delivered. Task counts move from **260 (229 done /
+> 31 open)** to **264 (233 done / 31 open)**.
+>
+> **No `packages/specboot/` implementation file and no `SKILL.md` are changed by this revision** —
+> matching the eleventh revision's own pattern, every change here is guide/design/tasks text.
+
 ## 0. Setup: Feature Branch (MANDATORY — FIRST STEP)
 
 - [x] 0.1 Confirm the working branch is `feature/add-specboot-adoption-orchestrator` and record the starting HEAD; the branch already exists at `c900394104ca1be31d59684d31b2b2aa63fbd2f1`, so create it only if the check shows otherwise — never re-create or reset it
@@ -485,6 +522,7 @@
 - [x] 1.8 **Sixteenth revision.** Extend `01-prerequisites-and-install.md`'s `ADOPT-03` approval gate: the file counts and names it presents are the literal output of the same `find` commands its `Validation` section already runs, executed before the gate is shown, never a recalled or summarized figure (design D-Z, part 11)
 - [x] 1.7 **Fifteenth revision.** Add an explicit statement to `01-prerequisites-and-install.md`'s `ADOPT-03`, immediately before its `cp -rn` command: `<SPECBOOT_SOURCE>` is the same canonical source `ADOPT-00` already resolved and validated; read it from the machine-local `.specboot/local/canonical-source-path` store, never re-derive it from a fresh directory scan and never re-ask the operator for it (design D-Z, part 10)
 - [x] 1.6 **Eleventh revision.** Extend `ADOPT-02` in `01-prerequisites-and-install.md`: before the install/upgrade command, check whether an already-installed OpenSpec version already supports the documented keys this guide requires (`ADOPT-01`'s own criterion); where it does, skip the install/upgrade command and its approval gate entirely and proceed straight to `openspec init`, recording the reused version as evidence. Where it does not, or none is installed, the existing command and its `[HUMAN APPROVAL REQUIRED]` gate are unchanged (design D-Z, part 6)
+- [x] 1.13 **Nineteenth revision.** Extend `ADOPT-03`'s approval gate in `01-prerequisites-and-install.md`: where the pre-gate mechanical `find` comparison (already required by the sixteenth revision) shows the copy matches the step's closed-rule `Allowed modifications` exactly — every expected path present, nothing outside the two mirrored trees and the four root symlinks — the gate auto-approves, recorded as evidence. Any deviation the comparison surfaces requires the live gate unchanged (design D-Z, part 14)
 
 ## 2. RED Baseline: Skill Test Campaign Before Any Skill Body Exists (TDD Iron Law)
 
@@ -652,6 +690,8 @@
 - [x] 7.27 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-04` in `02-codegraph.md`: closed exact list (`.codegraph/`, only `.codegraph/.gitignore` trackable)
 - [x] 7.28 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-05`: closed exact list (`.mcp.json`, the selected client's permission file, the additive `CODEGRAPH_START/END` block, `ADOPTION-AUTHORIZATION.md` update)
 - [x] 7.29 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-05B` in `03-client-permissions.md`: closed exact list (the selected client's shared permission file, one per `SELECTED` client, `ADOPTION-AUTHORIZATION.md` update)
+- [x] 7.32 **Nineteenth revision.** Extend `ADOPT-04` in `02-codegraph.md`: before the installation action, check whether `codegraph --version` already reports a version that satisfies this step's documented requirement; where it does, skip the installation action and its approval gate entirely and proceed straight to `codegraph init`, recording the reused version as evidence, matching `ADOPT-02`'s existing clause exactly. Where no usable version is already present, the installation action and its `[HUMAN APPROVAL REQUIRED]` gate are unchanged (design D-Z, part 13)
+- [x] 7.33 **Nineteenth revision.** Split `ADOPT-05B`'s approval gate in `03-client-permissions.md` into the two acts its own wording already names side by side: creating or merging the permission file strictly within the organization's already-reviewed generic baseline (Steps 1-4, no content beyond the declared team environment matrix) auto-approves; broadening the file with a command family absent from that baseline remains `[HUMAN APPROVAL REQUIRED]`, unchanged (design D-Z, part 15)
 - [x] 7.30 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-16` in `07-baseline-and-checkpoint.md`: none by default, generated build output relocation only behind its own approval gate
 - [x] 7.31 **Eighteenth revision.** Add `Allowed modifications` to `ADOPT-17`: not a list of its own — the cumulative union of every prior uncommitted step's own field
 - [x] 7.26 **Sixteenth revision.** Add a general rule to `00-conventions.md`'s evidence discipline: a count or enumeration presented at any approval gate is the literal, raw output of a mechanical command run against the actual source before that gate is presented, never a recalled, estimated, or summarized figure (design D-Z, part 11)
@@ -763,6 +803,7 @@
 - [x] 15.14 **Tenth revision.** Verified via `grep -n "\.specboot/bootstrap/skills\|\.specboot/bootstrap/SPECBOOT_ADOPTION" specboot-adoption/bootstrap-kit/discovery/claude.md` — zero matches, confirming both the `## Entries` table and the block-delimiter text no longer reference the deferred packaged-snapshot container path
 - [x] 15.15 **Tenth revision.** Verified `packages/specboot/template/ai-specs/skills/specboot-verify/SKILL.md` and `.../adversarial-review/SKILL.md` both exist. *(Corrected during 3.22: no kit-manifest registration applies — skills reach the target repository through `ADOPT-03`'s wholesale `ai-specs/` copy, not through `bootstrap-kit/manifest.json`, confirmed by inspecting the manifest's actual schema, which has no per-skill registry.)* `ADOPT-11`/`ADOPT-12`'s completeness-check text (`05-agents-and-skills.md`) references `ai-specs/specboot-instructions.md`'s mandatory-capability list directly rather than hardcoding a count, so it tracks that list's actual content rather than needing to independently agree with "six"
 - [x] 15.18 **Thirteenth revision.** Verified via grep: `09-bootstrap.md` references `ADOPTION-AUTHORIZATION.md` 3 times (mutation inventory, `Allowed modifications`, durable-record table) and states "not a second question"; `01-prerequisites-and-install.md`, `02-codegraph.md`, and `03-client-permissions.md` each reference it once/twice, all as "update... does not create a second one"
+- [x] 15.19 **Nineteenth revision.** Verified all three edits by direct grep against the actual files (not inferred): `02-codegraph.md` cites "design D-Z, part 13" once, at `ADOPT-04`'s approval gate; `01-prerequisites-and-install.md` cites "design D-Z, part 14" once, at `ADOPT-03`'s approval gate; `03-client-permissions.md` cites "design D-Z, part 15" once, at `ADOPT-05B`'s now-split approval gate. Confirmed each file's remaining `[HUMAN APPROVAL REQUIRED]` markers stayed at the expected count (`02-codegraph.md`: 3 — `ADOPT-04`'s install gate twice in the amended text, `ADOPT-05`'s config gate once; `01-prerequisites-and-install.md`: 4 — `ADOPT-02` twice, `ADOPT-03` once, plus one cross-reference inside `ADOPT-02`'s own text; `03-client-permissions.md`: 1 — the broadening half of `ADOPT-05B`'s split gate), so no gate was silently removed rather than conditioned. `ADOPT-14` confirmed to carry no `[HUMAN APPROVAL REQUIRED]` marker of its own in `06-adapters-and-discovery.md`, consistent with the mid-review correction recorded in `design.md`
 - [x] 15.17 **Eleventh revision.** Verified all five, by direct grep/read against the actual files (not inferred): `ADOPT-02`'s skip text cites `ADOPT-01`'s "must support the documented keys" criterion by name; `ADOPT-05`'s auto-approval text cites "the least-privilege defaults documented in the Rules above"; `ADOPT-13`'s auto-approval text cites `` `ADOPT-09`–`ADOPT-12` `` by name, not a generic reference; `ADOPTION-LAUNCHER.template.md` has "Step 0" (the identity check) ordered before "Step 1" (the four-artifact check); and all three fresh-session-handoff locations (`09-bootstrap.md:201`, `10-debootstrap.md:178`, `references/bootstrap-and-debootstrap.md:131`) carry the identical phrase "is not a decision to present to the operator". *(Two false negatives caught and corrected in this same verification pass: an initial grep truncated with `head -3` missed the `ADOPT-02` match lower in the file, and an initial pattern for `ADOPT-13` omitted the backtick before "already validated" and matched nothing — re-run without either flaw, both confirmed present.)*
 
 - [x] 15.16 **Tenth revision.** Verified via grep against `04-context-and-openspec.md`: the citation-check requirement references "the selected code-graph capability", explicitly includes narrative `"Known Risks and Defects"` claims (not only structural comparisons), and the existing "document, never resolve" rule is reinforced, not weakened — line 39 now states explicitly that "changing the code the defect lives in is never this step's job, regardless of how small the fix would be"

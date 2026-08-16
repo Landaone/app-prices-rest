@@ -186,9 +186,18 @@ one per client explicitly `SELECTED` in `ADOPT-02` and never for any other, plus
 `.claude/settings.local.json` or an equivalent personal-override file holding a second copy of the
 team allowlist.
 
-**Approval gate:** **[HUMAN APPROVAL REQUIRED]** before creating the initial shared
-permission file or broadening it with a new command family. Subsequent changes follow
-normal repository review so the whole team receives the same policy.
+**Approval gate:** this gate covers two different acts; they are not the same decision.
+
+- **Creating or merging the file strictly within the organization's already-reviewed generic
+  baseline** — Steps 1-4 above, adding nothing beyond the declared team environment matrix's own
+  reconciliation — **auto-approves**, recorded as evidence rather than presented as a live
+  question: the content is deterministic, sourced from a baseline reviewed once, elsewhere, in
+  advance (design D-Z, part 15).
+- **Broadening the file with a command family absent from that baseline** remains
+  **[HUMAN APPROVAL REQUIRED]**, unchanged. This is new privilege nobody has reviewed yet, and it
+  is a change to the very file the standing-authorization mechanism reads to auto-approve
+  everything else — that mechanism cannot certify a change to its own trust boundary. Subsequent
+  changes of this kind follow normal repository review so the whole team receives the same policy.
 
 **Validation:**
 

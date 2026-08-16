@@ -282,7 +282,12 @@ hidden client directory (`cp -rn ... *` does not match dot-prefixed names by des
 and names presented at this gate are the literal output of the same `find` commands used for
 `Validation` below, run before this gate is presented — never a recalled or summarized figure**
 (`00-conventions.md`'s evidence discipline). A miscount here is not a rounding error the operator
-is expected to catch; it is evidence the gate was not actually derived mechanically.
+is expected to catch; it is evidence the gate was not actually derived mechanically. **Where that
+mechanical comparison shows the copy matches this step's closed-rule `Allowed modifications`
+exactly — every expected path under `docs/` and `ai-specs/` present, nothing outside the two
+mirrored trees and the four root symlinks — the gate auto-approves**, recorded as evidence rather
+than presented as a live question. Any deviation the comparison surfaces reaches the live gate
+exactly as documented (design D-Z, part 14).
 
 **Validation:**
 

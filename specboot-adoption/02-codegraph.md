@@ -60,6 +60,12 @@ exploration.
 
 **Action:**
 
+**Check before installing.** Run `codegraph --version` first. If a version is already installed
+and satisfies this step's requirement, **skip the installation procedure below entirely** and
+proceed straight to `codegraph init` — nothing is being installed, so the approval gate this step
+documents for that action does not trigger. Record the reused version as evidence. Only where no
+usable version is already present, follow the official installation procedure:
+
 Official source:
 
 ```text
@@ -72,7 +78,10 @@ Follow the official installation procedure, then verify:
 codegraph --version
 ```
 
-Then initialize:
+— behind the `[HUMAN APPROVAL REQUIRED]` gate below, exactly as documented.
+
+Then initialize (always — `codegraph init` is a repository-local index build, not a software
+install, and runs whether or not the check above skipped the installation procedure):
 
 ```bash
 codegraph init
@@ -91,7 +100,10 @@ Reference result — evidence from the reference repository, not a universal exp
 `.codegraph/.gitignore`, provisioned by CodeGraph itself, is ever trackable — the index database
 inside it is version-dependent and always git-ignored). No other path.
 
-**Approval gate:** **[HUMAN APPROVAL REQUIRED]** before software installation.
+**Approval gate:** **[HUMAN APPROVAL REQUIRED]** before software installation — reached only when
+the installation procedure above actually runs. Where an already-installed version already
+satisfies this step's requirement, this gate is never presented: nothing is being installed
+(design D-Z, part 13).
 
 **Validation:**
 
@@ -107,8 +119,9 @@ PASS criteria:
 - The index is queryable.
 - Internal `.codegraph/` files are treated as version-dependent.
 
-**Evidence to record:** run-log `ADOPT-04` — CodeGraph version, command, files indexed,
-nodes, edges, duration, exploration query, result.
+**Evidence to record:** run-log `ADOPT-04` — CodeGraph version, whether the installation
+procedure ran or was skipped because an already-installed version already satisfied this step's
+requirement, command, files indexed, nodes, edges, duration, exploration query, result.
 
 **On failure:** recovery is **inline in this step** (contract form A, see
 [`00-conventions.md`](00-conventions.md)) — the table below is the documented recovery for
