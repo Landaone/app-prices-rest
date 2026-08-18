@@ -89,8 +89,8 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-06` | `04-context-and-openspec.md` | PASS | 2026-08-19 |
 | `ADOPT-07` | `04-context-and-openspec.md` | PASS | 2026-08-19 |
 | `ADOPT-08` | `04-context-and-openspec.md` | PASS | 2026-08-19 |
-| `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
-| `ADOPT-10` | `05-agents-and-skills.md` | PENDING | |
+| `ADOPT-09` | `05-agents-and-skills.md` | PASS | 2026-08-19 |
+| `ADOPT-10` | `05-agents-and-skills.md` | PASS | 2026-08-19 |
 | `ADOPT-11` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-12` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PENDING | |
@@ -827,6 +827,189 @@ Stop after reporting the negative control's result and the permission behavior.
 
 ---
 
+## `ADOPT-09` — Inspect and Adapt Agents
+
+- Date: 2026-08-19
+- Prompt used: the canonical consolidated prompt from `05-agents-and-skills.md` verbatim, executed
+  by a delegated general-purpose subagent (this session's own subagent, not a separate
+  orchestration — the executing session remained accountable for reviewing the result before
+  checkpointing; see the independent verification note below).
+- **Independent verification by this session** (not merely trusting the subagent's self-report):
+  re-ran `python3 -c "import yaml; ..."` strict frontmatter parsing on all 4 agent files directly —
+  all VALID; confirmed via `git diff` that the 3 pre-existing agents' diffs are representation-only
+  (description text, `tools`/`model`/`color`, and body byte-identical, only the scalar style
+  changed); re-ran the domain-leakage grep
+  (`llandaeta|priceentity|pricemodel|pricecontroller|pricerepository|pricelist|brandid`) and the
+  client-metadata grep (`^tools:|^model:|^color:|mcp__`) against `java-backend-developer.md`
+  directly — both clean; confirmed via `git diff openspec/config.yaml` that only the
+  Agent-selection paragraph changed, nothing else in `rules:`, `operations:`, or the rest of
+  `context:`; read `java-backend-developer.md` in full — confirmed genuinely generic (no Spring/
+  Maven/JPA-specific assumptions hard-coded, stack discovery instructed at task time).
+- Repository evidence inspected: `pom.xml` (Spring Boot 2.4.5 parent, `<java.version>11</java.version>`,
+  `spring-boot-starter-data-jpa`, `spring-boot-starter-web`, `flyway-core`, `h2`, `lombok`,
+  `spring-boot-devtools`, `spring-boot-configuration-processor`); full `src/` tree (18 files:
+  12 main + 4 test + `application.yaml` + `V1_create_tables.sql`) via `find src -type f`;
+  `docs/` (7 files present: `api-spec.yml`, `backend-standards.md`, `base-standards.md`,
+  `data-model.md`, `development_guide.md`, `documentation-standards.md`, `frontend-standards.md`);
+  `openspec/config.yaml` (existing "Agent selection" paragraph, read in full); all 3 files under
+  `ai-specs/agents/` (`backend-developer.md`, `frontend-developer.md`, `product-strategy-analyst.md`),
+  read in full. CodeGraph used: `codegraph explore "list entry points"` → 49 symbols across 3 files,
+  confirming the indexed Java/Spring source structure (`PriceModel.java`, `PriceEntity.java`,
+  `PriceEntityModelConverter.java`) independently of the file-read evidence above.
+- Detected stacks and work types: Java 11 / Spring Boot 2.4.5 / Maven backend (Spring Data JPA +
+  Hibernate, Flyway migrations, H2, Lombok, JUnit 5), REST API, no frontend; plus
+  technology-agnostic product/strategy work (already covered).
+- **Strict YAML frontmatter validation, run before any adaptation** — command: a Python script per
+  file extracting the `---...---` block and parsing it with `yaml.safe_load` (PyYAML, strict,
+  `safe_load`, no custom loader):
+  - `ai-specs/agents/backend-developer.md`: **INVALID** — `yaml.YAMLError: mapping values are not
+    allowed here`, at the first embedded `Context:` inside the unquoted `description` scalar's
+    `Examples:` block (column 654 of the folded line).
+  - `ai-specs/agents/frontend-developer.md`: **INVALID** — same error class, at the first embedded
+    `Context:` (column 528).
+  - `ai-specs/agents/product-strategy-analyst.md`: **INVALID** — same error class, at the first
+    embedded `Context:` (column 326).
+  - Root cause in all three: an unquoted plain-scalar `description:` value containing `Context:`,
+    `user:`, `assistant:` sequences, which YAML's plain-scalar grammar treats as an unterminated
+    mapping-value indicator. This matches exactly the "invalid only because of unquoted
+    YAML-sensitive text" condition this step's own text names as repairable-in-representation-only.
+- **Representation-only repairs performed** (all three files): converted the single-line
+  `description: <text>` entry to a literal block scalar with strip chomping —
+  `description: |-` followed by the identical text, verbatim, indented two spaces on the next
+  line. No other line in any of the three files was touched — confirmed by `git diff` (each diff
+  shows exactly one changed line replaced by two lines; `name`, `tools`, `model`, `color`, and the
+  entire body below the frontmatter are byte-identical to before). Post-repair re-validation with
+  the same strict parser: all three files now **VALID**, and the parsed `description` value's
+  length and head/tail text were spot-checked against the original raw text to confirm no
+  character was added, removed, or reinterpreted (the literal block style, unlike double-quoted
+  style, does not process `\n` as an escape, so the original literal backslash-n sequences in the
+  source text are preserved unchanged, not converted into real newlines).
+- Agents preserved, unchanged in content: `backend-developer.md` (TypeScript/DDD/Express/Prisma
+  backend — not applicable to this Java repository; preserved per this step's explicit instruction
+  not to reject a non-matching-stack agent, only representation-repaired) and
+  `frontend-developer.md` (React frontend — this repository has no frontend; preserved,
+  representation-repaired only). `product-strategy-analyst.md` (technology-agnostic product/
+  strategy work — applies unchanged to this repository) — preserved, representation-repaired only,
+  no scope change.
+- Agent created: `ai-specs/agents/java-backend-developer.md`. Reason: no existing canonical agent
+  covers Java/JVM backend implementation or review work — `backend-developer.md` is explicitly
+  scoped to TypeScript/DDD/Express/Prisma (confirmed by direct read of its body); `frontend-developer.md`
+  is explicitly scoped to React and this repository has no frontend; `product-strategy-analyst.md`
+  is technology-agnostic and does not cover implementation work. Per this step's own text, creation
+  is treated as conditional and optional — it was exercised here because the gap is real and
+  concrete (Java/Spring Boot is this repository's entire implementation surface with zero existing
+  coverage), not as a default action.
+  - Frontmatter: `name` and `description` only — no `tools`, `model`, `color`, or MCP identifiers,
+    matching this step's explicit "portable, client-neutral frontmatter only" requirement (the
+    three pre-existing agents carry Claude-specific `tools`/`model`/`color` keys because they were
+    imported that way from the canonical source at `ADOPT-03`, before this constraint was stated
+    for newly created agents; they were left as-is, since only representation-only frontmatter
+    repairs are in scope for pre-existing agents).
+  - Strict YAML validation: `yaml.safe_load` on the extracted frontmatter block → VALID, keys
+    `['name', 'description']` only.
+  - Reusability: scoped to the Java/JVM technology family generically (Java or another JVM
+    language, any framework, any build tool, any architectural style), not to Spring Boot, Maven,
+    JPA, Flyway, or H2 specifically, and not to this repository's package name, entities, or
+    domain. The body explicitly instructs discovering the actual framework/build tool/architecture
+    from the target project's own documentation and code at task time, rather than assuming Spring
+    or Maven.
+  - Domain-neutrality check: `grep -inE
+    "llandaeta|PriceEntity|PriceModel|PriceController|PriceService|PriceRepository|com\.llandaeta|prices\.rest|brandId|productId|priceList"
+    ai-specs/agents/java-backend-developer.md` → no matches (exit 1). The file's three examples use
+    generic phrasing ("the domain entity and its output model", "a new lookup method to the
+    repository", "the build broke after updating a dependency") with no reference to this
+    repository's actual entities, controllers, package names, or business domain.
+  - Client-neutrality check: `grep -inE "^tools:|^model:|^color:|mcp__"
+    ai-specs/agents/java-backend-developer.md` → no matches (exit 1).
+  - Documentation references: the agent body references project documentation only generically
+    ("most commonly a backend- or architecture-focused standards document alongside a base/process
+    standards document ... typically under a `docs/` directory or equivalent, when present") — it
+    does not hard-code a literal path, so there is no dangling-reference risk when reused in a
+    different repository; in this repository specifically, `docs/base-standards.md` and
+    `docs/backend-standards.md` (the documents the generic phrasing points at) were confirmed to
+    exist by direct listing before this claim was recorded.
+- OpenSpec selection updated: `openspec/config.yaml`'s "Agent selection" paragraph (inside
+  `context:`) only. The obsolete paragraph ("No Java/Spring-specific implementation agent exists in
+  this repository yet ... do not select `ai-specs/agents/backend-developer.md` for it") was
+  **replaced**, not appended alongside, with a paragraph naming
+  `ai-specs/agents/java-backend-developer.md` for backend implementation/review work, its creation
+  rationale, and its stack-family scope. The `product-strategy-analyst.md` and (preserved,
+  not-applicable) `backend-developer.md`/`frontend-developer.md` lines were left unchanged. `git
+  diff -- openspec/config.yaml` confirms only that one paragraph changed — `rules:`, `operations:`,
+  and every other part of `context:` (the documentation map, the stack description, the workflow-
+  guidance and known-defects paragraphs) are byte-identical to before.
+- Files modified: `ai-specs/agents/backend-developer.md` (frontmatter representation repair only),
+  `ai-specs/agents/frontend-developer.md` (frontmatter representation repair only),
+  `ai-specs/agents/product-strategy-analyst.md` (frontmatter representation repair only),
+  `openspec/config.yaml` (Agent-selection paragraph only). Files created:
+  `ai-specs/agents/java-backend-developer.md`. No client adapter directory (`.claude/agents/`,
+  `.cursor/agents/`, or equivalent) was created or touched — confirmed no such directory exists
+  under this repository (`find . -maxdepth 2 -iname "*agents*"` shows only `ai-specs/agents/`).
+- Validation against this step's own validation list — see the `ADOPT-10` evidence block below for
+  the independent, read-only re-check; all criteria PASS (detailed per-criterion results recorded
+  there rather than duplicated here).
+- **Approval gate**: creating a new agent is conditional/optional per this step's text, not gated
+  by the `[HUMAN APPROVAL REQUIRED]` marker, which this step's text attaches specifically to
+  "removing or replacing an existing agent." No existing agent was removed or replaced — all three
+  pre-existing agents were preserved with only a representation-only frontmatter repair (content,
+  metadata, and body byte-identical). This gate was therefore not reached; recorded per this step's
+  own text rather than self-approved.
+- Result: PASS
+
+---
+
+## `ADOPT-10` — Validate Agents
+
+- Date: 2026-08-19
+- Commands run (read-only, exactly as this step specifies):
+  - `find ai-specs/agents -maxdepth 1 -type f -name '*.md' -print` → exit 0. Output: 4 files —
+    `ai-specs/agents/java-backend-developer.md`, `ai-specs/agents/backend-developer.md`,
+    `ai-specs/agents/product-strategy-analyst.md`, `ai-specs/agents/frontend-developer.md`.
+  - `grep -R "ai-specs/agents" openspec 2>/dev/null` → exit 0. Output: 5 matching lines, all in
+    `openspec/config.yaml`, one per agent reference (the section header plus the 4 agent-path
+    lines: `java-backend-developer.md`, `product-strategy-analyst.md`, `backend-developer.md`,
+    `frontend-developer.md`).
+  - `git diff -- ai-specs/agents openspec/config.yaml openspec/config.yml 2>/dev/null` → exit 0.
+    Output: the 4 tracked-file diffs (3 agents' frontmatter-only repairs, `openspec/config.yaml`'s
+    single paragraph replacement) — `openspec/config.yml` does not exist in this repository (only
+    `.yaml` is used), so it produced no diff, as expected. `java-backend-developer.md` does not
+    appear in `git diff` because it is untracked (`??`), not modified — confirmed separately via
+    `git status --short`.
+- **Validation, PASS criterion by criterion**:
+  - Selected agent exists under `ai-specs/agents/`: PASS — `java-backend-developer.md` present
+    (confirmed by the `find` output above).
+  - Frontmatter is valid: PASS — strict `yaml.safe_load` re-run against all 4 files in this step
+    (not merely inherited from `ADOPT-09`): `backend-developer.md` VALID, `frontend-developer.md`
+    VALID, `product-strategy-analyst.md` VALID, `java-backend-developer.md` VALID (keys
+    `['name', 'description']`).
+  - Description matches the intended technology family or work type: PASS —
+    `java-backend-developer.md`'s description names Java/JVM backend implementation and review
+    work with framework/build-tool/architecture resolved from the project, matching this
+    repository's detected Java 11/Spring Boot/Maven stack without naming Spring or Maven as a hard
+    requirement.
+  - Unrelated agents remain present: PASS — `backend-developer.md` and `frontend-developer.md`
+    both still present, byte-identical below the frontmatter line, per the `git diff` output above.
+  - Project-specific details are not unnecessarily duplicated: PASS — `java-backend-developer.md`
+    contains no repository-specific package name, entity, controller, or business-domain term
+    (re-confirmed by re-running the domain-leakage grep from `ADOPT-09` in this step: no matches).
+  - Referenced documentation exists: PASS — the agent references documentation only generically
+    (no literal path named in the body); the generic categories it points at
+    ("backend/architecture standards", "base/process standards") correspond to
+    `docs/backend-standards.md` and `docs/base-standards.md`, both confirmed present via
+    `ls docs/` in `ADOPT-09`.
+  - OpenSpec selects an existing canonical agent: PASS — `openspec/config.yaml`'s Agent-selection
+    paragraph names `ai-specs/agents/java-backend-developer.md`, which exists on disk (confirmed by
+    the `find` output above) and passed every other criterion in this list.
+  - Client adapters are not canonical sources: PASS — no client-adapter directory
+    (`.claude/agents/`, `.cursor/agents/`, or equivalent) exists in this repository; the only
+    agent-selection reference anywhere is in `openspec/config.yaml`, pointing at `ai-specs/agents/`
+    (confirmed by the `grep -R "ai-specs/agents" openspec` output above showing zero references
+    outside `openspec/config.yaml`, and separately confirming no `.claude/agents` directory exists
+    in this repository).
+- Result: PASS
+
+---
+
 ## Checkpoint ledger
 
 One row per checkpoint. A checkpoint is the smallest independently validated `ADOPT` step; a
@@ -841,4 +1024,5 @@ group requires a **written structural justification** — "fewer commits" is not
 | 5 | `ADOPT-05B` Steps 1-4 (provisioning only — smoke test outstanding, step not yet PASS) | Not a full-step checkpoint by design: this step's own text mandates a stop-and-hand-off before the smoke test can be evidenced, so Steps 1-4's provisioning work is checkpointed now rather than left uncommitted while awaiting a fresh session. | Steps 1-4 individually validated (safety scan clean, JSON valid, merge matches baseline exactly per operator's approved scope); the step as a whole remains PENDING pending the smoke test. | `ADOPT-05B` evidence block above; `ADOPTION-AUTHORIZATION.md` environment-matrix section | YES — staged set `{.claude/settings.json (M), .specboot/adoption/ADOPTION-AUTHORIZATION.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-05B`'s closed allowlist (the Claude permission file; `ADOPTION-AUTHORIZATION.md` update-only) plus the always-permitted run log. No anomalies. | YES | **live** — operator was shown the exact baseline content, provenance, and the proposed `mvnw` broadening, and explicitly chose "baseline only, drop mvnw additions" (harness classifier also independently blocked the unapproved write until this approval) | `.claude/settings.json` (M), `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `60b624e` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `3ea53de..60b624e`, `origin/experiment/specboot-ai-adoption-v4`. | None beyond the mvnw-addition note already recorded in the `ADOPT-05B` evidence block (a future checkpoint may revisit if the wrapper is repaired). |
 | 6 | `ADOPT-05B` closure (smoke-test alternative criterion; run-log-only change) | N/A — single-step closure, no file mutation beyond the run log itself. | `ADOPT-05B` = PASS (closed on the alternative criterion for Claude Code/macOS; Windows/Linux `PENDING EVIDENCE`) | `ADOPT-05B` evidence block above (negative-control result, alternative-criterion sub-criteria, operator ruling verbatim) | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; no other path touched. No anomalies. | YES | **live** — `[HUMAN APPROVAL REQUIRED]` to close on the alternative criterion, exercised: operator (Landaone) explicitly ruled and supplied the required reasoning (negative control's silent execution as the basis for `NOT APPLICABLE ON THIS CLIENT`), 2026-08-19 | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `9ebcf0a` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `60b624e..9ebcf0a`, `origin/experiment/specboot-ai-adoption-v4`. | Residual note (operator-flagged, non-blocking): this client's silent execution of an off-allowlist negative control suggests a global permission override independent of `.claude/settings.json` may be in effect in this environment — worth investigating independently, since it would affect every future command here, not only this smoke test. Not resolved; carried forward as a limitation. |
 | 7 | `ADOPT-06` (single step — no grouping) | N/A — single step, checkpointed immediately. | `ADOPT-06` = PASS (see evidence block above) | `ADOPT-06` evidence block above (delegated-agent report plus this session's independent spot-checks: 3 citations, contamination grep, YAML validation, git-diff scope) | YES — staged set `{docs/api-spec.yml (M), docs/backend-standards.md (M), docs/base-standards.md (M), docs/data-model.md (M), docs/development_guide.md (M), docs/documentation-standards.md (M), docs/frontend-standards.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-06`'s declared allowlist (`docs/` only) plus the always-permitted run log. No anomalies — confirmed no path outside `docs/` touched. | YES | **live** — operator shown the diff summary, independent verification results, and defect list; approved 2026-08-19 ("Approve (Recommended)") | `docs/api-spec.yml` (M), `docs/backend-standards.md` (M), `docs/base-standards.md` (M), `docs/data-model.md` (M), `docs/development_guide.md` (M), `docs/documentation-standards.md` (M), `docs/frontend-standards.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `25368b5` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `9ebcf0a..25368b5`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
-| 8 | `ADOPT-07` + `ADOPT-08` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`04-context-and-openspec.md` header): "`ADOPT-07`'s adapt action is followed immediately by `ADOPT-08`'s read-only validation of the same configuration; per `00-conventions.md`'s checkpoint-grouping rule, this is a guide-documented executed pair eligible for one checkpoint... the same treatment `05-agents-and-skills.md` already states for `ADOPT-09`/`ADOPT-10` and `ADOPT-11`/`ADOPT-12`." This is the guide's own contract-recognized pairing (`00-conventions.md`'s third grounds: "this guide's own step contract makes them an executed pair"), not a convenience grouping by this run. | `ADOPT-07` = PASS (config written, all validations including falsifiable rules negative-control PASS); `ADOPT-08` = PASS (read-only re-verification, config confirmed byte-identical, zero corrections needed) | `ADOPT-07` and `ADOPT-08` evidence blocks above | YES — staged set `{openspec/config.yaml (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-07`'s closed allowlist (`openspec/config.yaml`, the only path that exists) — `ADOPT-08` is read-only and contributes no path of its own — plus the always-permitted run log. No anomalies; both scratch changes created during validation were removed before staging, confirmed absent. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed; `ADOPT-07`'s own approval gate is "none beyond the edit itself being reviewable," and `ADOPT-08` carries no gate | `openspec/config.yaml` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |
+| 8 | `ADOPT-07` + `ADOPT-08` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`04-context-and-openspec.md` header): "`ADOPT-07`'s adapt action is followed immediately by `ADOPT-08`'s read-only validation of the same configuration; per `00-conventions.md`'s checkpoint-grouping rule, this is a guide-documented executed pair eligible for one checkpoint... the same treatment `05-agents-and-skills.md` already states for `ADOPT-09`/`ADOPT-10` and `ADOPT-11`/`ADOPT-12`." This is the guide's own contract-recognized pairing (`00-conventions.md`'s third grounds: "this guide's own step contract makes them an executed pair"), not a convenience grouping by this run. | `ADOPT-07` = PASS (config written, all validations including falsifiable rules negative-control PASS); `ADOPT-08` = PASS (read-only re-verification, config confirmed byte-identical, zero corrections needed) | `ADOPT-07` and `ADOPT-08` evidence blocks above | YES — staged set `{openspec/config.yaml (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-07`'s closed allowlist (`openspec/config.yaml`, the only path that exists) — `ADOPT-08` is read-only and contributes no path of its own — plus the always-permitted run log. No anomalies; both scratch changes created during validation were removed before staging, confirmed absent. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed; `ADOPT-07`'s own approval gate is "none beyond the edit itself being reviewable," and `ADOPT-08` carries no gate | `openspec/config.yaml` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `25634fa` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `25368b5..25634fa`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
+| 9 | `ADOPT-09` + `ADOPT-10` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`05-agents-and-skills.md` header): "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair." Guide-recognized pairing (`00-conventions.md`'s third grounds), not a convenience grouping. | `ADOPT-09` = PASS (3 agents frontmatter-repaired representation-only, 1 new agent created, config selection updated); `ADOPT-10` = PASS (read-only re-verification, all 8 criteria PASS) | `ADOPT-09`/`ADOPT-10` evidence blocks above, including this session's independent re-verification (strict YAML re-parse, representation-only diff confirmation, domain/client-neutrality re-grep, config-scope diff check) | YES — staged set `{ai-specs/agents/backend-developer.md (M), ai-specs/agents/frontend-developer.md (M), ai-specs/agents/product-strategy-analyst.md (M), ai-specs/agents/java-backend-developer.md (A), openspec/config.yaml (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-09`'s declared allowlist (`ai-specs/agents/`, limited to new-agent creation and representation-only repairs; agent-selection portion of `openspec/config.yaml`) plus the always-permitted run log. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed; `[HUMAN APPROVAL REQUIRED]` for "removing or replacing an existing agent" was not reached since no existing agent was removed or replaced (all 3 preserved, representation-only) | `ai-specs/agents/backend-developer.md` (M), `ai-specs/agents/frontend-developer.md` (M), `ai-specs/agents/product-strategy-analyst.md` (M), `ai-specs/agents/java-backend-developer.md` (A), `openspec/config.yaml` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |

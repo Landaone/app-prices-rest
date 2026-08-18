@@ -34,10 +34,10 @@ context: |
   - "docs/frontend-standards.md"      NOT APPLICABLE — no frontend exists in this repository
 
   Agent selection (canonical agents live under "ai-specs/agents/"):
-  - No Java/Spring-specific implementation agent exists in this repository yet — agent adaptation
-    happens at a later adoption step (ADOPT-09) and has not run as of this configuration. Until
-    then, treat implementation work as ungoverned by a dedicated backend agent; do not select
-    "ai-specs/agents/backend-developer.md" for it (see below).
+  - "ai-specs/agents/java-backend-developer.md" for backend implementation and review work in this
+    repository (Java 11 / Spring Boot / Maven). Created at ADOPT-09 because no existing canonical
+    agent covered Java/JVM backend work; it is stack-family-scoped (Java/JVM), not hard-coded to
+    this repository's domain, and reads this project's own documentation at task time.
   - "ai-specs/agents/product-strategy-analyst.md" for problem framing and scoping before a proposal.
     It is technology-agnostic and applies here unchanged.
   - "ai-specs/agents/backend-developer.md" exists and is PRESERVED, but is NOT APPLICABLE here: its
