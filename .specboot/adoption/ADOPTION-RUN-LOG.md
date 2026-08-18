@@ -87,8 +87,8 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-19 |
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS — closed via the alternative criterion (negative control did not request permission), operator-ruled | 2026-08-19 |
 | `ADOPT-06` | `04-context-and-openspec.md` | PASS | 2026-08-19 |
-| `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
-| `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
+| `ADOPT-07` | `04-context-and-openspec.md` | PASS | 2026-08-19 |
+| `ADOPT-08` | `04-context-and-openspec.md` | PASS | 2026-08-19 |
 | `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-10` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-11` | `05-agents-and-skills.md` | PENDING | |
@@ -644,6 +644,110 @@ Stop after reporting the negative control's result and the permission behavior.
 
 ---
 
+## `ADOPT-07` — Configure OpenSpec to Consume `docs/` and `ai-specs/`
+
+- Date: 2026-08-19
+- Prompt used: the canonical consolidated prompt from `04-context-and-openspec.md`, executed
+  directly by this session (not delegated — scope is one file, contained enough for the executing
+  session to handle without a subagent).
+- Pre-inspection: installed OpenSpec version `1.7.0` (unchanged since `ADOPT-02`); config file is
+  `openspec/config.yaml` (the version's generated extension); existing `docs/`, `ai-specs/agents/`,
+  `ai-specs/skills/` inventoried (7 docs files from `ADOPT-06`; 3 agents — `backend-developer.md`,
+  `product-strategy-analyst.md`, `frontend-developer.md`; skills including `enrich-us`,
+  `specboot-verify`, `adversarial-review`, `update-docs`, `commit`, and others from `ADOPT-03`).
+- Reference consulted: this same repository's prior `v3` adoption's own `openspec/config.yaml`, as
+  a structural template only — every fact re-verified against v4's actual current files rather
+  than copied. Verified directly against source: the `GET /api/price` endpoint
+  (`PriceController.java`), the `httpcode` field (`Error.java`), the priority-desc repository
+  method name (`PriceRepository.java`), and the `yyyy-MM-dd HH:mm:ss` request date format
+  (`PriceController.java`) — all confirmed identical to v3's citations, since v4's source for these
+  specific files is unchanged from v3.
+- **Deviations from the v3 reference, made deliberately for v4's actual current state**:
+  - **Agent selection**: v3 referenced `ai-specs/agents/java-spring-backend-developer.md`, a
+    Java-specific agent created at v3's own `ADOPT-09` (agent-adaptation step). That step has not
+    yet run in this v4 adoption — no such agent exists here yet (confirmed:
+    `ai-specs/agents/` contains only the three generic agents from `ADOPT-03`). Recorded this gap
+    explicitly in `context` instead of referencing a nonexistent file, with a forward-pointer
+    noting `ADOPT-09` will resolve it.
+  - **Test command**: v3's repository had a working `mvnw` wrapper, so its rules canonicalized
+    `./mvnw test`. This v4 checkout's wrapper is broken (`ADOPT-01`'s finding, reconfirmed in
+    `ADOPT-06`'s evidence) — rules here canonicalize `mvn test` instead and explicitly say not to
+    use the wrapper.
+  - **Known-defect framing**: v3 had already fixed its exception-handler defect; this v4 repository
+    has not (per `ADOPT-06`). Context and the `specs` rule here explicitly state the defect is
+    UNFIXED and describe the actual current error-path behavior (malformed date/non-numeric
+    params/wrong method fall through Spring's default error body, not the custom `Error` DTO),
+    matching `ADOPT-06`'s empirically-verified findings, not v3's already-corrected behavior.
+- Validation performed:
+  - YAML syntax: `python3 -c "import yaml; yaml.safe_load(open('openspec/config.yaml'))"` →
+    `VALID YAML`, no error.
+  - `openspec doctor` → `OpenSpec root: ok`, `References (none declared)` — zero warnings.
+  - Every referenced path checked with `test -f`/existence: all 7 `docs/` files, all 3
+    `ai-specs/agents/*.md` files, `src/main/resources/db/migration/V1_create_tables.sql`,
+    `src/main/java/com/llandaeta/prices/db/repositories/PriceRepository.java` — all confirmed
+    present.
+  - **Rules-block check, made falsifiable with a negative control** (per this step's own required
+    method, since `openspec doctor` does not read the `rules` block): created a scratch change
+    `openspec/changes/scratch-adopt07-check/` with a minimal `proposal.md`; ran `openspec
+    instructions proposal --change scratch-adopt07-check` and confirmed the real `proposal` rules
+    text appeared in the output (e.g. the `GET /api/price`/`httpcode`/`Non-goals` rule lines).
+    **Negative control**: injected a deliberately invalid marker
+    (`'NEGATIVE-CONTROL-MARKER-XYZ123'`) as the first `proposal` rule, reran the same command, and
+    confirmed the marker **was** reported in the output — proving the check is falsifiable (a
+    broken/unread `rules` block would NOT have surfaced it). Removed the marker; `diff` against a
+    pre-injection backup confirmed the config was restored byte-identical. Scratch change removed
+    (`rm -rf openspec/changes/scratch-adopt07-check`); confirmed absent
+    (`find openspec/changes -maxdepth 2` shows only `openspec/changes` and `openspec/changes/archive`).
+  - Apply/archive guidance: verified separately at `ADOPT-08` below (same underlying config,
+    re-checked read-only).
+  - No absolute machine-specific paths: `grep -n "/Users/\|/home/" openspec/config.yaml` → no
+    matches.
+- **Approval gate**: none beyond the edit itself being reviewable, per this step's own text — this
+  step modifies only the OpenSpec configuration file. No live gate presented.
+- Result: PASS
+
+---
+
+## `ADOPT-08` — Verify OpenSpec Configuration
+
+- Date: 2026-08-19 (same session, executed immediately after `ADOPT-07` — this guide's own
+  documented executed pair with `ADOPT-07`, per `04-context-and-openspec.md`'s header note: "per
+  `00-conventions.md`'s checkpoint-grouping rule, this is a guide-documented executed pair eligible
+  for one checkpoint with a recorded structural justification — the same treatment
+  `05-agents-and-skills.md` already states for `ADOPT-09`/`ADOPT-10` and `ADOPT-11`/`ADOPT-12`."
+  This is the guide's own documented pairing, not this run's own convenience choice.)
+- Read-only re-verification of the same `openspec/config.yaml` written at `ADOPT-07` — confirmed
+  byte-identical (no edit occurred between the two steps; `md5 openspec/config.yaml` =
+  `d477c9f8ff8fea554032e9632ef1e353`, matching the post-restoration state at the end of `ADOPT-07`).
+- `openspec --version` → `1.7.0`. `openspec --help` → command list resolves normally (no
+  `command not found`).
+- `openspec doctor` → `OpenSpec root: ok`, zero warnings.
+- Configured schema resolves: `schema: spec-driven` present and valid.
+- Context references the intended repository documentation: `grep -c "docs/" openspec/config.yaml`
+  → 20 references present.
+- Proposal/specification/task rules parse correctly: re-confirmed via the same falsifiable method
+  as `ADOPT-07` would require, using a fresh scratch change
+  (`openspec/changes/scratch-adopt08-check/`) — `openspec instructions proposal --change
+  scratch-adopt08-check` resolved real rule text. Scratch change removed immediately after.
+- Apply/archive guidance parses correctly: `openspec instructions apply --change
+  scratch-adopt08-check` → resolved `"Implement in small, reviewable steps..."`; `openspec
+  instructions archive --change scratch-adopt08-check` → resolved `"Confirm the documentation
+  under \"docs/\" reflects the change before archiving..."`. Scratch change removed immediately
+  after both checks (`rm -rf openspec/changes/scratch-adopt08-check`); confirmed absent.
+- Referenced canonical agents exist: `ai-specs/agents/product-strategy-analyst.md`,
+  `ai-specs/agents/backend-developer.md`, `ai-specs/agents/frontend-developer.md` — all confirmed
+  present via `test -f`.
+- Referenced canonical skills exist: `enrich-us`, `specboot-verify`, `adversarial-review`,
+  `update-docs`, `commit` — all confirmed present under `ai-specs/skills/` via `test -d`.
+- Repository paths are relative, not machine-specific absolute: `grep -n "/Users/\|/home/"
+  openspec/config.yaml` → no matches.
+- No corrections were made during this validation (read-only, per this step's own rule — "Do not
+  correct failures during this validation"); none were needed since `ADOPT-07`'s content already
+  passed every check.
+- Result: PASS
+
+---
+
 ## `ADOPT-06` — Adapt the Repository Technical Context
 
 - Date: 2026-08-19
@@ -736,4 +840,5 @@ group requires a **written structural justification** — "fewer commits" is not
 | 4 | `ADOPT-05` (single step — no grouping) | N/A — single step, checkpointed immediately. | `ADOPT-05` = PASS (see evidence block above) | `ADOPT-05` evidence block above; `ADOPTION-AUTHORIZATION.md` code-graph-privilege-scope section | YES — staged set `{.claude/CLAUDE.md (M), .claude/settings.json (A), .mcp.json (A), .specboot/adoption/ADOPTION-AUTHORIZATION.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-05`'s closed allowlist (`.mcp.json`; the Claude permission file `.claude/settings.json`; the additive `CODEGRAPH_START/END` block in `.claude/CLAUDE.md`; `ADOPTION-AUTHORIZATION.md` update-only) plus the always-permitted run log. No anomalies. | YES | **live** — operator explicitly directed the exact command (`codegraph install -y --target claude --location local --no-permissions`), citing `v1` precedent and accepting the documented trade-off; not an auto-approval (the invocation-form deviation from canonical explicit-flag-only, itself recorded in `ADOPTION-AUTHORIZATION.md`, meant this reached the live gate rather than auto-approving on form, even though the *resulting* scope/auto-allow choices independently matched the least-privilege criteria) | `.claude/CLAUDE.md` (M), `.claude/settings.json` (A), `.mcp.json` (A), `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `3ea53de` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `04bed96..3ea53de`, `origin/experiment/specboot-ai-adoption-v4`. | Proposed: `02-codegraph.md` could note that pty-driven automation of `codegraph install`'s explicit-flag form may be environment-fragile (this run: 4/4 attempts failed identically at the second sub-question), and that `-y` combined with explicit `--target`/`--location`/`--no-permissions` overrides is a viable, evidenced fallback whose only uncontrollable dimension is the CLI-on-PATH default — worth documenting as a recognized (not merely tolerated) fallback path alongside the pty-automation guidance. |
 | 5 | `ADOPT-05B` Steps 1-4 (provisioning only — smoke test outstanding, step not yet PASS) | Not a full-step checkpoint by design: this step's own text mandates a stop-and-hand-off before the smoke test can be evidenced, so Steps 1-4's provisioning work is checkpointed now rather than left uncommitted while awaiting a fresh session. | Steps 1-4 individually validated (safety scan clean, JSON valid, merge matches baseline exactly per operator's approved scope); the step as a whole remains PENDING pending the smoke test. | `ADOPT-05B` evidence block above; `ADOPTION-AUTHORIZATION.md` environment-matrix section | YES — staged set `{.claude/settings.json (M), .specboot/adoption/ADOPTION-AUTHORIZATION.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-05B`'s closed allowlist (the Claude permission file; `ADOPTION-AUTHORIZATION.md` update-only) plus the always-permitted run log. No anomalies. | YES | **live** — operator was shown the exact baseline content, provenance, and the proposed `mvnw` broadening, and explicitly chose "baseline only, drop mvnw additions" (harness classifier also independently blocked the unapproved write until this approval) | `.claude/settings.json` (M), `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `60b624e` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `3ea53de..60b624e`, `origin/experiment/specboot-ai-adoption-v4`. | None beyond the mvnw-addition note already recorded in the `ADOPT-05B` evidence block (a future checkpoint may revisit if the wrapper is repaired). |
 | 6 | `ADOPT-05B` closure (smoke-test alternative criterion; run-log-only change) | N/A — single-step closure, no file mutation beyond the run log itself. | `ADOPT-05B` = PASS (closed on the alternative criterion for Claude Code/macOS; Windows/Linux `PENDING EVIDENCE`) | `ADOPT-05B` evidence block above (negative-control result, alternative-criterion sub-criteria, operator ruling verbatim) | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; no other path touched. No anomalies. | YES | **live** — `[HUMAN APPROVAL REQUIRED]` to close on the alternative criterion, exercised: operator (Landaone) explicitly ruled and supplied the required reasoning (negative control's silent execution as the basis for `NOT APPLICABLE ON THIS CLIENT`), 2026-08-19 | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `9ebcf0a` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `60b624e..9ebcf0a`, `origin/experiment/specboot-ai-adoption-v4`. | Residual note (operator-flagged, non-blocking): this client's silent execution of an off-allowlist negative control suggests a global permission override independent of `.claude/settings.json` may be in effect in this environment — worth investigating independently, since it would affect every future command here, not only this smoke test. Not resolved; carried forward as a limitation. |
-| 7 | `ADOPT-06` (single step — no grouping) | N/A — single step, checkpointed immediately. | `ADOPT-06` = PASS (see evidence block above) | `ADOPT-06` evidence block above (delegated-agent report plus this session's independent spot-checks: 3 citations, contamination grep, YAML validation, git-diff scope) | YES — staged set `{docs/api-spec.yml (M), docs/backend-standards.md (M), docs/base-standards.md (M), docs/data-model.md (M), docs/development_guide.md (M), docs/documentation-standards.md (M), docs/frontend-standards.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-06`'s declared allowlist (`docs/` only) plus the always-permitted run log. No anomalies — confirmed no path outside `docs/` touched. | YES | **live** — operator shown the diff summary, independent verification results, and defect list; approved 2026-08-19 ("Approve (Recommended)") | `docs/api-spec.yml` (M), `docs/backend-standards.md` (M), `docs/base-standards.md` (M), `docs/data-model.md` (M), `docs/development_guide.md` (M), `docs/documentation-standards.md` (M), `docs/frontend-standards.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |
+| 7 | `ADOPT-06` (single step — no grouping) | N/A — single step, checkpointed immediately. | `ADOPT-06` = PASS (see evidence block above) | `ADOPT-06` evidence block above (delegated-agent report plus this session's independent spot-checks: 3 citations, contamination grep, YAML validation, git-diff scope) | YES — staged set `{docs/api-spec.yml (M), docs/backend-standards.md (M), docs/base-standards.md (M), docs/data-model.md (M), docs/development_guide.md (M), docs/documentation-standards.md (M), docs/frontend-standards.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-06`'s declared allowlist (`docs/` only) plus the always-permitted run log. No anomalies — confirmed no path outside `docs/` touched. | YES | **live** — operator shown the diff summary, independent verification results, and defect list; approved 2026-08-19 ("Approve (Recommended)") | `docs/api-spec.yml` (M), `docs/backend-standards.md` (M), `docs/base-standards.md` (M), `docs/data-model.md` (M), `docs/development_guide.md` (M), `docs/documentation-standards.md` (M), `docs/frontend-standards.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `25368b5` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `9ebcf0a..25368b5`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
+| 8 | `ADOPT-07` + `ADOPT-08` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`04-context-and-openspec.md` header): "`ADOPT-07`'s adapt action is followed immediately by `ADOPT-08`'s read-only validation of the same configuration; per `00-conventions.md`'s checkpoint-grouping rule, this is a guide-documented executed pair eligible for one checkpoint... the same treatment `05-agents-and-skills.md` already states for `ADOPT-09`/`ADOPT-10` and `ADOPT-11`/`ADOPT-12`." This is the guide's own contract-recognized pairing (`00-conventions.md`'s third grounds: "this guide's own step contract makes them an executed pair"), not a convenience grouping by this run. | `ADOPT-07` = PASS (config written, all validations including falsifiable rules negative-control PASS); `ADOPT-08` = PASS (read-only re-verification, config confirmed byte-identical, zero corrections needed) | `ADOPT-07` and `ADOPT-08` evidence blocks above | YES — staged set `{openspec/config.yaml (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-07`'s closed allowlist (`openspec/config.yaml`, the only path that exists) — `ADOPT-08` is read-only and contributes no path of its own — plus the always-permitted run log. No anomalies; both scratch changes created during validation were removed before staging, confirmed absent. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed; `ADOPT-07`'s own approval gate is "none beyond the edit itself being reviewable," and `ADOPT-08` carries no gate | `openspec/config.yaml` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |

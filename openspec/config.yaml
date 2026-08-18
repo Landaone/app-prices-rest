@@ -1,32 +1,97 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Project context shown to AI when creating artifacts.
+# Pointers only — the documentation itself lives under docs/ and is NOT duplicated here.
+context: |
+  Project: app-prices-rest — a Spring Boot REST service that resolves the price applicable to a
+  product at a point in time. Backend only; there is no frontend.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Stack (authoritative source: pom.xml)
+  - Java 11, Spring Boot 2.4.5, Maven. mvnw/mvnw.cmd are present but currently non-functional in
+    this checkout (.mvn/wrapper/maven-wrapper.properties is missing) — use a system-installed mvn.
+  - Spring Data JPA + Hibernate, Flyway migrations, H2 (in-memory by default)
+  - Lombok for boilerplate; JUnit 5 (junit-vintage-engine is excluded, so JUnit 4 is unavailable)
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+  Architecture: three layers under "src/main/java/com/llandaeta/prices/" —
+  "rest/" (controllers, DTOs, exception handling), "core/" (services, model, converters,
+  exceptions), "db/" (JPA entities, repositories). Dependency direction is rest -> core -> db.
+  Entities never cross the HTTP boundary; they are converted to models first.
+
+  Surface area is small and should stay proportionate: 12 main source files, 4 test classes,
+  one endpoint ("GET /api/price"), one entity, one table.
+
+  PROJECT RULES — PRIMARY SOURCE: "docs/base-standards.md".
+  Read it first; it governs core principles, English-only artifacts, and the mandatory OpenSpec
+  task structure. The documents below are the specific standards it delegates to.
+
+  Documentation map (all repository-relative):
+  - "docs/base-standards.md"          primary project rules — read first
+  - "docs/backend-standards.md"       architecture, layering, persistence, error handling, testing
+  - "docs/documentation-standards.md" documentation and AI-spec conventions, citation discipline
+  - "docs/api-spec.yml"               OpenAPI contract for the one exposed endpoint
+  - "docs/data-model.md"              the single entity, its schema, migration and query semantics
+  - "docs/development_guide.md"       setup, run, configuration, curl exercises
+  - "docs/frontend-standards.md"      NOT APPLICABLE — no frontend exists in this repository
+
+  Agent selection (canonical agents live under "ai-specs/agents/"):
+  - No Java/Spring-specific implementation agent exists in this repository yet — agent adaptation
+    happens at a later adoption step (ADOPT-09) and has not run as of this configuration. Until
+    then, treat implementation work as ungoverned by a dedicated backend agent; do not select
+    "ai-specs/agents/backend-developer.md" for it (see below).
+  - "ai-specs/agents/product-strategy-analyst.md" for problem framing and scoping before a proposal.
+    It is technology-agnostic and applies here unchanged.
+  - "ai-specs/agents/backend-developer.md" exists and is PRESERVED, but is NOT APPLICABLE here: its
+    scope is TypeScript backend work. Do not select it for this repository, and do not repurpose it.
+  - "ai-specs/agents/frontend-developer.md" exists and is PRESERVED, but is NOT APPLICABLE — this
+    repository has no frontend. Do not select it.
+  Note: OpenSpec 1.7.0's project config has no dedicated agent-selection key, so this selection is
+  expressed here in context rather than in a key the parser would silently discard.
+
+  Workflow guidance: reusable skills live under "ai-specs/skills/" and are workflow guidance, not
+  code to execute. Relevant ones include "enrich-us", "specboot-verify", "adversarial-review",
+  "update-docs" and "commit".
+
+  Known defects are documented as cited risks in "docs/backend-standards.md" and
+  "docs/data-model.md" — including an UNFIXED broken catch-all exception handler
+  ("HttpErrorHandler.java:24-25": declared for `Exception.class` but parameter-typed
+  `HttpException`, so it never actually catches generic exceptions). Do not reproduce known
+  defects as conventions, and do not fix them as a side effect of unrelated work — each needs its
+  own change.
+
+rules:
+  proposal:
+    - 'State the change in terms of this service''s actual surface: the "GET /api/price" endpoint, the single PriceEntity, or the Flyway schema. Name which one it touches.'
+    - 'Every claim about current behaviour must cite a file and line, per the citation discipline in "docs/documentation-standards.md".'
+    - 'Declare explicitly whether the change alters the wire contract in "docs/api-spec.yml". Field names such as "httpcode" are part of that contract, so renaming one is a breaking change, not a cleanup.'
+    - 'Include a Non-goals section. If the change happens to touch code where a known defect lives (see the exception-handler and error-message defects in "docs/backend-standards.md"), state whether fixing that defect is in scope — never fix one silently.'
+    - 'Do not propose frontend, browser, or end-to-end work: this repository has no frontend.'
+  specs:
+    - 'Write scenarios against real, resolvable inputs. The seeded data is brand 1, product 35455, price lists 1-4 in "src/main/resources/db/migration/V1_create_tables.sql".'
+    - 'Cover the priority-resolution rule wherever ranges overlap: highest "priority" wins, per the derived query in "src/main/java/com/llandaeta/prices/db/repositories/PriceRepository.java".'
+    - 'Specify error behaviour, not only the success path. The current 404 comes from NoPriceFoundException and is rendered through the Error DTO; other error paths (malformed date, non-numeric params, wrong method) currently fall through Spring''s default error body instead, per the documented exception-handler defect.'
+    - 'Use the real request format for dates, "yyyy-MM-dd HH:mm:ss" with a space, and the real response format, ISO-8601 with a "T". They differ, and that asymmetry is intentional to document.'
+  design:
+    - 'Respect the rest -> core -> db layering described in "docs/backend-standards.md". Do not let PriceEntity reach a controller signature.'
+    - 'Keep abstraction proportionate to a 12-file service. Introducing a new layer, generic base class or indirection needs an explicit justification in the design.'
+    - 'Use constructor injection via Lombok "@AllArgsConstructor" with final fields, matching PriceServiceImpl.'
+    - 'Schema changes are Flyway migrations under "src/main/resources/db/migration/", named "V<n>_<name>.sql" with a single underscore, because "sql-migration-separator" is set to "_". Never enable "ddl-auto".'
+  tasks:
+    - 'Follow the mandatory backend task structure in "docs/base-standards.md" section 6.2, starting with Step 0: create and switch to the feature branch.'
+    - 'Include the mandatory steps: review and update existing unit tests, run the tests, and manual endpoint testing with curl marked "AGENT MUST EXECUTE".'
+    - 'Omit the Playwright/E2E step entirely rather than marking it pending — there is no frontend. See "docs/base-standards.md" section 6.5.'
+    - 'Database restoration is owed only for mutating operations. This service currently exposes no mutating endpoint, and the default datasource is in-memory and reseeded by Flyway on every start.'
+    - 'Include a final task to update the affected documentation under "docs/", keeping every citation accurate — a stale line reference is a documentation defect.'
+    - 'Run tests with "mvn test" (or "mvn -Dtest=<Class> test" for a single class). Do NOT use "./mvnw test" or "mvnw.cmd test" — this checkout''s wrapper is broken (missing .mvn/wrapper/maven-wrapper.properties). A first clone must run online; the offline flag "-o" is only a speed-up once dependencies are cached.'
+
+operations:
+  apply:
+    guidance:
+      - 'Implement in small, reviewable steps, one task at a time, per "docs/base-standards.md".'
+      - 'Start from a failing test where the task defines new behaviour.'
+      - 'Do not fix an unrelated known defect encountered along the way; note it and leave it, unless the proposal declared it in scope.'
+      - 'Keep test summaries concise: report what ran, what passed, and what failed, with the command used.'
+  archive:
+    guidance:
+      - 'Confirm the documentation under "docs/" reflects the change before archiving, including "docs/api-spec.yml" for contract changes and "docs/data-model.md" for schema changes.'
+      - 'Verify every citation touched by the change still resolves to the intended line, not merely to a line that exists.'
+      - 'Summarize the outcome: what shipped, what was verified and how, and anything deliberately left open.'
