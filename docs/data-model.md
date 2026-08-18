@@ -1,372 +1,162 @@
 # Data Model Documentation
 
-This document describes the data model for the LTI (Learning Tracking Initiative) application, including entity descriptions, field definitions, relationships, and an entity-relationship diagram.
+This document describes the data model for the `app-prices-rest` application: a Spring Boot /
+JPA / H2 / Flyway service that resolves the applicable price for a brand, product, and point in
+time. There is exactly **one** persisted entity.
 
-## Model Descriptions
+## Model Description
 
-### 1. Candidate
-Represents a job candidate who can apply for positions within the system.
+### PriceEntity
 
-**Fields:**
-- `id`: Unique identifier for the candidate (Primary Key)
-- `firstName`: Candidate's first name (max 100 characters)
-- `lastName`: Candidate's last name (max 100 characters)
-- `email`: Candidate's unique email address (max 255 characters)
-- `phone`: Candidate's phone number (optional, max 15 characters)
-- `address`: Candidate's address (optional, max 100 characters)
+Represents a price-list row: a price for a given brand and product, valid over a date range, with
+a priority used to resolve overlapping ranges.
 
-**Validation Rules:**
-- First name and last name are required, 2-100 characters, letters only
-- Email is required, must be unique, and follow valid email format
-- Phone is optional but must follow Spanish format (6|7|9)XXXXXXXX if provided
-- Address is optional but cannot exceed 100 characters
-- Maximum of 3 education records per candidate
+Source: `src/main/java/com/llandaeta/prices/db/entities/PriceEntity.java:14-48`.
 
-**Relationships:**
-- `educations`: One-to-many relationship with Education model
-- `workExperiences`: One-to-many relationship with WorkExperience model
-- `resumes`: One-to-many relationship with Resume model
-- `applications`: One-to-many relationship with Application model
-
-### 2. Education
-Represents educational background information for candidates.
+**JPA mapping:**
+- `@Entity` (`PriceEntity.java:14`)
+- `@Table(name = "prices", schema = "test")` (`PriceEntity.java:15`)
+- Lombok: `@Data @AllArgsConstructor @NoArgsConstructor @Builder` (`PriceEntity.java:16-19`)
 
 **Fields:**
-- `id`: Unique identifier for the education record (Primary Key)
-- `institution`: Name of the educational institution (max 100 characters)
-- `title`: Degree or certification title obtained (max 250 characters)
-- `startDate`: Start date of the education period
-- `endDate`: End date of the education period (optional, null if ongoing)
-- `candidateId`: Foreign key referencing the Candidate
 
-**Validation Rules:**
-- Institution is required and cannot exceed 100 characters
-- Title is required and cannot exceed 250 characters
-- Start date is required and must be in valid date format
-- End date is optional but must be valid if provided
-- Maximum of 3 education records per candidate
+| Field | Java type | Column | Column type (migration) | Notes |
+|---|---|---|---|---|
+| `id` | `Long` | `ID` | `IDENTITY PRIMARY KEY` | `@Id` (`PriceEntity.java:22-23`); auto-generated identity column (`V1_create_tables.sql:5`) |
+| `brandId` | `int` | `BRAND_ID` | `INTEGER` | `PriceEntity.java:25-26` / `V1_create_tables.sql:6` |
+| `startDate` | `LocalDateTime` | `START_DATE` | `TIMESTAMP` | Inclusive lower bound of the validity window; `PriceEntity.java:28-29` / `V1_create_tables.sql:7` |
+| `endDate` | `LocalDateTime` | `END_DATE` | `TIMESTAMP` | Inclusive upper bound of the validity window; `PriceEntity.java:31-32` / `V1_create_tables.sql:8` |
+| `productId` | `int` | `PRODUCT_ID` | `INTEGER` | `PriceEntity.java:34-35` / `V1_create_tables.sql:10` |
+| `priceList` | `int` | `PRICE_LIST` | `INTEGER` | Identifies which price list/rate the row belongs to; `PriceEntity.java:37-38` / `V1_create_tables.sql:9` |
+| `priority` | `int` | `PRIORITY` | `INTEGER` | Used to break ties when multiple rows match the same brand/product/date; higher wins (see [Query Semantics](#query-semantics)); `PriceEntity.java:40-41` / `V1_create_tables.sql:11` |
+| `price` | `double` | `PRICE` | `DECIMAL(4,2)` | The price amount; `PriceEntity.java:43-44` / `V1_create_tables.sql:12`. **Column can only represent values up to `99.99`** — see [Known Risks and Defects](#known-risks-and-defects) |
+| `curr` | `String` | `CURR` | `VARCHAR(3)` | ISO-4217-shaped currency code (seed data uses `EUR`); `PriceEntity.java:46-47` / `V1_create_tables.sql:13` |
 
-**Relationships:**
-- `candidate`: Many-to-one relationship with Candidate model
+**Relationships:** none. `PriceEntity` has no `@OneToMany`, `@ManyToOne`, or other JPA
+relationship annotations — verified by inspection of the full file
+(`src/main/java/com/llandaeta/prices/db/entities/PriceEntity.java`); `brandId` and `productId` are
+plain integer columns, not foreign keys to other mapped entities. There is no `Brand` or `Product`
+entity anywhere in the codebase.
 
-### 3. WorkExperience
-Represents work history and professional experience for candidates.
+### Table-only vs entity-only naming mismatch
 
-**Fields:**
-- `id`: Unique identifier for the work experience record (Primary Key)
-- `company`: Name of the company or organization (max 100 characters)
-- `position`: Job title or position held (max 100 characters)
-- `description`: Description of responsibilities and achievements (optional, max 200 characters)
-- `startDate`: Start date of the work experience
-- `endDate`: End date of the work experience (optional, null if current)
-- `candidateId`: Foreign key referencing the Candidate
+`PriceEntity.java:15` binds to `@Table(name = "prices", schema = "test")` (lower-case
+`prices`), while `V1_create_tables.sql:3` creates `` `test`.`PRICES` `` (upper-case, backtick
+quoted). Both resolve to the same physical table under H2's default (case-insensitive,
+uppercase-folding) identifier handling — confirmed by running the project's test suite
+successfully against this exact schema and entity mapping (`mvn test`, all four test classes
+passing, including database-backed tests). This is not a defect to fix in this document; it is
+recorded here so future entity or migration edits do not assume the names must be
+character-for-character identical.
 
-**Validation Rules:**
-- Company name is required and cannot exceed 100 characters
-- Position is required and cannot exceed 100 characters
-- Description is optional but cannot exceed 200 characters if provided
-- Start date is required and must be in valid date format
-- End date is optional but must be valid if provided
+## Persistence Configuration
 
-**Relationships:**
-- `candidate`: Many-to-one relationship with Candidate model
+Source: `src/main/resources/application.yaml`.
 
-### 4. Resume
-Represents uploaded resume files associated with candidates.
+- `spring.jpa.hibernate.ddl-auto: none` (`application.yaml:24`) — Hibernate never generates or
+  alters schema; all schema changes come from Flyway migrations only.
+- `spring.jpa.show-sql: true` (`application.yaml:25`) — generated SQL is logged.
+- `spring.datasource.url: ${DATABASE_URL:jdbc:h2:mem:testdb}` (`application.yaml:15`) — defaults
+  to an **in-memory** H2 database unless `DATABASE_URL` is set; state does not survive a restart
+  by default.
+- `spring.datasource.username: ${DATABASE_USER:sa}` (`application.yaml:14`),
+  `spring.datasource.password: ${DATABASE_PASS:}` (`application.yaml:13`, empty by default).
+- `spring.h2.console.enabled: true` (`application.yaml:9-11`) — the H2 web console is enabled.
 
-**Fields:**
-- `id`: Unique identifier for the resume record (Primary Key)
-- `filePath`: File system path to the uploaded resume (max 500 characters)
-- `fileType`: MIME type or file extension of the resume (max 50 characters)
-- `uploadDate`: Date and time when the resume was uploaded
-- `candidateId`: Foreign key referencing the Candidate
+## Migration
 
-**Validation Rules:**
-- File path is required and cannot exceed 500 characters
-- File type is required and cannot exceed 50 characters
-- Upload date is automatically set when file is uploaded
-- Supported file types: PDF and DOCX (max 10MB)
+Source: `src/main/resources/db/migration/V1_create_tables.sql:1-26`. This is the **only**
+migration file in the repository (verified: `find src -path "*db/migration*"` returns exactly one
+file).
 
-**Relationships:**
-- `candidate`: Many-to-one relationship with Candidate model
+1. `CREATE SCHEMA test;` (line 1)
+2. `CREATE TABLE `test`.`PRICES` (...)` with the column definitions in the table above (lines
+   3-14)
+3. Four `INSERT` statements seeding the table (lines 16-26), reproduced here as the model's
+   canonical example data:
 
-### 5. Company
-Represents companies that post job positions and employ staff.
+| BRAND_ID | START_DATE | END_DATE | PRICE_LIST | PRODUCT_ID | PRIORITY | PRICE | CURR |
+|---|---|---|---|---|---|---|---|
+| 1 | 2020-06-14 00:00:00 | 2020-12-31 23:59:59 | 1 | 35455 | 0 | 35.50 | EUR |
+| 1 | 2020-06-14 15:00:00 | 2020-06-14 18:30:00 | 2 | 35455 | 1 | 25.45 | EUR |
+| 1 | 2020-06-15 00:00:00 | 2020-06-15 11:00:00 | 3 | 35455 | 1 | 30.50 | EUR |
+| 1 | 2020-06-16 00:00:00 | 2020-12-31 23:59:59 | 4 | 35455 | 1 | 38.95 | EUR |
 
-**Fields:**
-- `id`: Unique identifier for the company (Primary Key)
-- `name`: Unique company name
+Flyway configuration (`application.yaml:17-22`): `spring.flyway.enabled: true`,
+`locations: filesystem:src/main/resources/db/migration`, `schemas: test`,
+`baseline-on-migrate: true`, `sql-migration-separator: _` — matching the `V1_create_tables.sql`
+naming.
 
-**Relationships:**
-- `employees`: One-to-many relationship with Employee model
-- `positions`: One-to-many relationship with Position model
+## Query Semantics
 
-### 6. Employee
-Represents employees within companies who can conduct interviews.
+The single repository query,
+`PriceRepository.findFirstByBrandIdAndProductIdAndStartDateIsLessThanEqualAndEndDateGreaterThanEqualOrderByPriorityDesc`
+(`src/main/java/com/llandaeta/prices/db/repositories/PriceRepository.java:13`), implements
+"find the applicable price": among rows matching `brandId` and `productId` whose
+`[startDate, endDate]` window contains the given instant (inclusive on both ends), return the one
+with the highest `priority`, or none.
 
-**Fields:**
-- `id`: Unique identifier for the employee (Primary Key)
-- `name`: Employee's full name
-- `email`: Employee's unique email address
-- `role`: Employee's role or job title
-- `isActive`: Boolean indicating if the employee is currently active
-- `companyId`: Foreign key referencing the Company
+`PriceServiceImpl.searchPriceToApply` (`src/main/java/com/llandaeta/prices/core/services/impl/PriceServiceImpl.java:25-31`)
+calls this query and throws `NoPriceFoundException`
+(`src/main/java/com/llandaeta/prices/core/exception/NoPriceFoundException.java:3-6`) when no row
+matches, which `HttpErrorHandler` maps to HTTP 404 (`src/main/java/com/llandaeta/prices/rest/exception/HttpErrorHandler.java:15-22`).
 
-**Relationships:**
-- `company`: Many-to-one relationship with Company model
-- `interviews`: One-to-many relationship with Interview model
+Both the `startDate` and `endDate` query parameters are populated from the **same** parsed
+`applicationDate` value at the call site
+(`src/main/java/com/llandaeta/prices/rest/controllers/PriceController.java:30`) — this is the
+intended semantics (checking that a single instant falls within a row's validity window), not a
+bug: the derived query's two comparisons (`startDate <= X` and `endDate >= X`) both use `X`, the
+requested point in time.
 
-### 7. InterviewType
-Defines different types of interviews that can be conducted.
+## API-Facing Model: PriceModel
 
-**Fields:**
-- `id`: Unique identifier for the interview type (Primary Key)
-- `name`: Name of the interview type (e.g., "Technical", "HR", "Behavioral")
-- `description`: Detailed description of the interview type (optional)
+`core/model/PriceModel.java:9-23` is the DTO returned by the REST API — a flattened view of
+`PriceEntity` without the `id` field:
 
-**Relationships:**
-- `interviewSteps`: One-to-many relationship with InterviewStep model
+| Field | Type |
+|---|---|
+| `brandId` | `int` |
+| `startDate` | `LocalDateTime` |
+| `endDate` | `LocalDateTime` |
+| `productId` | `int` |
+| `priceList` | `int` |
+| `priority` | `int` |
+| `price` | `double` |
+| `curr` | `String` |
 
-### 8. InterviewFlow
-Represents a sequence of interview steps that define the hiring process.
+Conversion from `PriceEntity` to `PriceModel` is done by
+`PriceEntityModelConverter.convert` (`core/converters/PriceEntityModelConverter.java:11-24`), a
+Spring `Converter<PriceEntity, PriceModel>` bean — a field-by-field copy, omitting `id`.
 
-**Fields:**
-- `id`: Unique identifier for the interview flow (Primary Key)
-- `description`: Description of the interview flow process (optional)
-
-**Relationships:**
-- `interviewSteps`: One-to-many relationship with InterviewStep model
-- `positions`: One-to-many relationship with Position model
-
-### 9. InterviewStep
-Represents individual steps within an interview flow.
-
-**Fields:**
-- `id`: Unique identifier for the interview step (Primary Key)
-- `name`: Name of the interview step
-- `orderIndex`: Numeric order of this step within the flow
-- `interviewFlowId`: Foreign key referencing the InterviewFlow
-- `interviewTypeId`: Foreign key referencing the InterviewType
-
-**Relationships:**
-- `interviewFlow`: Many-to-one relationship with InterviewFlow model
-- `interviewType`: Many-to-one relationship with InterviewType model
-- `applications`: One-to-many relationship with Application model
-- `interviews`: One-to-many relationship with Interview model
-
-### 10. Position
-Represents job positions available for application.
-
-**Fields:**
-- `id`: Unique identifier for the position (Primary Key)
-- `companyId`: Foreign key referencing the Company (required)
-- `interviewFlowId`: Foreign key referencing the InterviewFlow (required)
-- `title`: Job title (required, max 100 characters)
-- `description`: Brief description of the position (required)
-- `status`: Current status of the position (default: "Draft", valid values: Open, Contratado, Cerrado, Borrador)
-- `isVisible`: Boolean indicating if the position is publicly visible (default: false)
-- `location`: Job location (required)
-- `jobDescription`: Detailed job description (required)
-- `requirements`: Job requirements and qualifications (optional)
-- `responsibilities`: Job responsibilities (optional)
-- `salaryMin`: Minimum salary range (optional, must be >= 0)
-- `salaryMax`: Maximum salary range (optional, must be >= 0 and >= salaryMin)
-- `employmentType`: Type of employment (e.g., "Full-time", "Part-time", "Contract") (optional)
-- `benefits`: Job benefits description (optional)
-- `companyDescription`: Description of the hiring company (optional)
-- `applicationDeadline`: Deadline for applications (optional, must be a future date)
-- `contactInfo`: Contact information for inquiries (optional)
-
-**Validation Rules:**
-- Title is required and cannot exceed 100 characters
-- Description, location, and jobDescription are required fields
-- Status must be one of: Open, Contratado, Cerrado, Borrador
-- Company and interview flow references must exist in the database
-- Salary values must be non-negative numbers
-- Application deadline must be a future date if provided
-
-**Relationships:**
-- `company`: Many-to-one relationship with Company model
-- `interviewFlow`: Many-to-one relationship with InterviewFlow model
-- `applications`: One-to-many relationship with Application model
-
-### 11. Application
-Represents a candidate's application to a specific position.
-
-**Fields:**
-- `id`: Unique identifier for the application (Primary Key)
-- `applicationDate`: Date when the application was submitted
-- `currentInterviewStep`: Current step in the interview process
-- `notes`: Additional notes about the application (optional)
-- `positionId`: Foreign key referencing the Position
-- `candidateId`: Foreign key referencing the Candidate
-- `interviewStepId`: Foreign key referencing the current InterviewStep
-
-**Relationships:**
-- `position`: Many-to-one relationship with Position model
-- `candidate`: Many-to-one relationship with Candidate model
-- `interviewStep`: Many-to-one relationship with InterviewStep model
-- `interviews`: One-to-many relationship with Interview model
-
-### 12. Interview
-Represents individual interview sessions conducted as part of an application.
-
-**Fields:**
-- `id`: Unique identifier for the interview (Primary Key)
-- `interviewDate`: Date and time of the interview
-- `result`: Interview result or outcome (optional)
-- `score`: Numeric score or rating from the interview (optional)
-- `notes`: Interview notes and feedback (optional)
-- `applicationId`: Foreign key referencing the Application
-- `interviewStepId`: Foreign key referencing the InterviewStep
-- `employeeId`: Foreign key referencing the conducting Employee
-
-**Relationships:**
-- `application`: Many-to-one relationship with Application model
-- `interviewStep`: Many-to-one relationship with InterviewStep model
-- `employee`: Many-to-one relationship with Employee model
-
-## Entity Relationship Diagram
-
-```mermaid
-erDiagram
-    Candidate {
-        Int id PK
-        String firstName
-        String lastName
-        String email UK
-        String phone
-        String address
-    }
-    Education {
-        Int id PK
-        String institution
-        String title
-        DateTime startDate
-        DateTime endDate
-        Int candidateId FK
-    }
-    WorkExperience {
-        Int id PK
-        String company
-        String position
-        String description
-        DateTime startDate
-        DateTime endDate
-        Int candidateId FK
-    }
-    Resume {
-        Int id PK
-        String filePath
-        String fileType
-        DateTime uploadDate
-        Int candidateId FK
-    }
-    Company {
-        Int id PK
-        String name UK
-    }
-    Employee {
-        Int id PK
-        String name
-        String email UK
-        String role
-        Boolean isActive
-        Int companyId FK
-    }
-    InterviewType {
-        Int id PK
-        String name
-        String description
-    }
-    InterviewFlow {
-        Int id PK
-        String description
-    }
-    InterviewStep {
-        Int id PK
-        String name
-        Int orderIndex
-        Int interviewFlowId FK
-        Int interviewTypeId FK
-    }
-    Position {
-        Int id PK
-        String title
-        String description
-        String status
-        Boolean isVisible
-        String location
-        String jobDescription
-        String requirements
-        String responsibilities
-        Float salaryMin
-        Float salaryMax
-        String employmentType
-        String benefits
-        String companyDescription
-        DateTime applicationDeadline
-        String contactInfo
-        Int companyId FK
-        Int interviewFlowId FK
-    }
-    Application {
-        Int id PK
-        DateTime applicationDate
-        Int currentInterviewStep
-        String notes
-        Int positionId FK
-        Int candidateId FK
-        Int interviewStepId FK
-    }
-    Interview {
-        Int id PK
-        DateTime interviewDate
-        String result
-        Int score
-        String notes
-        Int applicationId FK
-        Int interviewStepId FK
-        Int employeeId FK
-    }
-
-    Candidate ||--o{ Education : "has"
-    Candidate ||--o{ WorkExperience : "has"
-    Candidate ||--o{ Resume : "has"
-    Candidate ||--o{ Application : "submits"
-    
-    Company ||--o{ Employee : "employs"
-    Company ||--o{ Position : "offers"
-    
-    InterviewType ||--o{ InterviewStep : "defines"
-    InterviewFlow ||--o{ InterviewStep : "includes"
-    InterviewFlow ||--o{ Position : "guides"
-    
-    Position ||--o{ Application : "receives"
-    Application ||--o{ Interview : "includes"
-    
-    InterviewStep ||--o{ Application : "current_step"
-    InterviewStep ||--o{ Interview : "conducted_at"
-    
-    Employee ||--o{ Interview : "conducts"
+Verified live serialization shape (running instance, `mvn spring-boot:run`, request
+`GET /api/price?brandId=1&productId=35455&applicationDate=2020-06-14 10:00:00`):
+```json
+{"brandId":1,"startDate":"2020-06-14T00:00:00","endDate":"2020-12-31T23:59:59","productId":35455,"priceList":1,"priority":0,"price":35.5,"curr":"EUR"}
 ```
+`LocalDateTime` fields serialize as ISO-8601 local date-time strings (e.g.
+`"2020-06-14T00:00:00"`), not as numeric arrays — this is Spring Boot's default Jackson
+`jackson-datatype-jsr310` behavior and is not separately configured anywhere in this repository.
 
-## Key Design Principles
+## Known Risks and Defects
 
-1. **Referential Integrity**: All foreign key relationships ensure data consistency across the system.
+1. **`PRICE` is `DECIMAL(4,2)`, capping storable values at `99.99`.**
+   `V1_create_tables.sql:12` defines the column as `DECIMAL(4,2)` — 4 significant digits, 2 after
+   the decimal point. All seeded prices (`35.50`, `25.45`, `30.50`, `38.95`) fit comfortably, but
+   any future price at or above `100.00` cannot be represented with this column definition without
+   a new migration widening it.
 
-2. **Flexibility**: The interview flow system allows for customizable hiring processes per position.
+2. **The "no price found" message has a grammatical defect.**
+   `NoPriceFoundException("No  price found to the brand")`
+   (`src/main/java/com/llandaeta/prices/core/services/impl/PriceServiceImpl.java:30`) has a double
+   space after "No" and reads "to the brand" rather than "for the brand". Verified in the live 404
+   response body: `{"httpcode":404,"message":"No  price found to the brand"}`.
 
-3. **Audit Trail**: Application and interview dates provide a complete timeline of the hiring process.
+3. **No relational integrity between `PRICES` and any brand/product table.**
+   `BRAND_ID` and `PRODUCT_ID` are plain integers with no foreign key or lookup table anywhere in
+   the schema or codebase (verified: `V1_create_tables.sql` defines only the `PRICES` table; no
+   other `CREATE TABLE` statement exists in the repository). Any integer value is accepted by the
+   API for these fields; there is no validation that a given `brandId`/`productId` combination
+   corresponds to a "real" brand or product beyond whether a `PRICES` row happens to exist for it.
 
-4. **Extensibility**: The modular design allows for easy addition of new features and data points.
-
-5. **Data Normalization**: The model follows database normalization principles to minimize redundancy and ensure data integrity.
-
-## Notes
-
-- All `id` fields serve as primary keys with auto-increment functionality
-- Foreign key relationships maintain referential integrity
-- Optional fields allow for flexible data entry while maintaining required core information
-- The interview system supports multi-step hiring processes with different types of interviews
-- Email fields have unique constraints to prevent duplicate accounts 
+See [Backend Standards](./backend-standards.md) §Known Risks and Defects for the related API
+error-handling defect (generic exceptions do not use this model's error shape).

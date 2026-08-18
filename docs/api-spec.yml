@@ -1,1093 +1,266 @@
 openapi: 3.0.0
 info:
-  title: LTI (Learning Technology Initiative) API
+  title: app-prices-rest API
   description: |
-    REST API for the Learning Technology Initiative platform, designed for managing candidates, positions, interviews, and recruitment processes.
-    
-    This API follows Domain-Driven Design principles and implements a layered architecture for scalable recruitment management.
-    
-    ## Features
-    - Candidate management with education and work experience tracking
-    - Position management with company and interview flow integration
-    - Application tracking through interview processes
-    - File upload capabilities for resumes and documents
-    - Comprehensive filtering, sorting, and pagination support
-    
-  version: 0.0.0.001
+    REST API that resolves the applicable price for a brand, product, and point in time,
+    from a versioned H2 price list managed by Flyway.
+
+    This repository exposes **exactly one** endpoint. Verified by inspection of
+    `src/main/java/com/llandaeta/prices/rest/controllers/PriceController.java` (the only
+    `@RestController` in the codebase) and by `find src -name "*Controller.java"`, which returns
+    a single file.
+
+    ## Error contract — read before integrating
+
+    This API does **not** return a single consistent error shape today. Two different shapes are
+    actually produced, depending on which exception is thrown:
+
+    - Errors that originate from an `HttpException` subtype (currently only "no price found",
+      HTTP 404) are converted to the project's custom `Error` schema by
+      `HttpErrorHandler.handleHttpError`
+      (`src/main/java/com/llandaeta/prices/rest/exception/HttpErrorHandler.java:15-22`).
+    - Every other error (malformed `applicationDate`, a non-numeric `brandId`/`productId`, an
+      unsupported HTTP method, or any other uncaught exception) falls through to Spring Boot's
+      own default error page and returns its default Whitelabel JSON body instead, because
+      `HttpErrorHandler.unhandledExceptions` (annotated `@ExceptionHandler(Exception.class)` but
+      declaring its parameter as `HttpException`, `HttpErrorHandler.java:24-25`) can never
+      actually receive a non-`HttpException` exception. This was verified empirically against a
+      locally running instance of this exact code on 2026-08-19 (see the `SpringDefaultError`
+      schema and the per-response documentation below). This is a known defect, documented here
+      accurately rather than fixed — see
+      [`docs/backend-standards.md`](./backend-standards.md#known-risks-and-defects).
+
+  version: 0.0.1-SNAPSHOT
   contact:
-    name: LTI Development Team
+    name: llandaeta
   license:
-    name: ISC
-    
+    name: Unspecified
+
 servers:
-  - url: http://localhost:3000
-    description: Development server
-  - url: https://api.lti.dev
-    description: Production server
+  - url: http://localhost:8080
+    description: Local development server (embedded Tomcat, default port)
 
 paths:
-  /candidates:
+  /api/price:
     get:
-      summary: Get all candidates
-      description: Retrieve a paginated list of candidates with optional filtering and sorting capabilities
-      tags:
-        - Candidates
-      parameters:
-        - in: query
-          name: page
-          schema:
-            type: integer
-            minimum: 1
-            default: 1
-          description: Page number for pagination
-        - in: query
-          name: limit
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
-          description: Number of candidates per page
-        - in: query
-          name: search
-          schema:
-            type: string
-          description: Search term to filter candidates by first name, last name, or email
-        - in: query
-          name: sort
-          schema:
-            type: string
-            enum: [firstName, lastName, email]
-            default: firstName
-          description: Field to sort candidates by
-        - in: query
-          name: order
-          schema:
-            type: string
-            enum: [asc, desc]
-            default: asc
-          description: Sort order
-      responses:
-        '200':
-          description: Successfully retrieved candidates
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CandidateListResponse'
-        '400':
-          description: Invalid request parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    
-    post:
-      summary: Create a new candidate
-      description: Add a new candidate to the system with their personal information, education, and work experience
-      tags:
-        - Candidates
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateCandidateRequest'
-      responses:
-        '201':
-          description: Candidate created successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateCandidateResponse'
-        '400':
-          description: Validation error or email already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /candidates/{id}:
-    get:
-      summary: Get candidate by ID
-      description: Retrieve detailed information about a specific candidate including their applications, interviews, and related data
-      tags:
-        - Candidates
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          description: Candidate ID
-      responses:
-        '200':
-          description: Successfully retrieved candidate
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CandidateDetails'
-        '400':
-          description: Invalid ID format
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Candidate not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    
-    put:
-      summary: Update candidate interview stage
-      description: Update the current interview stage for a candidate's application
-      tags:
-        - Candidates
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          description: Candidate ID
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdateCandidateStageRequest'
-      responses:
-        '200':
-          description: Candidate stage updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UpdateCandidateStageResponse'
-        '400':
-          description: Validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Application not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /positions:
-    get:
-      summary: Get all positions
-      description: Retrieve all visible positions in the system
-      tags:
-        - Positions
-      responses:
-        '200':
-          description: Successfully retrieved positions
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Position'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /positions/{id}:
-    get:
-      summary: Get position by ID
-      description: Retrieve detailed information about a specific position
-      tags:
-        - Positions
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          description: Position ID
-      responses:
-        '200':
-          description: Successfully retrieved position
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Position'
-        '400':
-          description: Invalid position ID format
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Position not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-    
-    put:
-      summary: Update position
+      summary: Get the applicable price
       description: |
-        Update an existing position with new information. Supports partial updates - only fields provided in the request body will be updated.
-        Fields not provided will maintain their existing values in the database.
+        Returns the price row with the highest `priority` among rows matching `brandId` and
+        `productId` whose validity window `[startDate, endDate]` contains `applicationDate`
+        (both bounds inclusive).
+
+        Implemented by
+        `PriceController.searchPriceForBrandTime`
+        (`src/main/java/com/llandaeta/prices/rest/controllers/PriceController.java:23-31`), which
+        delegates to
+        `PriceService.searchPriceToApply`
+        (`src/main/java/com/llandaeta/prices/core/services/PriceService.java:10`), backed by the
+        derived query
+        `PriceRepository.findFirstByBrandIdAndProductIdAndStartDateIsLessThanEqualAndEndDateGreaterThanEqualOrderByPriorityDesc`
+        (`src/main/java/com/llandaeta/prices/db/repositories/PriceRepository.java:13`).
       tags:
-        - Positions
+        - Prices
       parameters:
-        - in: path
-          name: id
+        - in: query
+          name: brandId
           required: true
           schema:
             type: integer
-          description: Position ID
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdatePositionRequest'
-      responses:
-        '200':
-          description: Position updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UpdatePositionResponse'
-        '400':
-          description: Validation error or invalid reference data
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Position not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /positions/{id}/candidates:
-    get:
-      summary: Get candidates by position
-      description: Retrieve all candidates who have applied to a specific position with their interview progress
-      tags:
-        - Positions
-      parameters:
-        - in: path
-          name: id
+          description: |
+            Brand identifier. Bound via `@RequestParam("brandId") int brandId`
+            (`PriceController.java:24`). A non-numeric value produces
+            `MethodArgumentTypeMismatchException`, returned as the `SpringDefaultError` shape
+            with HTTP 400 (verified empirically; see the `400` response below).
+          example: 1
+        - in: query
+          name: productId
           required: true
           schema:
             type: integer
-          description: Position ID
-      responses:
-        '200':
-          description: Successfully retrieved candidates for position
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PositionCandidate'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /positions/{id}/candidates/names:
-    get:
-      summary: Get candidate names by position
-      description: Retrieve simplified candidate information (ID and name only) for a specific position
-      tags:
-        - Positions
-      parameters:
-        - in: path
-          name: id
+          description: |
+            Product identifier. Bound via `@RequestParam("productId") int productId`
+            (`PriceController.java:25`). Same non-numeric-value behavior as `brandId`.
+          example: 35455
+        - in: query
+          name: applicationDate
           required: true
           schema:
-            type: integer
-          description: Position ID
+            type: string
+          description: |
+            The point in time to resolve a price for, formatted `yyyy-MM-dd HH:mm:ss`
+            (parsed with `DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")`,
+            `PriceController.java:28`). This is **not** ISO-8601 (no `T` separator, no timezone).
+            A value that does not match this exact pattern raises `DateTimeParseException`,
+            returned as the `SpringDefaultError` shape with HTTP 500 (verified empirically; see
+            the `500` response below).
+          example: "2020-06-14 10:00:00"
       responses:
-        '200':
-          description: Successfully retrieved candidate names
+        "200":
+          description: |
+            A matching price was found. Verified live response body (running instance of this
+            exact code, `GET /api/price?brandId=1&productId=35455&applicationDate=2020-06-14 10:00:00`):
+            `{"brandId":1,"startDate":"2020-06-14T00:00:00","endDate":"2020-12-31T23:59:59","productId":35455,"priceList":1,"priority":0,"price":35.5,"curr":"EUR"}`
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CandidateName'
-        '500':
-          description: Internal server error
+                $ref: "#/components/schemas/PriceModel"
+        "400":
+          description: |
+            A query parameter declared as `int` (`brandId` or `productId`) received a non-numeric
+            value, raising `MethodArgumentTypeMismatchException`. Returned as
+            `SpringDefaultError`, **not** the custom `Error` schema — verified empirically against
+            a locally running instance of this exact code.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /positions/{id}/interviewflow:
-    get:
-      summary: Get interview flow by position
-      description: Retrieve the interview flow configuration for a specific position
-      tags:
-        - Positions
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: integer
-          description: Position ID
-      responses:
-        '200':
-          description: Successfully retrieved interview flow
+                $ref: "#/components/schemas/SpringDefaultError"
+        "404":
+          description: |
+            No price row matches the given `brandId`, `productId`, and `applicationDate`.
+            `PriceServiceImpl.searchPriceToApply` throws `NoPriceFoundException`
+            (`src/main/java/com/llandaeta/prices/core/services/impl/PriceServiceImpl.java:30`),
+            an `HttpException` subtype mapped to HTTP 404 by
+            `HttpErrorHandler.handleHttpError`. Verified live response body:
+            `{"httpcode":404,"message":"No  price found to the brand"}` — the double space and
+            "to the brand" wording is an existing defect in the source string, reproduced here
+            faithfully rather than corrected; see
+            [`docs/backend-standards.md`](./backend-standards.md#known-risks-and-defects).
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/InterviewFlowResponse'
-        '404':
-          description: Position not found
+                $ref: "#/components/schemas/Error"
+        "405":
+          description: |
+            A method other than `GET` was used against `/api/price` (only `@GetMapping` is
+            declared, `PriceController.java:23`), raising
+            `HttpRequestMethodNotSupportedException`. Returned as `SpringDefaultError`, **not**
+            the custom `Error` schema — verified empirically against a locally running instance
+            of this exact code.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Server error
+                $ref: "#/components/schemas/SpringDefaultError"
+        "500":
+          description: |
+            `applicationDate` did not match the expected `yyyy-MM-dd HH:mm:ss` pattern, raising
+            `DateTimeParseException` at `PriceController.java:28`
+            (`LocalDateTime.parse(applicationDate, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))`).
+            Returned as `SpringDefaultError`, **not** the custom `Error` schema, because
+            `HttpErrorHandler.unhandledExceptions` cannot actually receive this exception (see
+            the top-level error-contract note above). Verified empirically against a locally
+            running instance of this exact code.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /upload:
-    post:
-      summary: Upload file
-      description: Upload a file (PDF or DOCX) for resume or document storage
-      tags:
-        - File Upload
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              properties:
-                file:
-                  type: string
-                  format: binary
-                  description: File to upload (PDF or DOCX, max 10MB)
-              required:
-                - file
-      responses:
-        '200':
-          description: File uploaded successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FileUploadResponse'
-        '400':
-          description: Invalid file type or file too large
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Upload error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
+                $ref: "#/components/schemas/SpringDefaultError"
 
 components:
   schemas:
-    CandidateListResponse:
+    PriceModel:
       type: object
+      description: |
+        The API-facing price representation, returned by
+        `PriceEntityModelConverter.convert`
+        (`src/main/java/com/llandaeta/prices/core/converters/PriceEntityModelConverter.java:11-24`)
+        from the persisted `PriceEntity`
+        (`src/main/java/com/llandaeta/prices/db/entities/PriceEntity.java:14-48`), omitting `id`.
+        Field definitions:
+        `src/main/java/com/llandaeta/prices/core/model/PriceModel.java:9-23`.
       properties:
-        data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Candidate'
-        metadata:
-          $ref: '#/components/schemas/PaginationMetadata'
-      required:
-        - data
-        - metadata
-
-    Candidate:
-      type: object
-      properties:
-        id:
+        brandId:
           type: integer
-          description: Unique candidate identifier
-        firstName:
+          example: 1
+        startDate:
           type: string
-          description: Candidate's first name
-        lastName:
+          format: date-time
+          description: ISO-8601 local date-time (no timezone offset), e.g. "2020-06-14T00:00:00".
+          example: "2020-06-14T00:00:00"
+        endDate:
           type: string
-          description: Candidate's last name
-        email:
-          type: string
-          format: email
-          description: Candidate's email address
-        phone:
-          type: string
-          nullable: true
-          description: Candidate's phone number
-        address:
-          type: string
-          nullable: true
-          description: Candidate's address
-        educations:
-          type: array
-          items:
-            $ref: '#/components/schemas/Education'
-        workExperiences:
-          type: array
-          items:
-            $ref: '#/components/schemas/WorkExperience'
-        resumes:
-          type: array
-          items:
-            $ref: '#/components/schemas/Resume'
-        applications:
-          type: array
-          items:
-            $ref: '#/components/schemas/Application'
-      required:
-        - firstName
-        - lastName
-        - email
-
-    CandidateDetails:
-      allOf:
-        - $ref: '#/components/schemas/Candidate'
-        - type: object
-          properties:
-            applications:
-              type: array
-              items:
-                allOf:
-                  - $ref: '#/components/schemas/Application'
-                  - type: object
-                    properties:
-                      position:
-                        type: object
-                        properties:
-                          id:
-                            type: integer
-                          title:
-                            type: string
-                      interviews:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/Interview'
-
-    CreateCandidateRequest:
-      type: object
-      properties:
-        firstName:
-          type: string
-          description: Candidate's first name
-        lastName:
-          type: string
-          description: Candidate's last name
-        email:
-          type: string
-          format: email
-          description: Candidate's email address
-        phone:
-          type: string
-          nullable: true
-          description: Candidate's phone number
-        address:
-          type: string
-          nullable: true
-          description: Candidate's address
-        educations:
-          type: array
-          items:
-            $ref: '#/components/schemas/CreateEducationRequest'
-        workExperiences:
-          type: array
-          items:
-            $ref: '#/components/schemas/CreateWorkExperienceRequest'
-        cv:
-          $ref: '#/components/schemas/CreateResumeRequest'
-      required:
-        - firstName
-        - lastName
-        - email
-
-    CreateCandidateResponse:
-      type: object
-      properties:
-        id:
+          format: date-time
+          example: "2020-12-31T23:59:59"
+        productId:
           type: integer
-          description: Created candidate ID
-        firstName:
+          example: 35455
+        priceList:
+          type: integer
+          description: Identifies which price list/rate the matched row belongs to.
+          example: 1
+        priority:
+          type: integer
+          description: Tie-breaker among overlapping validity windows; higher wins.
+          example: 0
+        price:
+          type: number
+          format: double
+          description: |
+            The price amount. The underlying column is `DECIMAL(4,2)`
+            (`src/main/resources/db/migration/V1_create_tables.sql:12`), so values at or above
+            100.00 cannot currently be stored — see
+            [`docs/data-model.md`](./data-model.md#known-risks-and-defects).
+          example: 35.5
+        curr:
           type: string
-        lastName:
-          type: string
-        email:
-          type: string
-        phone:
-          type: string
-          nullable: true
-        address:
-          type: string
-          nullable: true
+          description: ISO-4217-shaped currency code (e.g. "EUR").
+          example: "EUR"
       required:
-        - id
-        - firstName
-        - lastName
-        - email
+        - brandId
+        - startDate
+        - endDate
+        - productId
+        - priceList
+        - priority
+        - price
+        - curr
 
-    UpdateCandidateStageRequest:
+    Error:
       type: object
+      description: |
+        The project's custom error DTO, produced only for `HttpException` subtypes by
+        `HttpErrorHandler.handleHttpError`
+        (`src/main/java/com/llandaeta/prices/rest/exception/HttpErrorHandler.java:15-22`).
+        Definition: `src/main/java/com/llandaeta/prices/rest/dto/Error.java:6-11`.
       properties:
-        applicationId:
-          type: string
-          description: Application ID (will be converted to integer)
-        currentInterviewStep:
-          type: string
-          description: Current interview step (will be converted to integer)
-      required:
-        - applicationId
-        - currentInterviewStep
-
-    UpdateCandidateStageResponse:
-      type: object
-      properties:
+        httpcode:
+          type: integer
+          example: 404
         message:
           type: string
-          example: "Candidate stage updated successfully"
-        data:
-          $ref: '#/components/schemas/Application'
-
-    Position:
-      type: object
-      properties:
-        id:
-          type: integer
-          description: Position unique identifier
-        companyId:
-          type: integer
-          description: Associated company ID
-        interviewFlowId:
-          type: integer
-          description: Associated interview flow ID
-        title:
-          type: string
-          description: Position title
-        description:
-          type: string
-          description: Position description
-        status:
-          type: string
-          description: Position status
-          default: "Draft"
-        isVisible:
-          type: boolean
-          description: Whether position is visible to candidates
-          default: false
-        location:
-          type: string
-          description: Position location
-        jobDescription:
-          type: string
-          description: Detailed job description
-        requirements:
-          type: string
-          nullable: true
-          description: Position requirements
-        responsibilities:
-          type: string
-          nullable: true
-          description: Position responsibilities
-        salaryMin:
-          type: number
-          nullable: true
-          description: Minimum salary
-        salaryMax:
-          type: number
-          nullable: true
-          description: Maximum salary
-        employmentType:
-          type: string
-          nullable: true
-          description: Type of employment
-        benefits:
-          type: string
-          nullable: true
-          description: Position benefits
-        companyDescription:
-          type: string
-          nullable: true
-          description: Company description
-        applicationDeadline:
-          type: string
-          format: date-time
-          nullable: true
-          description: Application deadline
-        contactInfo:
-          type: string
-          nullable: true
-          description: Contact information
+          example: "No  price found to the brand"
       required:
-        - companyId
-        - interviewFlowId
-        - title
-        - description
-        - location
-        - jobDescription
-
-    UpdatePositionRequest:
-      type: object
-      properties:
-        companyId:
-          type: integer
-          minimum: 1
-          description: Associated company ID (must be a positive integer)
-        interviewFlowId:
-          type: integer
-          minimum: 1
-          description: Associated interview flow ID (must be a positive integer)
-        title:
-          type: string
-          maxLength: 100
-          minLength: 1
-          description: Position title (required, 1-100 characters)
-        description:
-          type: string
-          minLength: 1
-          description: Position description (required, cannot be empty)
-        status:
-          type: string
-          enum: [Open, Contratado, Cerrado, Borrador]
-          description: Position status (must be one of the valid status values)
-        isVisible:
-          type: boolean
-          description: Whether position is visible to candidates
-        location:
-          type: string
-          minLength: 1
-          description: Position location (required, cannot be empty)
-        jobDescription:
-          type: string
-          minLength: 1
-          description: Detailed job description (required, cannot be empty)
-        requirements:
-          type: string
-          nullable: true
-          description: Position requirements
-        responsibilities:
-          type: string
-          nullable: true
-          description: Position responsibilities
-        salaryMin:
-          type: number
-          minimum: 0
-          nullable: true
-          description: Minimum salary (must be >= 0, cannot be greater than salaryMax)
-        salaryMax:
-          type: number
-          minimum: 0
-          nullable: true
-          description: Maximum salary (must be >= 0, cannot be less than salaryMin)
-        employmentType:
-          type: string
-          nullable: true
-          description: Type of employment
-        benefits:
-          type: string
-          nullable: true
-          description: Position benefits
-        companyDescription:
-          type: string
-          nullable: true
-          description: Company description
-        applicationDeadline:
-          type: string
-          format: date-time
-          nullable: true
-          description: Application deadline (must be a future date)
-        contactInfo:
-          type: string
-          nullable: true
-          description: Contact information
-
-    UpdatePositionResponse:
-      type: object
-      properties:
-        message:
-          type: string
-          example: "Position updated successfully"
-        data:
-          $ref: '#/components/schemas/Position'
-
-    PositionCandidate:
-      type: object
-      properties:
-        fullName:
-          type: string
-          description: Candidate's full name
-        currentInterviewStep:
-          type: string
-          description: Current interview step name
-        candidateId:
-          type: integer
-          description: Candidate ID
-        applicationId:
-          type: integer
-          description: Application ID
-        averageScore:
-          type: number
-          description: Average interview score
-      required:
-        - fullName
-        - currentInterviewStep
-        - candidateId
-        - applicationId
-        - averageScore
-
-    CandidateName:
-      type: object
-      properties:
-        candidateId:
-          type: integer
-          description: Candidate ID
-        fullName:
-          type: string
-          description: Candidate's full name
-      required:
-        - candidateId
-        - fullName
-
-    InterviewFlowResponse:
-      type: object
-      properties:
-        interviewFlow:
-          type: object
-          properties:
-            positionName:
-              type: string
-              description: Position title
-            interviewFlow:
-              $ref: '#/components/schemas/InterviewFlow'
-
-    InterviewFlow:
-      type: object
-      properties:
-        id:
-          type: integer
-          description: Interview flow ID
-        description:
-          type: string
-          description: Interview flow description
-        interviewSteps:
-          type: array
-          items:
-            $ref: '#/components/schemas/InterviewStep'
-
-    InterviewStep:
-      type: object
-      properties:
-        id:
-          type: integer
-          description: Interview step ID
-        interviewFlowId:
-          type: integer
-          description: Associated interview flow ID
-        interviewTypeId:
-          type: integer
-          description: Associated interview type ID
-        name:
-          type: string
-          description: Interview step name
-        orderIndex:
-          type: integer
-          description: Step order in the interview flow
-
-    Education:
-      type: object
-      properties:
-        id:
-          type: integer
-          description: Education record ID
-        candidateId:
-          type: integer
-          description: Associated candidate ID
-        institution:
-          type: string
-          description: Educational institution name
-        title:
-          type: string
-          description: Degree or certification title
-        startDate:
-          type: string
-          format: date-time
-          description: Education start date
-        endDate:
-          type: string
-          format: date-time
-          nullable: true
-          description: Education end date
-      required:
-        - institution
-        - title
-        - startDate
-
-    CreateEducationRequest:
-      type: object
-      properties:
-        institution:
-          type: string
-          description: Educational institution name
-        title:
-          type: string
-          description: Degree or certification title
-        startDate:
-          type: string
-          format: date-time
-          description: Education start date
-        endDate:
-          type: string
-          format: date-time
-          nullable: true
-          description: Education end date
-      required:
-        - institution
-        - title
-        - startDate
-
-    WorkExperience:
-      type: object
-      properties:
-        id:
-          type: integer
-          description: Work experience record ID
-        candidateId:
-          type: integer
-          description: Associated candidate ID
-        company:
-          type: string
-          description: Company name
-        position:
-          type: string
-          description: Job position title
-        description:
-          type: string
-          nullable: true
-          description: Job description
-        startDate:
-          type: string
-          format: date-time
-          description: Employment start date
-        endDate:
-          type: string
-          format: date-time
-          nullable: true
-          description: Employment end date
-      required:
-        - company
-        - position
-        - startDate
-
-    CreateWorkExperienceRequest:
-      type: object
-      properties:
-        company:
-          type: string
-          description: Company name
-        position:
-          type: string
-          description: Job position title
-        description:
-          type: string
-          nullable: true
-          description: Job description
-        startDate:
-          type: string
-          format: date-time
-          description: Employment start date
-        endDate:
-          type: string
-          format: date-time
-          nullable: true
-          description: Employment end date
-      required:
-        - company
-        - position
-        - startDate
-
-    Resume:
-      type: object
-      properties:
-        id:
-          type: integer
-          description: Resume record ID
-        candidateId:
-          type: integer
-          description: Associated candidate ID
-        filePath:
-          type: string
-          description: Resume file path
-        fileType:
-          type: string
-          description: Resume file MIME type
-      required:
-        - filePath
-        - fileType
-
-    CreateResumeRequest:
-      type: object
-      properties:
-        filePath:
-          type: string
-          description: Resume file path
-        fileType:
-          type: string
-          description: Resume file MIME type
-      required:
-        - filePath
-        - fileType
-
-    Application:
-      type: object
-      properties:
-        id:
-          type: integer
-          description: Application ID
-        candidateId:
-          type: integer
-          description: Associated candidate ID
-        positionId:
-          type: integer
-          description: Associated position ID
-        applicationDate:
-          type: string
-          format: date-time
-          description: Application submission date
-        currentInterviewStep:
-          type: integer
-          description: Current interview step ID
-        notes:
-          type: string
-          nullable: true
-          description: Application notes
-
-    Interview:
-      type: object
-      properties:
-        interviewDate:
-          type: string
-          format: date-time
-          description: Interview date and time
-        interviewStep:
-          type: object
-          properties:
-            name:
-              type: string
-              description: Interview step name
-        notes:
-          type: string
-          nullable: true
-          description: Interview notes
-        score:
-          type: number
-          nullable: true
-          description: Interview score
-
-    FileUploadResponse:
-      type: object
-      properties:
-        filePath:
-          type: string
-          description: Uploaded file path
-        fileType:
-          type: string
-          description: Uploaded file MIME type
-      required:
-        - filePath
-        - fileType
-
-    PaginationMetadata:
-      type: object
-      properties:
-        total:
-          type: integer
-          description: Total number of records
-        page:
-          type: integer
-          description: Current page number
-        limit:
-          type: integer
-          description: Records per page
-        totalPages:
-          type: integer
-          description: Total number of pages
-      required:
-        - total
-        - page
-        - limit
-        - totalPages
-
-    ErrorResponse:
-      type: object
-      properties:
-        message:
-          type: string
-          description: Error message
-        error:
-          type: string
-          description: Detailed error information
-      required:
+        - httpcode
         - message
 
-tags:
-  - name: Candidates
-    description: Operations related to candidate management
-  - name: Positions
-    description: Operations related to job position management
-  - name: File Upload
-    description: Operations related to file uploads
+    SpringDefaultError:
+      type: object
+      description: |
+        Spring Boot's default Whitelabel error body, produced for any exception that is not an
+        `HttpException` subtype, because `HttpErrorHandler.unhandledExceptions`
+        (`src/main/java/com/llandaeta/prices/rest/exception/HttpErrorHandler.java:24-25`) is
+        declared with a parameter type (`HttpException`) that does not match its
+        `@ExceptionHandler(Exception.class)` annotation target, making it unreachable for these
+        cases. Verified empirically (locally running instance of this exact code, 2026-08-19)
+        for malformed `applicationDate` (500), non-numeric `brandId`/`productId` (400), and an
+        unsupported HTTP method (405). This is a documented defect, not an intentional contract —
+        see [`docs/backend-standards.md`](./backend-standards.md#known-risks-and-defects).
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+        error:
+          type: string
+        trace:
+          type: string
+          description: Full Java stack trace. Exposed by Spring Boot's default error handling in this configuration.
+        message:
+          type: string
+        path:
+          type: string
+      required:
+        - timestamp
+        - status
+        - error
+        - message
+        - path

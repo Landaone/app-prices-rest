@@ -28,6 +28,20 @@ When updating documentation, I will:
 5. Verify that all changes are accurately reflected in the documentation
 6. Report which files were updated and what changes were made
 
+### Citation discipline
+
+Every factual claim about this codebase written into `docs/` resolves to a verifiable citation —
+file and line, e.g. `PriceController.java:23`. This applies to narrative claims too, including
+entries under "Known Risks and Defects", not only to tables and structural descriptions.
+
+A claim with no resolvable citation is not written: either find the citation or omit the claim.
+When code moves, the citation moves with it — a stale line reference is a documentation defect, and
+is why documentation review is part of every change (see above).
+
+Known defects are documented **as risks, with their citation**, and are never rewritten into
+conventions to reproduce. Documenting a defect accurately is documentation's job; fixing the code it
+lives in is a separate change.
+
 ## AI specs
 
 This rule establishes a mandatory process for the AI to:

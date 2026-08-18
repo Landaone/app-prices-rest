@@ -86,7 +86,7 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-18 |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-19 |
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS — closed via the alternative criterion (negative control did not request permission), operator-ruled | 2026-08-19 |
-| `ADOPT-06` | `04-context-and-openspec.md` | PENDING | |
+| `ADOPT-06` | `04-context-and-openspec.md` | PASS | 2026-08-19 |
 | `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
@@ -644,6 +644,85 @@ Stop after reporting the negative control's result and the permission behavior.
 
 ---
 
+## `ADOPT-06` — Adapt the Repository Technical Context
+
+- Date: 2026-08-19
+- Prompt used: the canonical consolidated prompt from `04-context-and-openspec.md` verbatim,
+  executed by a delegated agent (this session's own subagent, not a separate orchestration —
+  the executing session remained accountable for review and the approval gate). A first attempt
+  using a narrowly-scoped `backend-developer` subagent (TypeScript/DDD/Prisma-only, plan-file-only
+  role) correctly self-refused as mismatched to this Java/Spring Boot repository and to a
+  direct-edit task; re-run with a general-purpose agent, which performed the actual edits.
+- Repository evidence inspected (by the executing agent, self-reported and independently
+  spot-checked below): `pom.xml` (90 lines — Spring Boot 2.4.5 parent, Java 11, data-jpa, web,
+  flyway-core, h2, devtools, lombok, configuration-processor, starter-test); all 12 main source
+  files under `src/main/java/com/llandaeta/prices/`; all 4 test files; `application.yaml`;
+  `V1_create_tables.sql`; `HELP.md`; git log. CodeGraph (`codegraph explore`) used to cross-verify
+  controller/model/service/entity and exception-handler/repository relationships — outputs matched
+  direct file reads. Live empirical verification: ran `mvn test` (4 test classes, reported passing)
+  and `mvn spring-boot:run`, then issued `curl` requests covering success/404/malformed-date/
+  non-numeric-param/wrong-method cases, revealing the actual error-contract split described below.
+  Confirmed `./mvnw test` fails (`.mvn/wrapper/maven-wrapper.properties` missing, consistent with
+  `ADOPT-01`'s own finding) while system `mvn` works. Read the sibling `v3` adoption's `docs/` only
+  as a structural/quality reference, not copied — every fact independently re-verified against this
+  repository's actual current files (v3 and v4 differ: v3 already fixed the exception-handler
+  defect v4 still has).
+- Files modified (all under `docs/`, matching this step's `Allowed modifications` exactly):
+  `docs/base-standards.md`, `docs/backend-standards.md`, `docs/frontend-standards.md`,
+  `docs/documentation-standards.md`, `docs/development_guide.md`, `docs/data-model.md`,
+  `docs/api-spec.yml`. `git diff --stat docs/`: 7 files changed, 862 insertions, 3189 deletions.
+  **Independently verified** (by this session, not merely trusting the subagent's self-report):
+  `git status --short` confirms no path outside `docs/` (plus the pre-existing, unrelated run-log
+  delta) was touched — `src/`, `ai-specs/`, `openspec/`, `.claude/`, `.mcp.json` all show no diff.
+- Template contamination removed: full replacement of the TypeScript/Node/Express/Prisma/
+  PostgreSQL/Jest/DDD-aggregate/"LTI ATS" candidate-domain content in `backend-standards.md`,
+  `frontend-standards.md` (→ NOT APPLICABLE determination), `data-model.md`, `api-spec.yml`
+  (Candidates/Positions/Interviews OpenAPI spec → real single `GET /api/price` contract), and
+  `development_guide.md`. **Independently re-verified** by this session:
+  `grep -riE "prisma|postgresql|node\.js|react|cypress|candidate|typescript|express\.js|LTI \(|jest\b"
+  docs/*.md docs/*.yml` — all matches are legitimate negation statements confirming absence (for
+  example "There is no TypeScript, Express, Prisma... in this repository"), not residual
+  contamination.
+- Known defects documented as risks (code unchanged, only documented with citations):
+  1. Broken generic exception handler — `HttpErrorHandler.unhandledExceptions`
+     (`HttpErrorHandler.java:24-25`) is `@ExceptionHandler(Exception.class)` but its parameter is
+     typed `HttpException`, making it unreachable for non-`HttpException` exceptions.
+     **Independently re-verified**: read the file directly — lines 24-25 confirmed exactly as
+     cited.
+  2. Grammatically defective error message, `"No  price found to the brand"` (double space, wrong
+     preposition) — `PriceServiceImpl.java:30`. **Independently re-verified**: read the file
+     directly, line 30 confirmed exact match.
+  3. `PRICE DECIMAL(4,2)` caps storable values at 99.99 — `V1_create_tables.sql:12`.
+     **Independently re-verified**: read the file directly, line 12 confirmed.
+  4. `mvnw` wrapper broken — missing `.mvn/wrapper/maven-wrapper.properties`, consistent with
+     `ADOPT-01`'s own finding.
+- Unresolved contradictions or risks: none reported; cross-document heading references confirmed
+  resolvable.
+- Citation-check result: every factual claim reported to carry a `file:line` citation; the
+  reporting agent stated it independently re-verified every line number against actual current
+  file line counts and self-corrected 3 off-by-one errors before reporting. This session
+  spot-checked 3 of the citations directly against the actual files (the exception-handler defect,
+  the error-message defect, and the migration's `DECIMAL(4,2)`/seed-row lines) — all 3 confirmed
+  exact matches. Not every one of the reported ~179-scale citation set was individually
+  re-verified by this session; the spot-check covers the highest-risk claims (the two documented
+  defects) plus one structural claim, not an exhaustive re-audit.
+- Validation (as reported by the executing agent, cross-checked where noted): stack vs `pom.xml` —
+  PASS; architecture vs source structure — PASS; API docs vs controller — PASS; data model vs
+  entity+migration — PASS; build/test commands vs repo config (including the `mvnw` defect) —
+  PASS; absence of template terminology — PASS, **independently re-confirmed** by this session's
+  own grep above; internal consistency — PASS; every factual claim resolves to a citation — PASS,
+  partially spot-checked as above; frontend marked NOT APPLICABLE, no Playwright/E2E introduced —
+  PASS, **independently re-confirmed** by this session reading `docs/frontend-standards.md`
+  directly; only `docs/` modified — PASS, **independently re-confirmed** via `git status`/`git
+  diff --stat` above; YAML syntax of `api-spec.yml` — PASS, **independently re-confirmed** by this
+  session running `python3 -c "import yaml; yaml.safe_load(open('docs/api-spec.yml'))"` → no error.
+- **Approval gate**: **[HUMAN APPROVAL REQUIRED]**, exercised live. The diff summary, verification
+  results, and defect list above were presented to the operator; approved, 2026-08-19, via
+  interactive confirmation ("Approve (Recommended)").
+- Result: PASS
+
+---
+
 ## Checkpoint ledger
 
 One row per checkpoint. A checkpoint is the smallest independently validated `ADOPT` step; a
@@ -656,4 +735,5 @@ group requires a **written structural justification** — "fewer commits" is not
 | 3 | `ADOPT-04` (single step — no grouping) | N/A — single step, checkpointed immediately after reaching PASS, correcting the pattern from checkpoints 1–2. | `ADOPT-04` = PASS (see evidence block above) | `ADOPT-04` evidence block above | YES — staged set `{.codegraph/.gitignore, .specboot/adoption/ADOPTION-RUN-LOG.md}` is an exact subset of `ADOPT-04`'s closed allowlist (`.codegraph/` — only `.gitignore` ever trackable) plus the always-permitted run log. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed | `.codegraph/.gitignore` (A), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `04bed96` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | Push approval: standing authorization (harness did not block this push). **PUSHED** — fast-forward, `b4c2da2..04bed96`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
 | 4 | `ADOPT-05` (single step — no grouping) | N/A — single step, checkpointed immediately. | `ADOPT-05` = PASS (see evidence block above) | `ADOPT-05` evidence block above; `ADOPTION-AUTHORIZATION.md` code-graph-privilege-scope section | YES — staged set `{.claude/CLAUDE.md (M), .claude/settings.json (A), .mcp.json (A), .specboot/adoption/ADOPTION-AUTHORIZATION.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-05`'s closed allowlist (`.mcp.json`; the Claude permission file `.claude/settings.json`; the additive `CODEGRAPH_START/END` block in `.claude/CLAUDE.md`; `ADOPTION-AUTHORIZATION.md` update-only) plus the always-permitted run log. No anomalies. | YES | **live** — operator explicitly directed the exact command (`codegraph install -y --target claude --location local --no-permissions`), citing `v1` precedent and accepting the documented trade-off; not an auto-approval (the invocation-form deviation from canonical explicit-flag-only, itself recorded in `ADOPTION-AUTHORIZATION.md`, meant this reached the live gate rather than auto-approving on form, even though the *resulting* scope/auto-allow choices independently matched the least-privilege criteria) | `.claude/CLAUDE.md` (M), `.claude/settings.json` (A), `.mcp.json` (A), `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `3ea53de` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `04bed96..3ea53de`, `origin/experiment/specboot-ai-adoption-v4`. | Proposed: `02-codegraph.md` could note that pty-driven automation of `codegraph install`'s explicit-flag form may be environment-fragile (this run: 4/4 attempts failed identically at the second sub-question), and that `-y` combined with explicit `--target`/`--location`/`--no-permissions` overrides is a viable, evidenced fallback whose only uncontrollable dimension is the CLI-on-PATH default — worth documenting as a recognized (not merely tolerated) fallback path alongside the pty-automation guidance. |
 | 5 | `ADOPT-05B` Steps 1-4 (provisioning only — smoke test outstanding, step not yet PASS) | Not a full-step checkpoint by design: this step's own text mandates a stop-and-hand-off before the smoke test can be evidenced, so Steps 1-4's provisioning work is checkpointed now rather than left uncommitted while awaiting a fresh session. | Steps 1-4 individually validated (safety scan clean, JSON valid, merge matches baseline exactly per operator's approved scope); the step as a whole remains PENDING pending the smoke test. | `ADOPT-05B` evidence block above; `ADOPTION-AUTHORIZATION.md` environment-matrix section | YES — staged set `{.claude/settings.json (M), .specboot/adoption/ADOPTION-AUTHORIZATION.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-05B`'s closed allowlist (the Claude permission file; `ADOPTION-AUTHORIZATION.md` update-only) plus the always-permitted run log. No anomalies. | YES | **live** — operator was shown the exact baseline content, provenance, and the proposed `mvnw` broadening, and explicitly chose "baseline only, drop mvnw additions" (harness classifier also independently blocked the unapproved write until this approval) | `.claude/settings.json` (M), `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `60b624e` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `3ea53de..60b624e`, `origin/experiment/specboot-ai-adoption-v4`. | None beyond the mvnw-addition note already recorded in the `ADOPT-05B` evidence block (a future checkpoint may revisit if the wrapper is repaired). |
-| 6 | `ADOPT-05B` closure (smoke-test alternative criterion; run-log-only change) | N/A — single-step closure, no file mutation beyond the run log itself. | `ADOPT-05B` = PASS (closed on the alternative criterion for Claude Code/macOS; Windows/Linux `PENDING EVIDENCE`) | `ADOPT-05B` evidence block above (negative-control result, alternative-criterion sub-criteria, operator ruling verbatim) | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; no other path touched. No anomalies. | YES | **live** — `[HUMAN APPROVAL REQUIRED]` to close on the alternative criterion, exercised: operator (Landaone) explicitly ruled and supplied the required reasoning (negative control's silent execution as the basis for `NOT APPLICABLE ON THIS CLIENT`), 2026-08-19 | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | Residual note (operator-flagged, non-blocking): this client's silent execution of an off-allowlist negative control suggests a global permission override independent of `.claude/settings.json` may be in effect in this environment — worth investigating independently, since it would affect every future command here, not only this smoke test. Not resolved; carried forward as a limitation. |
+| 6 | `ADOPT-05B` closure (smoke-test alternative criterion; run-log-only change) | N/A — single-step closure, no file mutation beyond the run log itself. | `ADOPT-05B` = PASS (closed on the alternative criterion for Claude Code/macOS; Windows/Linux `PENDING EVIDENCE`) | `ADOPT-05B` evidence block above (negative-control result, alternative-criterion sub-criteria, operator ruling verbatim) | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; no other path touched. No anomalies. | YES | **live** — `[HUMAN APPROVAL REQUIRED]` to close on the alternative criterion, exercised: operator (Landaone) explicitly ruled and supplied the required reasoning (negative control's silent execution as the basis for `NOT APPLICABLE ON THIS CLIENT`), 2026-08-19 | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `9ebcf0a` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `60b624e..9ebcf0a`, `origin/experiment/specboot-ai-adoption-v4`. | Residual note (operator-flagged, non-blocking): this client's silent execution of an off-allowlist negative control suggests a global permission override independent of `.claude/settings.json` may be in effect in this environment — worth investigating independently, since it would affect every future command here, not only this smoke test. Not resolved; carried forward as a limitation. |
+| 7 | `ADOPT-06` (single step — no grouping) | N/A — single step, checkpointed immediately. | `ADOPT-06` = PASS (see evidence block above) | `ADOPT-06` evidence block above (delegated-agent report plus this session's independent spot-checks: 3 citations, contamination grep, YAML validation, git-diff scope) | YES — staged set `{docs/api-spec.yml (M), docs/backend-standards.md (M), docs/base-standards.md (M), docs/data-model.md (M), docs/development_guide.md (M), docs/documentation-standards.md (M), docs/frontend-standards.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-06`'s declared allowlist (`docs/` only) plus the always-permitted run log. No anomalies — confirmed no path outside `docs/` touched. | YES | **live** — operator shown the diff summary, independent verification results, and defect list; approved 2026-08-19 ("Approve (Recommended)") | `docs/api-spec.yml` (M), `docs/backend-standards.md` (M), `docs/base-standards.md` (M), `docs/data-model.md` (M), `docs/development_guide.md` (M), `docs/documentation-standards.md` (M), `docs/frontend-standards.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |

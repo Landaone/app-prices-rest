@@ -1,6 +1,6 @@
 ---
-description: Backend development standards, best practices, and conventions for the LTI Node.js/TypeScript/Express application including Domain-Driven Design, SOLID principles, architecture patterns, API design, and testing practices
-globs: ["backend/src/**/*.ts", "backend/prisma/**/*.{prisma,ts}", "backend/jest.config.js", "backend/tsconfig.json", "backend/serverless.yml", "backend/package.json"]
+description: Backend development standards, best practices, and conventions for the app-prices-rest Java 11 / Spring Boot 2.4.5 REST API, including layered architecture, persistence, error handling, and testing practices
+globs: ["src/main/java/**/*.java", "src/test/java/**/*.java", "src/main/resources/**/*.yaml", "src/main/resources/db/migration/**/*.sql", "pom.xml"]
 alwaysApply: true
 ---
 
@@ -10,1219 +10,359 @@ alwaysApply: true
 
 - [Overview](#overview)
 - [Technology Stack](#technology-stack)
-  - [Core Technologies](#core-technologies)
-  - [Database & ORM](#database--orm)
-  - [Testing Framework](#testing-framework)
-  - [Development Tools](#development-tools)
 - [Architecture Overview](#architecture-overview)
-  - [Domain-Driven Design (DDD)](#domain-driven-design-ddd)
   - [Layered Architecture](#layered-architecture)
   - [Project Structure](#project-structure)
-- [Domain-Driven Design Principles](#domain-driven-design-principles)
-  - [Entities](#entities)
-  - [Value Objects](#value-objects)
-  - [Aggregates](#aggregates)
-  - [Repositories](#repositories)
-  - [Domain Services](#domain-services)
-  - [Additional Recommendations](#additional-recommendations)
-- [SOLID and DRY Principles](#solid-and-dry-principles)
-  - [Single Responsibility Principle (SRP)](#single-responsibility-principle-srp)
-  - [Open/Closed Principle (OCP)](#openclosed-principle-ocp)
-  - [Liskov Substitution Principle (LSP)](#liskov-substitution-principle-lsp)
-  - [Interface Segregation Principle (ISP)](#interface-segregation-principle-isp)
-  - [Dependency Inversion Principle (DIP)](#dependency-inversion-principle-dip)
-  - [DRY (Don't Repeat Yourself)](#dry-dont-repeat-yourself)
 - [Coding Standards](#coding-standards)
   - [Language and Naming Conventions](#language-and-naming-conventions)
-  - [TypeScript Usage](#typescript-usage)
+  - [Lombok Usage](#lombok-usage)
   - [Error Handling](#error-handling)
-  - [Validation Patterns](#validation-patterns)
   - [Logging Standards](#logging-standards)
 - [API Design Standards](#api-design-standards)
-  - [REST Endpoints](#rest-endpoints)
-  - [Request/Response Patterns](#requestresponse-patterns)
-  - [Error Response Format](#error-response-format)
-  - [CORS Configuration](#cors-configuration)
 - [Database Patterns](#database-patterns)
-  - [Prisma Schema](#prisma-schema)
-  - [Migrations](#migrations)
+  - [Flyway Migrations](#flyway-migrations)
+  - [JPA Entity Mapping](#jpa-entity-mapping)
   - [Repository Pattern](#repository-pattern)
 - [Testing Standards](#testing-standards)
-  - [Unit Testing](#unit-testing)
-  - [Integration Testing](#integration-testing)
-  - [Test Coverage Requirements](#test-coverage-requirements)
-  - [Mocking Standards](#mocking-standards)
-- [Performance Best Practices](#performance-best-practices)
-  - [Database Query Optimization](#database-query-optimization)
-  - [Async/Await Patterns](#asyncawait-patterns)
-  - [Error Handling Performance](#error-handling-performance)
-- [Security Best Practices](#security-best-practices)
-  - [Input Validation](#input-validation)
-  - [Environment Variables](#environment-variables)
-  - [Dependency Injection](#dependency-injection)
-- [Development Workflow](#development-workflow)
-  - [Git Workflow](#git-workflow)
-  - [Development Scripts](#development-scripts)
-  - [Code Quality](#code-quality)
-- [Serverless Deployment](#serverless-deployment)
-  - [AWS Lambda Configuration](#aws-lambda-configuration)
-  - [Serverless Framework](#serverless-framework)
+- [Build and Development Workflow](#build-and-development-workflow)
+- [Known Risks and Defects](#known-risks-and-defects)
 
 ---
 
 ## Overview
 
-This document outlines the best practices, conventions, and standards used in the LTI backend application. The backend follows Domain-Driven Design (DDD) principles and implements a layered architecture to ensure code consistency, maintainability, and scalability.
+This document outlines the actual conventions found in the `app-prices-rest` backend. The
+application is a single Spring Boot service exposing one read endpoint that resolves the
+applicable price for a brand, product, and point in time. There is no separate frontend, no
+microservice split, and no Domain-Driven-Design layering with aggregates or domain events — the
+codebase is a straightforward controller → service → repository stack.
 
 ## Technology Stack
 
-### Core Technologies
-- **Node.js**: Runtime environment
-- **TypeScript**: Type-safe development with strict mode
-- **Express.js**: Web application framework
-- **Prisma**: Modern ORM for database access
+Verified against `pom.xml:1-90`:
 
-### Database & ORM
-- **PostgreSQL**: Relational database (Docker container)
-- **Prisma Client**: Type-safe database client
-- **Prisma Migrate**: Database migration tool
+- **Java 11** (`pom.xml:17`, `<java.version>11</java.version>`)
+- **Spring Boot 2.4.5** as the parent POM (`pom.xml:6-9`)
+- **Spring Boot Starter Web** — REST controllers, embedded Tomcat (`pom.xml:26-28`)
+- **Spring Boot Starter Data JPA** — Hibernate-backed persistence (`pom.xml:21-23`)
+- **Flyway Core** — versioned SQL migrations (`pom.xml:30-33`)
+- **H2 Database** (runtime scope) — the only configured datasource driver (`pom.xml:42-46`,
+  `src/main/resources/application.yaml:16`)
+- **Lombok** (optional, excluded from the fat jar) — `@Data`, `@Builder`, `@AllArgsConstructor`,
+  `@NoArgsConstructor`, `@Getter`, `@Slf4j` (`pom.xml:54-58`, exclusion block at `pom.xml:79-84`)
+- **Spring Boot DevTools** (runtime, optional) — hot reload during development (`pom.xml:35-39`)
+- **Spring Boot Configuration Processor** (optional) — `@ConfigurationProperties` metadata
+  (`pom.xml:48-51`)
+- **JUnit 5 (Jupiter) via `spring-boot-starter-test`**, with the JUnit 4 vintage engine explicitly
+  excluded (`pom.xml:60-70`)
+- **Build tool**: Maven, via the `spring-boot-maven-plugin` (`pom.xml:75-86`). No Gradle, no npm,
+  no Node.js anywhere in the repository.
 
-### Testing Framework
-- **Jest**: Testing framework with TypeScript support
-- **Coverage Threshold**: 90% for branches, functions, lines, and statements
-- **Test Location**: `__tests__` directories and `.test.ts` files
-
-### Development Tools
-- **ESLint**: Code linting
-- **TypeScript Compiler**: Type checking and compilation
-- **Serverless Framework**: AWS Lambda deployment support
+There is no TypeScript, Express, Prisma, PostgreSQL, or React in this repository — those
+technologies do not appear anywhere in `pom.xml`, `src/`, or `src/main/resources/`.
 
 ## Architecture Overview
 
-### Domain-Driven Design (DDD)
-
-Domain-Driven Design is a methodology that focuses on modeling software according to business logic and domain knowledge. By centering development on a deep understanding of the domain, DDD facilitates the creation of complex systems.
-
-**Benefits:**
-- **Improved Communication**: Promotes a common language between developers and domain experts, improving communication and reducing interpretation errors.
-- **Clear Domain Models**: Helps build models that accurately reflect business rules and processes.
-- **High Maintainability**: By dividing the system into subdomains, it facilitates maintenance and software evolution.
-
 ### Layered Architecture
 
-The backend follows a layered DDD architecture:
+The backend follows a simple four-package layering under
+`src/main/java/com/llandaeta/prices/`, verified by directory listing:
 
-**Presentation Layer** (`src/presentation/`)
-- Controllers handle HTTP requests/responses
-- Routes define API endpoints
-- Controllers use services from Application layer
+**REST layer** (`rest/`)
+- `rest/controllers/PriceController.java` — the single `@RestController`, mapped under `/api`
+  (`PriceController.java:18-19`)
+- `rest/dto/Error.java` — the JSON error payload shape returned by the custom error handler
+  (`Error.java:6-11`)
+- `rest/exception/HttpErrorHandler.java` — `@RestControllerAdvice` translating exceptions to HTTP
+  responses (`HttpErrorHandler.java:11-13`)
 
-**Application Layer** (`src/application/`)
-- Services contain business logic and orchestration
-- Validator handles input validation
-- Services use repositories from Domain layer
+**Core layer** (`core/`)
+- `core/services/PriceService.java` — the service interface (`PriceService.java:8`)
+- `core/services/impl/PriceServiceImpl.java` — its single implementation, a `@Service`
+  (`PriceServiceImpl.java:16-19`)
+- `core/model/PriceModel.java` — the API-facing DTO returned by the controller
+  (`PriceModel.java:9-12`)
+- `core/converters/PriceEntityModelConverter.java` — a Spring `Converter<PriceEntity, PriceModel>`
+  bean (`PriceEntityModelConverter.java:8-9`)
+- `core/exception/HttpException.java`, `core/exception/NotFoundException.java`,
+  `core/exception/NoPriceFoundException.java` — the exception hierarchy
+  (`HttpException.java:7`, `NotFoundException.java:7`, `NoPriceFoundException.java:3`)
 
-**Domain Layer** (`src/domain/`)
-- Models define core business entities (Candidate, Position, Application, Interview, etc.)
-- Repository interfaces define data access contracts
-- Pure business logic without external dependencies
+**Persistence layer** (`db/`)
+- `db/entities/PriceEntity.java` — the single JPA `@Entity`, mapped to table `prices` in schema
+  `test` (`PriceEntity.java:14-15`)
+- `db/repositories/PriceRepository.java` — a `JpaRepository<PriceEntity, Long>` with one derived
+  query method (`PriceRepository.java:10-13`)
 
-**Infrastructure Layer** (implicit)
-- Prisma ORM handles database operations
-- Repository implementations (via Prisma) satisfy domain interfaces
+There is no separate "domain" package, no repository *interfaces* distinct from Spring Data
+repositories, and no aggregate roots — `PriceEntity` is both the JPA entity and the sole
+persistence-layer type.
 
 ### Project Structure
 
+Verified with `find src -type f`:
+
 ```
-backend/
-├── src/
-│   ├── domain/
-│   │   ├── models/          # Domain entities
-│   │   └── repositories/    # Repository interfaces
-│   ├── application/
-│   │   ├── services/        # Business logic services
-│   │   └── validator.ts     # Input validation
-│   ├── presentation/
-│   │   └── controllers/     # HTTP request handlers
-│   ├── infrastructure/
-│   │   ├── logger.ts        # Logging utilities
-│   │   └── prismaClient.ts  # Prisma client setup
-│   ├── routes/              # Express route definitions
-│   ├── middleware/          # Express middleware
-│   ├── index.ts             # Application entry point
-│   └── lambda.ts            # AWS Lambda handler
-├── prisma/
-│   ├── schema.prisma        # Database schema
-│   └── migrations/          # Database migrations
-├── test-utils/
-│   ├── builders/            # Test data builders
-│   └── mocks/               # Mock helpers
-├── jest.config.js           # Jest configuration
-├── tsconfig.json            # TypeScript configuration
-├── serverless.yml           # Serverless Framework config
-└── package.json             # Dependencies and scripts
+src/main/java/com/llandaeta/prices/
+├── AppPricesRestApplication.java          # @SpringBootApplication entry point
+├── core/
+│   ├── converters/PriceEntityModelConverter.java
+│   ├── exception/HttpException.java
+│   ├── exception/NoPriceFoundException.java
+│   ├── exception/NotFoundException.java
+│   ├── model/PriceModel.java
+│   ├── services/PriceService.java
+│   └── services/impl/PriceServiceImpl.java
+├── db/
+│   ├── entities/PriceEntity.java
+│   └── repositories/PriceRepository.java
+└── rest/
+    ├── controllers/PriceController.java
+    ├── dto/Error.java
+    └── exception/HttpErrorHandler.java
+
+src/main/resources/
+├── application.yaml
+└── db/migration/V1_create_tables.sql
+
+src/test/java/com/llandaeta/prices/
+├── AppPricesRestApplicationTests.java
+├── core/converters/PriceEntityModelConverterTest.java
+├── core/services/impl/PriceServiceImplTest.java
+└── rest/controllers/PriceControllerTest.java
 ```
-
-## Domain-Driven Design Principles
-
-### Entities
-
-Entities are objects with a distinct identity that persists over time.
-
-**Before:**
-```typescript
-// Previously, candidate data might have been handled as a simple JSON object without methods.
-const candidate = {
-    id: 1,
-    firstName: 'John',
-    lastName: 'Doe',
-    email: 'john.doe@example.com'
-};
-```
-
-**After:**
-```typescript
-export class Candidate {
-    id?: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    
-    // Constructor and methods that encapsulate business logic
-    constructor(data: any) {
-        this.id = data.id;
-        this.firstName = data.firstName;
-        this.lastName = data.lastName;
-        this.email = data.email;
-    }
-}
-```
-
-**Explanation**: `Candidate` is an entity because it has a unique identifier (`id`) that distinguishes it from other candidates, even if other properties are identical.
-
-**Best Practice**: Entities should encapsulate business logic related to their domain concept and maintain consistency of their internal state.
-
-### Value Objects
-
-Value Objects describe aspects of the domain without conceptual identity. They are defined by their attributes rather than an identifier.
-
-**Before:**
-```typescript
-// Handling education information as a simple object
-const education = {
-    institution: 'University',
-    degree: 'Bachelor',
-    startDate: '2010-01-01',
-    endDate: '2014-01-01'
-};
-```
-
-**After:**
-```typescript
-export class Education {
-    institution: string;
-    title: string;
-    startDate: Date;
-    endDate?: Date;
-    
-    constructor(data: any) {
-        this.institution = data.institution;
-        this.title = data.title;
-        this.startDate = new Date(data.startDate);
-        this.endDate = data.endDate ? new Date(data.endDate) : undefined;
-    }
-}
-```
-
-**Explanation**: `Education` can be considered a Value Object in some contexts, as it describes a candidate's education without needing a unique identifier. However, in the current model, it has been assigned an id, which could contradict the pure definition of a Value Object in DDD.
-
-**Recommendation**: Classes like `Education` and `WorkExperience` currently have unique identifiers, classifying them as entities. In many cases, these could be treated as Value Objects within the context of a `Candidate` aggregate. Consider removing unique identifiers from classes that should be Value Objects, or incorporating them as part of the Candidate document if using a NoSQL database.
-
-### Aggregates
-
-Aggregates are clusters of objects that must be treated as a unit. They have a root entity that enforces invariants and consistency boundaries.
-
-**Before:**
-```typescript
-// Candidate and education data handled separately
-const candidate = { id: 1, name: 'John Doe' };
-const educations = [{ candidateId: 1, institution: 'University' }];
-```
-
-**After:**
-```typescript
-export class Candidate {
-    id?: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-    educations: Education[];
-    
-    constructor(data: any) {
-        this.id = data.id;
-        this.firstName = data.firstName;
-        this.lastName = data.lastName;
-        this.email = data.email;
-        this.educations = data.educations?.map(edu => new Education(edu)) || [];
-    }
-}
-```
-
-**Explanation**: `Candidate` acts as an aggregate root that contains `Education`, `WorkExperience`, `Resume`, and `Application`. `Candidate` is the root of the aggregate, as the other entities only make sense in relation to a candidate.
-
-**Recommendation**: Aggregates should be carefully designed to ensure that all operations within the aggregate boundary maintain consistency. Operations that affect `Education` and `WorkExperience` should be handled through the aggregate root, `Candidate`, to maintain integrity and encapsulation.
-
-### Repositories
-
-Repositories provide interfaces for accessing aggregates and entities, encapsulating data access logic.
-
-**Before:**
-```typescript
-// Direct database access without abstraction
-function getCandidateById(id: number) {
-    return database.query('SELECT * FROM candidates WHERE id = ?', [id]);
-}
-```
-
-**After:**
-```typescript
-export interface ICandidateRepository {
-    findById(id: number): Promise<Candidate | null>;
-    save(candidate: Candidate): Promise<Candidate>;
-    findAll(): Promise<Candidate[]>;
-}
-
-export class CandidateRepository implements ICandidateRepository {
-    async findById(id: number): Promise<Candidate | null> {
-        const data = await prisma.candidate.findUnique({ where: { id } });
-        return data ? new Candidate(data) : null;
-    }
-    
-    async save(candidate: Candidate): Promise<Candidate> {
-        // Implementation with Prisma
-    }
-}
-```
-
-**Explanation**: `CandidateRepository` provides a clear interface for accessing candidate data, encapsulating database access logic.
-
-**Recommendation**: 
-- Develop complete repository interfaces for each entity and aggregate, ensuring all database interactions for those entities pass through the repository
-- Implement repository methods that handle collections of entities, such as lists of Candidates, that can be filtered or modified in bulk
-- Use dependency injection to inject Prisma client into repositories
-
-### Domain Services
-
-Domain Services contain business logic that doesn't naturally belong to an entity or value object.
-
-**Before:**
-```typescript
-// Loose functions to handle business logic
-function calculateAge(candidate: any): number {
-    const today = new Date();
-    const birthDate = new Date(candidate.birthDate);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const m = today.getMonth() - birthDate.getMonth();
-    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-    }
-    return age;
-}
-```
-
-**After:**
-```typescript
-export class CandidateService {
-    static calculateAge(candidate: Candidate): number {
-        const today = new Date();
-        const birthDate = new Date(candidate.birthDate);
-        let age = today.getFullYear() - birthDate.getFullYear();
-        const m = today.getMonth() - birthDate.getMonth();
-        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-        }
-        return age;
-    }
-}
-```
-
-**Explanation**: `CandidateService` encapsulates business logic related to candidates, such as calculating age, providing a centralized and coherent point for handling these operations.
-
-### Additional Recommendations
-
-**Use of Factories**
-
-Factories are useful in DDD to encapsulate the logic of creating complex objects, ensuring that all created objects comply with domain rules from the moment of creation.
-
-**Recommendation**: Implement factories for the creation of entities and aggregates, especially those that are complex and require specific initial configuration that complies with business rules.
-
-**Improvement in Relationship Modeling**
-
-Relationships between entities and aggregates must be clear and consistent with business rules.
-
-**Recommendation**: Review and possibly redesign relationships between entities to ensure they accurately reflect domain needs and rules. This may include removing unnecessary relationships or adding new relationships that facilitate business operations.
-
-**Domain Events Integration**
-
-Domain events are an important part of DDD and can be used to handle side effects of domain operations in a decoupled manner.
-
-**Recommendation**: Implement a domain event system that allows entities and aggregates to publish events that other system components can handle without being tightly coupled to the entities that generate them.
-
-## SOLID and DRY Principles
-
-### SOLID Principles
-
-SOLID principles are five object-oriented design principles that help create more understandable, flexible, and maintainable systems.
-
-#### Single Responsibility Principle (SRP)
-
-Each class should have a single responsibility or reason to change.
-
-**Before:**
-```typescript
-// A method that handles multiple responsibilities: validation and data storage
-function processCandidate(candidate: any) {
-    if (!candidate.email.includes('@')) {
-        console.error('Invalid email');
-        return;
-    }
-    database.save(candidate);
-    console.log('Candidate saved');
-}
-```
-
-**After:**
-```typescript
-export class Candidate {
-    // The class now only handles logic related to the candidate
-    validateEmail(): void {
-        if (!this.email.includes('@')) {
-            throw new Error('Invalid email');
-        }
-    }
-}
-
-export class CandidateRepository {
-    async save(candidate: Candidate): Promise<Candidate> {
-        candidate.validateEmail();
-        return await prisma.candidate.create({ data: candidate });
-    }
-}
-```
-
-**Explanation**: The `Candidate` class now has separate methods for validation, while the repository handles data persistence, complying with the single responsibility principle.
-
-**Observation**: The `Candidate` class in `backend/src/domain/models/Candidate.ts` handles both business logic and data access logic.
-
-**Recommendation**: Separate data access logic into a repository layer to adhere more closely to SRP.
-
-#### Open/Closed Principle (OCP)
-
-Software entities should be open for extension but closed for modification.
-
-**Before:**
-```typescript
-// Direct modification of the class to add functionality
-class Candidate {
-    saveToDatabase() {
-        // code to save to database
-    }
-    // To add new functionality, we modify the class directly
-    sendEmail() {
-        // code to send an email
-    }
-}
-```
-
-**After:**
-```typescript
-export class Candidate {
-    saveToDatabase() {
-        // code to save to database
-    }
-}
-
-// Extend functionality without modifying the existing class
-class CandidateWithEmail extends Candidate {
-    sendEmail() {
-        // code to send an email
-    }
-}
-```
-
-**Explanation**: The email sending functionality is extended in a subclass, keeping the original class closed for modifications but open for extensions.
-
-**Observation**: The `addCandidate` function in `backend/src/application/services/candidateService.ts` directly instantiates `Candidate`, `Education`, `WorkExperience`, and `Resume` classes.
-
-**Recommendation**: Use factory methods to create instances, allowing for easier extension without modifying existing code.
-
-#### Liskov Substitution Principle (LSP)
-
-Objects of a derived class should be replaceable with objects of the base class without altering the program's functionality.
-
-**Before:**
-```typescript
-// Subclass that cannot completely replace its base class
-class TemporaryCandidate extends Candidate {
-    saveToDatabase() {
-        throw new Error("Temporary candidates can't be saved.");
-    }
-}
-```
-
-**After:**
-```typescript
-class TemporaryCandidate extends Candidate {
-    saveToDatabase() {
-        // Appropriate implementation that allows temporary handling
-        console.log("Handled temporarily");
-        // Alternative: Save to temporary storage
-    }
-}
-```
-
-**Explanation**: `TemporaryCandidate` now provides an appropriate implementation that respects the base class contract, allowing substitution without errors.
-
-**Observation**: Currently, there is no inheritance in use where LSP could be violated. The project uses composition over inheritance, which generally supports LSP.
-
-**Recommendation**: Continue using composition to avoid LSP violations and ensure that any future inheritance structures allow derived classes to substitute their base classes without altering how the program works.
-
-#### Interface Segregation Principle (ISP)
-
-Many specific interfaces are better than a single general interface.
-
-**Before:**
-```typescript
-// A large interface that small clients don't fully use
-interface CandidateOperations {
-    save(): void;
-    validate(): void;
-    sendEmail(): void;
-    generateReport(): void;
-}
-```
-
-**After:**
-```typescript
-interface SaveOperation {
-    save(): void;
-}
-
-interface EmailOperations {
-    sendEmail(): void;
-}
-
-interface ReportOperations {
-    generateReport(): void;
-}
-
-class Candidate implements SaveOperation, EmailOperations {
-    save() {
-        // implementation
-    }
-    
-    sendEmail() {
-        // implementation
-    }
-}
-```
-
-**Explanation**: Interfaces are segregated into smaller operations, allowing classes to implement only the interfaces they need.
-
-**Observation**: The project does not currently use TypeScript interfaces extensively to enforce contracts for classes.
-
-**Recommendation**: Define more granular interfaces for service classes to ensure they only implement the methods they need.
-
-#### Dependency Inversion Principle (DIP)
-
-High-level modules should not depend on low-level modules; both should depend on abstractions.
-
-**Before:**
-```typescript
-// Direct dependency on a concrete implementation
-class Candidate {
-    private database = new PrismaClient();
-    
-    save() {
-        this.database.candidate.create({ data: this });
-    }
-}
-```
-
-**After:**
-```typescript
-interface Database {
-    save(candidate: Candidate): Promise<Candidate>;
-}
-
-class Candidate {
-    private database: Database;
-    
-    constructor(database: Database) {
-        this.database = database;
-    }
-    
-    async save(): Promise<Candidate> {
-        return await this.database.save(this);
-    }
-}
-```
-
-**Explanation**: `Candidate` now depends on an abstraction (Database), not a concrete implementation, which facilitates flexibility and code testing.
-
-**Observation**: Classes like `Candidate` directly depend on the concrete `PrismaClient` for database operations.
-
-**Recommendation**: Use dependency injection to invert the dependency, relying on abstractions rather than concrete implementations. Inject `PrismaClient` through the constructor or a setter method.
-
-### DRY (Don't Repeat Yourself)
-
-The DRY principle focuses on reducing duplication in code. Each piece of knowledge should have a single, unambiguous, and authoritative representation within a system.
-
-**Before:**
-```typescript
-// Repeated code to validate emails in multiple functions
-function saveCandidate(candidate: Candidate) {
-    if (!candidate.email.includes('@')) {
-        throw new Error('Invalid email');
-    }
-    // save logic
-}
-
-function updateCandidate(candidate: Candidate) {
-    if (!candidate.email.includes('@')) {
-        throw new Error('Invalid email');
-    }
-    // update logic
-}
-```
-
-**After:**
-```typescript
-export class Candidate {
-    validateEmail(): void {
-        if (!this.email.includes('@')) {
-            throw new Error('Invalid email');
-        }
-    }
-    
-    async save(): Promise<Candidate> {
-        this.validateEmail();
-        // save logic
-    }
-    
-    async update(): Promise<Candidate> {
-        this.validateEmail();
-        // update logic
-    }
-}
-```
-
-**Explanation**: Email validation is centralized in a single `validateEmail` method, eliminating code duplication in the save and update functions.
-
-**Observation**: The methods for saving entities like `Candidate`, `Education`, `WorkExperience`, and `Resume` contain repetitive logic for handling database operations.
-
-**Recommendation**: Abstract common database operation logic into a reusable function or class.
 
 ## Coding Standards
 
-### Naming Conventions
+### Language and Naming Conventions
 
-- **Variable Naming**: Use camelCase for variables and functions (e.g., `candidateId`, `findCandidateById`)
-- **Class Naming**: Use PascalCase for classes and interfaces (e.g., `Candidate`, `CandidateRepository`)
-- **Constants Naming**: Use UPPER_SNAKE_CASE for constants (e.g., `MAX_CANDIDATES_PER_PAGE`)
-- **Type Naming**: Use PascalCase for types and interfaces (e.g., `CandidateData`, `ICandidateRepository`)
-- **File Naming**: Use camelCase for file names (e.g., `candidateService.ts`, `candidateController.ts`)
+- **Variable/method naming**: camelCase (e.g. `brandId`, `searchPriceToApply`) — see
+  `PriceService.java:10`.
+- **Class naming**: PascalCase (e.g. `PriceEntity`, `PriceServiceImpl`) throughout.
+- **Package naming**: lowercase, layer-first (`core.services.impl`, `db.repositories`,
+  `rest.controllers`) — see the package declarations at the top of each source file.
+- **File naming**: file name matches the public class/interface name (standard Java convention),
+  observed consistently across all 12 source files under `src/main/java`.
+- English is used throughout identifiers, comments, and log messages, per
+  [Base Standards](./base-standards.md) §2.
 
-**Examples:**
+### Lombok Usage
 
-```typescript
-// Good: All in English
-export class CandidateRepository {
-    async findById(candidateId: number): Promise<Candidate | null> {
-        // Find candidate by ID in the database
-        const candidate = await this.prisma.candidate.findUnique({
-            where: { id: candidateId }
-        });
-        return candidate ? new Candidate(candidate) : null;
-    }
-}
+Entities and DTOs favor Lombok annotations over hand-written boilerplate:
 
-// Avoid: Non-English comments or names
-export class RepositorioCandidato {
-    async buscarPorId(idCandidato: number): Promise<Candidato | null> {
-        // Buscar candidato por ID en la base de datos
-        const candidato = await this.prisma.candidate.findUnique({
-            where: { id: idCandidato }
-        });
-        return candidato ? new Candidato(candidato) : null;
-    }
-}
-```
+- `PriceEntity` uses `@Data @AllArgsConstructor @NoArgsConstructor @Builder`
+  (`PriceEntity.java:16-19`).
+- `PriceModel` uses `@Data @ToString @Builder` (`PriceModel.java:9-11`).
+- `Error` uses `@Data @Builder` with `final` fields (`Error.java:6-11`).
+- Services and controllers use `@AllArgsConstructor` for constructor injection instead of
+  `@Autowired` fields (`PriceServiceImpl.java:18`, `PriceController.java:17`).
+- `@Slf4j` is used for logger injection rather than manually declaring an SLF4J `Logger` field
+  (`PriceServiceImpl.java:17`, `PriceController.java:16`, `HttpErrorHandler.java:12`).
 
-**Error Messages and Logs:**
-
-```typescript
-// Good: English error messages
-throw new NotFoundError('Candidate not found with the provided ID');
-logger.error('Failed to create candidate', { error: error.message });
-
-// Avoid: Non-English messages
-throw new NotFoundError('Candidato no encontrado con el ID proporcionado');
-logger.error('Error al crear candidato', { error: error.message });
-```
-
-### TypeScript Usage
-
-- **Strict Mode**: Always enable strict mode in `tsconfig.json`
-- **Type Definitions**: Use explicit types for function parameters and return values
-- **Interfaces**: Define interfaces for complex data structures
-- **Avoid `any`**: Use `unknown` or specific types instead of `any` when possible
-
-```typescript
-// Good: Explicit types
-async function findCandidateById(id: number): Promise<Candidate | null> {
-    // implementation
-}
-
-// Avoid: Using any
-function processData(data: any): any {
-    // implementation
-}
-```
+Follow this pattern for new entities/DTOs/services: prefer `@Data`/`@Builder` plus
+`@AllArgsConstructor` for constructor injection, and `@Slf4j` for logging, rather than
+hand-rolled getters/setters/loggers.
 
 ### Error Handling
 
-- **Custom Error Classes**: Create domain-specific error classes
-- **Error Middleware**: Use global error middleware for consistent error responses
-- **Error Messages**: Provide descriptive error messages for debugging
+The custom exception hierarchy:
 
-```typescript
-export class NotFoundError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = 'NotFoundError';
-    }
-}
+- `HttpException` (`core/exception/HttpException.java`) — a `RuntimeException` carrying an
+  `HttpStatus`, defaulting to `INTERNAL_SERVER_ERROR` if `null` is passed
+  (`HttpException.java:11-14`).
+- `NotFoundException extends HttpException` — always constructs with `HttpStatus.NOT_FOUND`
+  (`NotFoundException.java:7-10`).
+- `NoPriceFoundException extends NotFoundException` — thrown when no price row matches the
+  search criteria (`NoPriceFoundException.java:3-6`, thrown at `PriceServiceImpl.java:30`).
 
-// In controller
-try {
-    const candidate = await candidateService.findById(id);
-    if (!candidate) {
-        throw new NotFoundError('Candidate not found');
-    }
-    res.json(candidate);
-} catch (error) {
-    next(error);
-}
-```
+`HttpErrorHandler` (`@RestControllerAdvice`, `HttpErrorHandler.java:11-13`) has two handlers:
 
-### Validation Patterns
+1. `handleHttpError(HttpException httpException)` for `HttpException` and its subtypes — maps the
+   exception's own `HttpStatus` and message into the `Error` DTO
+   (`HttpErrorHandler.java:15-22`). **This is the only handler that is actually reachable** for
+   any exception type, because it is the more specific match Spring MVC selects.
+2. `unhandledExceptions(HttpException exception)`, annotated `@ExceptionHandler(Exception.class)`
+   (`HttpErrorHandler.java:24-25`) — intended as a catch-all for any other exception, mapping it to
+   HTTP 500. **This handler is broken** — see
+   [Known Risks and Defects](#known-risks-and-defects) below; do not rely on it and do not extend
+   it further without first fixing the parameter type mismatch it already has.
 
-- **Input Validation**: Validate all inputs at the application layer
-- **Use Validator Module**: Centralize validation logic in `src/application/validator.ts`
-- **Validate Before Processing**: Always validate before executing business logic
-
-```typescript
-import { validateCandidateData } from '../application/validator';
-
-export async function addCandidate(req: Request, res: Response, next: NextFunction) {
-    try {
-        const validatedData = validateCandidateData(req.body);
-        const candidate = await candidateService.create(validatedData);
-        res.status(201).json(candidate);
-    } catch (error) {
-        next(error);
-    }
-}
-```
+Convention going forward: throw a subtype of `HttpException` (or add one) for every error
+condition that must reach the client as the custom `Error` JSON shape (`{"httpcode": ..,
+"message": ..}`). Do not rely on an unchecked exception reaching `unhandledExceptions` to produce
+that shape — today it does not.
 
 ### Logging Standards
 
-- **Use Logger Class**: Use the centralized logger from `src/infrastructure/logger.ts`
-- **Log Levels**: Use appropriate log levels (info, error, warn, debug)
-- **Structured Logging**: Include relevant context in log messages
-
-```typescript
-import { Logger } from '../infrastructure/logger';
-
-const logger = new Logger();
-
-logger.info('Candidate created', { candidateId: candidate.id });
-logger.error('Failed to create candidate', { error: error.message });
-```
+- Use `@Slf4j` (Lombok) to obtain a `log` field; do not instantiate `LoggerFactory` manually.
+- `HttpErrorHandler.unhandledExceptions` logs at `error` level with the exception attached
+  (`HttpErrorHandler.java:26`) before building the response.
+- `application.yaml:1-5` sets `ROOT` and `com.llandaeta` logging to `INFO`.
 
 ## API Design Standards
 
-### REST Endpoints
+- **Base path**: all endpoints are mapped under `/api` via `@RequestMapping("/api")` on the
+  controller (`PriceController.java:18`).
+- **Query parameters, not path variables or a request body**, are used for the single GET
+  endpoint's inputs (`@RequestParam`, `PriceController.java:24-26`).
+- **Response body**: the controller returns the domain DTO (`PriceModel`) directly — Spring
+  serializes it to JSON via the default Jackson `MessageConverter`; there is no wrapping envelope
+  (no `{"success": true, "data": ...}` pattern in this codebase).
+- **Error body**: `Error` (`httpcode: int`, `message: String`) for errors that reach
+  `HttpErrorHandler.handleHttpError` — i.e., `HttpException` subtypes only (see
+  [Error Handling](#error-handling) and [Known Risks and Defects](#known-risks-and-defects)).
+- The full request/response contract is in [`docs/api-spec.yml`](./api-spec.yml).
 
-- **RESTful Naming**: Use RESTful conventions for endpoint naming
-- **HTTP Methods**: Use appropriate HTTP methods (GET, POST, PUT, DELETE, PATCH)
-- **Resource-Based URLs**: URLs should represent resources, not actions
-
-```typescript
-GET    /candidates          // List candidates
-GET    /candidates/:id      // Get candidate by ID
-POST   /candidates          // Create new candidate
-PUT    /candidates/:id      // Update candidate
-DELETE /candidates/:id      // Delete candidate
-```
-
-### Request/Response Patterns
-
-- **JSON Format**: Use JSON for request and response bodies
-- **Consistent Structure**: Maintain consistent response structure across all endpoints
-- **Status Codes**: Use appropriate HTTP status codes
-
-```typescript
-// Success response
-{
-    "success": true,
-    "data": { ... },
-    "message": "Operation completed successfully"
-}
-
-// Error response
-{
-    "success": false,
-    "error": {
-        "message": "Error description",
-        "code": "ERROR_CODE"
-    }
-}
-```
-
-### Error Response Format
-
-- **Consistent Format**: All errors should follow the same response structure
-- **Error Codes**: Use meaningful error codes for different error types
-- **HTTP Status Codes**: Map errors to appropriate HTTP status codes
-
-```typescript
-// 400 Bad Request
-{
-    "success": false,
-    "error": {
-        "message": "Validation failed",
-        "code": "VALIDATION_ERROR",
-        "details": [ ... ]
-    }
-}
-
-// 404 Not Found
-{
-    "success": false,
-    "error": {
-        "message": "Resource not found",
-        "code": "NOT_FOUND"
-    }
-}
-```
-
-### CORS Configuration
-
-- **Enable CORS**: Configure CORS to allow frontend origin
-- **Secure Configuration**: Only allow specific origins in production
-- **Credentials**: Configure credentials handling appropriately
-
-```typescript
-import cors from 'cors';
-
-const corsOptions = {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    credentials: true
-};
-
-app.use(cors(corsOptions));
-```
+There is no CORS configuration anywhere in the codebase (no `CorsConfiguration`, `@CrossOrigin`,
+or `WebMvcConfigurer` bean was found by inspection of `src/main/java`) — do not assume any is
+active.
 
 ## Database Patterns
 
-### Prisma Schema
+### Flyway Migrations
 
-- **Single Source of Truth**: `prisma/schema.prisma` is the single source of truth for database structure
-- **Relationships**: Define relationships using Prisma relations
-- **Naming Conventions**: Use consistent naming conventions (camelCase for fields, PascalCase for models)
+- Migrations live at `src/main/resources/db/migration/`, configured via
+  `spring.flyway.locations: filesystem:src/main/resources/db/migration`
+  (`application.yaml:19`).
+- `spring.flyway.schemas: test` and `spring.flyway.baseline-on-migrate: true`
+  (`application.yaml:20-21`).
+- The migration file naming separator is `_` (`spring.flyway.sql-migration-separator: _`,
+  `application.yaml:22`), matching the existing `V1_create_tables.sql` file name.
+- There is exactly one migration today: `V1_create_tables.sql`, which creates schema `test`, table
+  `test.PRICES`, and seeds it with four rows (`V1_create_tables.sql:1-26`).
+- Add new migrations as `V<n>_<description>.sql` in the same directory; never edit an already
+  applied migration file.
 
-### Migrations
+### JPA Entity Mapping
 
-- **Version Control**: All database changes must be version-controlled through migrations
-- **Migration Naming**: Use descriptive names for migrations
-- **Review Migrations**: Review migration files before applying
-
-```bash
-# Create migration
-npx prisma migrate dev --name descriptive_migration_name
-
-# Apply migrations in production
-npx prisma migrate deploy
-```
+- `spring.jpa.hibernate.ddl-auto: none` (`application.yaml:24`) — **schema changes are only ever
+  made through Flyway migrations**, never through Hibernate auto-DDL. Do not set `ddl-auto` to
+  `update` or `create` for this project.
+- `spring.jpa.show-sql: true` (`application.yaml:25`) — generated SQL is logged; keep this in mind
+  when reviewing local logs (it is a development convenience, not a security concern given H2 is
+  in-memory by default).
+- Column mapping uses explicit `@Column(name = "...")` in upper snake case
+  (`PriceEntity.java:25-47`) even though the entity's own field names are camelCase — this mirrors
+  the migration's column names (`BRAND_ID`, `START_DATE`, `END_DATE`, `PRODUCT_ID`, `PRICE_LIST`,
+  `PRIORITY`, `PRICE`, `CURR`; `V1_create_tables.sql:4-13`).
+- The entity table/schema binding is `@Table(name = "prices", schema = "test")`
+  (`PriceEntity.java:15`) — lower-case, while the migration's `CREATE TABLE` uses
+  `` `test`.`PRICES` `` (upper-case, backtick-quoted; `V1_create_tables.sql:3`). H2's default
+  unquoted-identifier folding makes both resolve to the same table; this was confirmed by running
+  the test suite successfully against this exact configuration (see
+  [Testing Standards](#testing-standards)).
 
 ### Repository Pattern
 
-- **Repository Interfaces**: Define repository interfaces in the domain layer
-- **Prisma Implementation**: Implement repositories using Prisma in the infrastructure layer
-- **Dependency Injection**: Inject Prisma client into repositories
-
-```typescript
-// Domain layer interface
-export interface ICandidateRepository {
-    findById(id: number): Promise<Candidate | null>;
-    save(candidate: Candidate): Promise<Candidate>;
-}
-
-// Infrastructure layer implementation
-export class CandidateRepository implements ICandidateRepository {
-    constructor(private prisma: PrismaClient) {}
-    
-    async findById(id: number): Promise<Candidate | null> {
-        const data = await this.prisma.candidate.findUnique({ where: { id } });
-        return data ? new Candidate(data) : null;
-    }
-}
-```
+- `PriceRepository extends JpaRepository<PriceEntity, Long>` (`PriceRepository.java:10-11`).
+- The only query is a derived query method:
+  `findFirstByBrandIdAndProductIdAndStartDateIsLessThanEqualAndEndDateGreaterThanEqualOrderByPriorityDesc`
+  (`PriceRepository.java:13`) — Spring Data derives the SQL from the method name; there is no
+  `@Query` annotation anywhere in the codebase.
+- New query needs should follow the same derived-method-name convention unless the query becomes
+  too complex to express that way, at which point `@Query` with JPQL is the natural next step (not
+  yet used anywhere in this codebase, so there is no established convention to follow for it).
 
 ## Testing Standards
 
-The project has strict requirements for code quality and maintainability. These are the unit testing standards and best practices that must be applied. 
-
-### Test File Structure
-- Use descriptive test file names: `[componentName].test.ts`
-- Place test files alongside the source code they test
-- Use Jest as the testing framework with TypeScript support
-- Maintain 90% coverage threshold for branches, functions, lines, and statements
-
-
-### Test Organization Pattern
-Template:
-```typescript
-describe('[ComponentName] - [methodName]', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe('should_[expected_behavior]_when_[condition]', () => {
-    it('should [specific test case]', async () => {
-      // Arrange
-      // Act  
-      // Assert
-    });
-  });
-});
-```
-
-Real example:
-```typescript
-describe('CandidateService - findById', () => {
-    beforeEach(() => {
-        jest.clearAllMocks();
-    });
-
-    it('should return candidate when found', async () => {
-        // Arrange
-        const candidateId = 1;
-        const mockCandidate = new Candidate({ id: 1, firstName: 'John' });
-        (CandidateRepository.findById as jest.Mock).mockResolvedValue(mockCandidate);
-
-        // Act
-        const result = await candidateService.findById(candidateId);
-
-        // Assert
-        expect(result).toEqual(mockCandidate);
-        expect(CandidateRepository.findById).toHaveBeenCalledWith(candidateId);
-    });
-});
-```
-
-
-
-### Test Case Naming Convention
-- Use descriptive, behavior-driven naming: `should_[expected_behavior]_when_[condition]`
-- Group related test cases under descriptive `describe` blocks
-- Use snake_case for describe blocks and camelCase for individual tests
-
-### Test Structure (AAA Pattern)
-Always follow the Arrange-Act-Assert pattern:
-```typescript
-it('should update candidate stage successfully when valid data provided', async () => {
-  // Arrange - Set up test data and mocks
-  const candidateId = 1;
-  const applicationId = 1;
-  const newInterviewStep = 2;
-  
-  // Act - Execute the function under test
-  const result = await updateCandidateStage(candidateId, applicationId, newInterviewStep);
-  
-  // Assert - Verify the expected behavior
-  expect(result).toEqual(expectedResult);
-});
-```
-
-Assertion pattern:
-- Use specific matchers: `toHaveBeenCalledWith()`, `toHaveBeenCalledTimes()`
-- Verify both successful operations and error conditions
-- Check that mocks were called with correct parameters
-- Assert on return values and side effects
-
-
-
-
-
-
-
-
-### Mocking Standards
-
-- Mock all external dependencies (models, services, database clients)
-- Mock repository layers in service tests
-- Mock service layers in controller tests
-- Use `jest.mock()` at the top of test files for module-level mocking
-- Create mock instances with realistic data structures
-- Clear all mocks in `beforeEach()` to ensure test isolation
-
-
-### Test Coverage Requirements
-
-- **Comprehensive test coverage**: Include these test categories for each function:
-1. **Happy Path Tests**: Valid inputs producing expected outputs
-2. **Error Handling Tests**: Invalid inputs, missing data, database errors
-3. **Edge Cases**: Boundary values, null/undefined inputs, empty data
-4. **Validation Tests**: Input validation, business rule enforcement
-5. **Integration Points**: External service calls, database operations
-
-- **Threshold**: 90% for branches, functions, lines, and statements
-- **Coverage Reports**: Generate coverage reports with `npm run test:coverage`
-- **Coverage Files**: Coverage reports in `coverage/` directory adding the date, like YYYYMMDD-backend-coverage.md
-
-
-### Error Testing
-- Test both expected errors and unexpected errors
-- Verify error messages are descriptive and helpful
-- Test error propagation through service layers
-- Ensure proper HTTP status codes in controller tests
-
-### Controller Testing Specifics
-- Mock the service layer completely
-- Test HTTP request/response handling
-- Verify parameter parsing and validation
-- Test error response formatting
-- Use realistic Express Request/Response mocks
-
-### Service Testing Specifics
-- Mock domain models and repositories
-- Test business logic in isolation
-- Verify data transformation and validation
-- Test error handling and edge cases
-- Mock external dependencies (Prisma, validators)
-
-### Database Testing
-- Mock Prisma client and all database operations
-- Test both successful and failed database operations
-- Verify correct database queries and parameters
-- Test transaction handling and rollback scenarios
-
-### Async Testing
-- Always use `async/await` for asynchronous operations
-- Use `Promise.allSettled()` for testing concurrent operations
-- Properly handle promise rejections in tests
-- Test timeout scenarios where applicable
-
-### Test Data Management
-- Use factory functions for creating test data
-- Keep test data consistent and realistic
-- Avoid hardcoded values in multiple places
-- Use meaningful test data that reflects real-world scenarios
-
-### Integration Testing
-
-- **Controller Testing**: Test HTTP request/response handling
-- **Database Testing**: Test repository implementations with database
-- **End-to-End Flow**: Test complete request flows
-
-
-### Code Quality Standards
-
-#### TypeScript Usage
-- Use strict typing for all test parameters and return values
-- Define proper interfaces for mock data
-- Use type assertions sparingly and with proper justification
-- Leverage TypeScript's type system for better test reliability
-
-#### Documentation
-- Write clear, descriptive test names that explain the scenario
-- Add comments for complex test setups
-- Document any special test conditions or edge cases
-- Keep test code as readable as production code
-
-#### Performance Considerations
-- Keep tests fast and focused
-- Avoid unnecessary async operations in tests
-- Use appropriate mock strategies to avoid real I/O
-- Group related tests to minimize setup/teardown overhead
-
-### Integration with Development Workflow
-- Run tests before every commit
-- Ensure all tests pass before merging
-- Use test-driven development when appropriate
-- Update tests when modifying existing functionality
-
-### Common Anti-Patterns to Avoid
-- Don't test implementation details, test behavior
-- Don't create overly complex test setups
-- Don't ignore failing tests or skip error scenarios
-- Don't use real database connections in unit tests
-- Don't create tests that depend on external services
-- Don't write tests that are too tightly coupled to implementation
-
-### Example Test Structure
-
-
-
-## Performance Best Practices
-
-### Database Query Optimization
-
-- **Select Specific Fields**: Only select fields that are needed
-- **Use Indexes**: Ensure proper database indexes for frequently queried fields
-- **Avoid N+1 Queries**: Use Prisma's `include` to fetch related data efficiently
-
-```typescript
-// Good: Fetch related data efficiently
-const candidate = await prisma.candidate.findUnique({
-    where: { id },
-    include: {
-        educations: true,
-        workExperiences: true
-    }
-});
-
-// Avoid: N+1 queries
-const candidate = await prisma.candidate.findUnique({ where: { id } });
-const educations = await prisma.education.findMany({ where: { candidateId: id } });
-```
-
-### Async/Await Patterns
-
-- **Always Use Async/Await**: Use async/await instead of promises chains
-- **Error Handling**: Properly handle errors in async operations
-- **Parallel Operations**: Use `Promise.all()` for parallel operations when appropriate
-
-```typescript
-// Good: Parallel operations
-const [candidates, positions] = await Promise.all([
-    candidateService.findAll(),
-    positionService.findAll()
-]);
-```
-
-### Error Handling Performance
-
-- **Early Returns**: Return early to avoid unnecessary processing
-- **Error Propagation**: Let errors propagate naturally through the call stack
-- **Avoid Over-Wrapping**: Don't wrap errors unnecessarily
-
-## Security Best Practices
-
-### Input Validation
-
-- **Validate All Inputs**: Validate all user inputs before processing
-- **Sanitize Data**: Sanitize data to prevent injection attacks
-- **Type Checking**: Use TypeScript and validation to ensure type safety
-
-### Environment Variables
-
-- **Never Commit Secrets**: Never commit `.env` files or secrets to version control
-- **Use Environment Variables**: Use environment variables for configuration
-- **Validate Environment**: Validate required environment variables at startup
-
-```typescript
-// Validate required environment variables
-const requiredEnvVars = ['DATABASE_URL', 'PORT'];
-requiredEnvVars.forEach(varName => {
-    if (!process.env[varName]) {
-        throw new Error(`Missing required environment variable: ${varName}`);
-    }
-});
-```
-
-### Dependency Injection
-
-- **Inject Prisma Client**: Inject Prisma client via Express middleware
-- **Avoid Global State**: Avoid global state for database connections
-- **Testability**: Use dependency injection to improve testability
-
-```typescript
-// Middleware to inject Prisma client
-app.use((req: Request, res: Response, next: NextFunction) => {
-    req.prisma = prisma;
-    next();
-});
-
-// Use in controllers
-export async function getCandidate(req: Request, res: Response) {
-    const candidate = await req.prisma.candidate.findUnique({
-        where: { id: req.params.id }
-    });
-    res.json(candidate);
-}
-```
-
-## Development Workflow
-
-### Git Workflow
-
-- **Feature Branches**: Develop features in separate branches, adding descriptive suffix "-backend" to allow working in parallel and avoid conflicts or collisions
-- **Descriptive Commits**: Write descriptive commit messages in English
-- **Code Review**: Code review before merging
-- **Small Branches**: Keep branches small and focused
-
-### Development Scripts
-
-```bash
-npm run dev          # Development server with hot reload
-npm run build        # Build for production
-npm test             # Run tests
-npm run test:coverage # Run tests with coverage
-npm run prisma:generate  # Generate Prisma client
-npx prisma migrate dev   # Create and apply migration
-npx prisma db seed       # Seed database
-```
-
-### Code Quality
-
-- **ESLint Validation**: Run ESLint before commits
-- **TypeScript Compilation**: Ensure TypeScript compiles without errors
-- **All Tests Passing**: Ensure all tests pass before deployment
-- **Code Review**: Review code for adherence to standards
-
-## Serverless Deployment
-
-### AWS Lambda Configuration
-
-- **Lambda Handler**: Entry point is `src/lambda.ts`
-- **Serverless HTTP**: Use `serverless-http` to wrap Express app
-- **Environment Variables**: Configure environment variables in `serverless.yml`
-
-### Serverless Framework
-
-- **Configuration File**: `serverless.yml` defines Lambda configuration
-- **Build Command**: Use `npm run build:lambda` for Lambda builds
-- **Deployment**: Deploy using Serverless Framework CLI
-
-```typescript
-// lambda.ts
-import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
-import serverless from 'serverless-http';
-import { app } from './index';
-
-const serverlessHandler = serverless(app);
-
-export const handler = async (
-  event: APIGatewayProxyEvent,
-  context: Context
-): Promise<APIGatewayProxyResult> => {
-  context.callbackWaitsForEmptyEventLoop = false;
-  return await serverlessHandler(event, context) as APIGatewayProxyResult;
-};
-```
-
-This document serves as the foundation for maintaining code quality and consistency across the LTI backend application. All team members should follow these practices to ensure a maintainable, scalable, and testable codebase.
+Verified against the four files under `src/test/java/com/llandaeta/prices/`:
+
+- **Framework**: JUnit 5 (Jupiter) with `@ExtendWith(SpringExtension.class)` or `@SpringBootTest`
+  directly; the JUnit 4 vintage engine is explicitly excluded (`pom.xml:63-69`).
+- **Test file naming**: `<ClassUnderTest>Test.java`, colocated under `src/test/java` mirroring the
+  main package structure (all four test files follow this).
+- **Controller tests** use `@SpringBootTest(webEnvironment = RANDOM_PORT)` plus `MockMvc` built
+  from the `WebApplicationContext` (`PriceControllerTest.java:21-37`) — full Spring context, real
+  HTTP-shaped requests through `MockMvc`, no manual mocking of the controller's collaborators.
+- **Service tests** use `@SpringBootTest` with `@MockBean` to replace the repository
+  (`PriceServiceImplTest.java:20-27`) — the real `PriceService` bean and the real
+  `PriceEntityModelConverter` bean are exercised; only the repository is mocked.
+- **Converter tests** use `@SpringBootTest` with `@Autowired` on the real converter bean
+  (`PriceEntityModelConverterTest.java:16-26`) — no mocking at all.
+- All three non-trivial test classes assert against the seeded H2 data or entity/DTO field values
+  directly with JUnit `Assertions` (`assertEquals`, `assertTrue`) and Hamcrest (`is`) for
+  `jsonPath` assertions in the controller test.
+- **No coverage threshold is configured anywhere in this repository** — no JaCoCo plugin in
+  `pom.xml`, no coverage configuration file found. Do not assume or enforce a numeric coverage
+  gate (e.g. 90%) unless one is actually added to the build.
+- Running `mvn test` (or `mvn -o test` once dependencies are cached) executes the full suite,
+  including a real Spring context boot against the in-memory H2 database seeded by Flyway; this
+  was run directly against this repository and passed (all four test classes green).
+
+## Build and Development Workflow
+
+- **Build tool**: Maven. `pom.xml` is the single source of truth for dependencies and the build.
+- First-clone build/test: `mvn test` (online — resolves dependencies from Maven Central on first
+  run). Add `-o` (offline) only once dependencies are already cached locally, as a speed-up — never
+  as the first command run against a fresh clone.
+- **The Maven wrapper (`mvnw`) is currently broken in this repository**: `.mvn/wrapper/` does not
+  exist (verified: `ls .mvn` reports "No such file or directory"), so `./mvnw` fails immediately
+  with `ClassNotFoundException: org.apache.maven.wrapper.MavenWrapperMain` before it can download
+  anything. Use a system-installed `mvn` until the wrapper is repaired — see
+  [Known Risks and Defects](#known-risks-and-defects).
+- **Run locally**: `mvn spring-boot:run` boots the application with the embedded Tomcat server and
+  the in-memory H2 datasource, auto-migrated by Flyway on startup.
+- **Packaging** (`mvn package`) uses the `spring-boot-maven-plugin`, which excludes the `lombok`
+  artifact from the runnable jar (`pom.xml:79-84`) — this is standard Lombok packaging practice,
+  not a defect.
+- There is no separate lint/format tool configured (no Checkstyle, Spotless, or similar plugin
+  found in `pom.xml`).
+- Git workflow, commit language, and documentation-update obligations are defined in
+  [Base Standards](./base-standards.md) and [Documentation Standards](./documentation-standards.md)
+  — this document does not restate them.
+
+## Known Risks and Defects
+
+These are accurate descriptions of existing behavior, each independently verified. They are
+recorded here as risks to be aware of; **fixing them is out of scope for documentation work** and
+must go through its own change.
+
+1. **Generic (non-`HttpException`) exceptions do not produce the documented `Error` JSON shape and
+   leak a full stack trace instead.**
+   `HttpErrorHandler.unhandledExceptions` is annotated `@ExceptionHandler(Exception.class)` but
+   declares its parameter as `HttpException exception` (`HttpErrorHandler.java:24-25`) — a type
+   mismatch between the annotation's target and the method's actual parameter type. Spring MVC
+   resolves `@ExceptionHandler` methods by matching the thrown exception against the declared
+   parameter type, not solely the annotation value; because most runtime exceptions are not
+   assignable to `HttpException`, this handler is effectively unreachable for them, and Spring
+   Boot's own default error page handles the exception instead. Verified empirically against a
+   locally running instance of this exact code (`mvn spring-boot:run`, 2026-08-19):
+   - `GET /api/price` with a malformed `applicationDate` (e.g. `not-a-date`) returns HTTP 500 with
+     Spring Boot's default Whitelabel error JSON (`{"timestamp":..,"status":500,"error":"Internal
+     Server Error","trace":"java.time.format.DateTimeParseException...","message":..,"path":..}`),
+     **not** the custom `{"httpcode":500,"message":..}` shape. The exception originates at
+     `PriceController.java:28` (`LocalDateTime.parse(...)`).
+   - `GET /api/price` with a non-numeric `brandId` (e.g. `abc`) returns HTTP 400 with the same
+     default Whitelabel shape (`MethodArgumentTypeMismatchException`), not the custom `Error` DTO.
+   - `POST /api/price` (an unmapped method on this route) returns HTTP 405 with the same default
+     Whitelabel shape (`HttpRequestMethodNotSupportedException`), not the custom `Error` DTO.
+   - By contrast, `GET /api/price` with no matching price row correctly returns HTTP 404 with the
+     custom `{"httpcode":404,"message":"No  price found to the brand"}` body, because
+     `NoPriceFoundException` is an `HttpException` subtype and is caught by
+     `handleHttpError`, which has no such mismatch (`HttpErrorHandler.java:15-22`).
+   - Consequence: API clients cannot rely on a single error-response shape for this service today;
+     only the 404 "no price found" case uses the documented `Error` schema. See
+     [`docs/api-spec.yml`](./api-spec.yml) for how both shapes are documented.
+
+2. **The "no price found" error message has a grammatical defect.**
+   `NoPriceFoundException` is constructed with the literal string `"No  price found to the brand"`
+   (double space after "No", and "to the brand" rather than "for the brand") at
+   `PriceServiceImpl.java:30`. Verified in the live 404 response body above:
+   `"message":"No  price found to the brand"`.
+
+3. **The `PRICE` column can only hold values up to 99.99.**
+   The migration defines `PRICE` as `DECIMAL(4,2)` (`V1_create_tables.sql:12`) — 4 total digits, 2
+   after the decimal point, so the maximum representable value is `99.99`. The seeded data's
+   highest price is `38.95` (`V1_create_tables.sql:26`), safely under that limit, but any future
+   price at or above `100.00` cannot be stored with this column definition.
+
+4. **The Maven wrapper (`mvnw`) cannot run in this repository as checked out.**
+   `mvnw` (`mvnw:1-*`) expects `.mvn/wrapper/maven-wrapper.properties`, which does not exist in
+   this repository (`ls .mvn` → "No such file or directory"). Running `./mvnw test` fails
+   immediately with `ClassNotFoundException: org.apache.maven.wrapper.MavenWrapperMain`. A
+   system-installed Maven (verified present: `mvn 3.9.16`) works correctly with the same commands
+   (`mvn test`, `mvn spring-boot:run`) — use it until the wrapper is repaired.
+
+This document serves as the accurate technical baseline for the `app-prices-rest` backend. Update
+it whenever the actual stack, structure, or conventions change — see
+[Documentation Standards](./documentation-standards.md).

@@ -7,7 +7,7 @@ alwaysApply: true
 
 - **Small tasks, one at a time**: Always work in baby steps, one at a time. Never go forward more than one step.
 - **Test-Driven Development**: Start with failing tests for any new functionality (TDD), according to the task details.
-- **Type Safety**: All code must be fully typed.
+- **Type Safety**: All code must be fully typed. Java is statically typed, so this means avoiding raw types, preferring explicit method signatures, and using `var` only where the right-hand side already names the type (as at `src/main/java/com/llandaeta/prices/rest/controllers/PriceController.java:28`).
 - **Clear Naming**: Use clear, descriptive names for all variables and functions.
 - **Incremental Changes**: Prefer incremental, focused changes over large, complex modifications.
 - **Question Assumptions**: Always question assumptions and inferences.
@@ -27,8 +27,11 @@ alwaysApply: true
 
 For detailed standards and guidelines specific to different areas of the project, refer to:
 
-- [Backend Standards](./backend-standards.md) - API development, database patterns, testing, security and backend best practices
-- [Frontend Standards](./frontend-standards.md) - React components, UI/UX guidelines, and frontend architecture
+- [Backend Standards](./backend-standards.md) - Java 11 / Spring Boot 2.4.5 architecture, layering, persistence, error handling, testing and build
+- [Data Model](./data-model.md) - the single persisted entity, its schema, migration and query semantics
+- [API Specification](./api-spec.yml) - the OpenAPI contract for the one exposed endpoint
+- [Development Guide](./development_guide.md) - setup, run, configuration and endpoint exercises
+- [Frontend Standards](./frontend-standards.md) - **NOT APPLICABLE** — this repository has no frontend; the document records that determination and defines no active standards
 - [Documentation Standards](./documentation-standards.md) - Technical documentation structure, formatting, and maintenance guidelines, including AI standards like this document
 
 ## 4. Project Skills
@@ -63,7 +66,7 @@ For backend changes, ensure the checklist includes these mandatory steps in orde
 2. **Review and update existing unit tests (MANDATORY)**
 3. **Run unit tests and verify database state (MANDATORY)**
 4. **Manual endpoint testing with curl (MANDATORY - AGENT MUST EXECUTE)**
-5. **E2E testing with Playwright MCP when applicable (MANDATORY - AGENT MUST EXECUTE)**
+5. ~~E2E testing with Playwright MCP~~ — **NOT APPLICABLE in this repository** (no frontend; see §6.5). Omit this step rather than marking it pending.
 6. **Update technical documentation (MANDATORY)**
 
 ### 6.3 Manual testing execution is agent responsibility
@@ -74,22 +77,39 @@ For backend changes, ensure the checklist includes these mandatory steps in orde
 
 ### 6.4 Mandatory curl coverage (for endpoint work)
 
-Execute and verify:
-- GET endpoints
+Execute and verify every endpoint the change touches, and document the exact commands and responses.
+
+**This repository currently exposes exactly one endpoint — `GET /api/price`
+(`src/main/java/com/llandaeta/prices/rest/controllers/PriceController.java:23`) — and no mutating
+endpoints.** So today the applicable coverage is:
+- The GET endpoint, including the priority-resolution case where date ranges overlap
+- Error cases: 404 when no price matches, malformed `applicationDate`, a non-numeric `brandId`/`productId`, and an unsupported HTTP method
+
+The clauses below apply as soon as a mutating endpoint is added, and not before:
 - POST endpoints (with cleanup)
 - PUT/PATCH endpoints (with revert)
 - DELETE endpoints (with recreation/restore)
-- Error cases (validation, 404, auth as applicable)
 
-Document commands, responses, and restoration actions.
+Database restoration is only owed for operations that mutate state. Since the default datasource is
+in-memory and reseeded by Flyway on every start
+(`src/main/resources/application.yaml:15`, `src/main/resources/db/migration/V1_create_tables.sql`),
+a restart restores the baseline; a restart is not a substitute for cleanup once a persistent
+datasource is configured.
 
-### 6.5 Mandatory Playwright E2E coverage (when applicable)
+Concrete commands are in [Development Guide](./development_guide.md).
 
-For frontend workflows or frontend/backend integration changes:
-- Run E2E flows with Playwright MCP tools
-- Validate success and error paths
-- Verify data persistence and consistency
-- Clean test data and restore environment state
+### 6.5 Playwright E2E coverage — NOT APPLICABLE to this repository
+
+**This repository has no frontend**, verified by inspection: no `package.json`, no
+`src/main/webapp/`, and no `.html`/`.jsx`/`.tsx`/`.vue` files anywhere in the tree, and no frontend
+dependency in `pom.xml` (confirmed absent by search). See [Frontend Standards](./frontend-standards.md).
+
+Therefore **do not add Playwright, browser, or end-to-end steps to `tasks.md` for this repository**,
+and do not record them as pending — there is no UI for them to drive. The applicable equivalent is
+§6.4's curl coverage plus the MockMvc-based controller tests
+(`src/test/java/com/llandaeta/prices/rest/controllers/PriceControllerTest.java`).
+
+This clause becomes live only if a frontend is added, at which point it applies as written.
 
 ### 6.6 Completion checklist before finalizing `tasks.md`
 
@@ -99,7 +119,7 @@ For frontend workflows or frontend/backend integration changes:
 - Branch name matches backend convention
 - Manual testing tasks explicitly state "AGENT MUST EXECUTE"
 - Database restoration steps are included for mutating operations
-- E2E step is present when frontend workflow impact exists
+- E2E step is **omitted** — this repository has no frontend (§6.5); it is not marked pending
 
 ### 6.7 Mandatory artifact updates for change requests between `/apply` and `/archive`
 
