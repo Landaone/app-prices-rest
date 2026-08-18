@@ -81,8 +81,8 @@ asked, rather than the run proceeding with no client: YES
 |---|---|---|---|
 | `ADOPT-00` | `09-bootstrap.md` | PASS | 2026-08-18 |
 | `ADOPT-01` | `01-prerequisites-and-install.md` | PASS | 2026-08-18 |
-| `ADOPT-02` | `01-prerequisites-and-install.md` | PENDING | |
-| `ADOPT-03` | `01-prerequisites-and-install.md` | PENDING | |
+| `ADOPT-02` | `01-prerequisites-and-install.md` | PASS | 2026-08-18 |
+| `ADOPT-03` | `01-prerequisites-and-install.md` | PASS | 2026-08-18 |
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PENDING | |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PENDING | |
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PENDING | |
@@ -232,3 +232,121 @@ asked, rather than the run proceeding with no client: YES
   install/upgrade command above actually runs").
 - Allowed modifications: none (declared) — no repository-local write made.
 - Result: PASS
+
+---
+
+## `ADOPT-02` — Install and Initialize OpenSpec with Explicitly Selected Clients
+
+- Date: 2026-08-18
+- Pre-check: `openspec --version` → `1.7.0`, already installed and already meets the documented
+  minimum/reference (`1.7.0`) and supports the documented keys. Install/upgrade command **skipped
+  entirely** per this step's own text; the `[HUMAN APPROVAL REQUIRED]` gate for install/upgrade was
+  not reached.
+- `ADOPTION-AUTHORIZATION.md` OpenSpec-version-policy section: default policy applied (reuse
+  installed version meeting minimum; no deviation) — already recorded at `ADOPT-00`/authorization
+  time, unchanged.
+- Command run: `openspec init --tools claude` (non-interactive client selection, matching the
+  client already explicitly selected at `ADOPT-00`; avoids the interactive TUI flow while still
+  recording an explicit, reviewed selection rather than accepting a default).
+- Clients offered (per `openspec init --tools --help`): amazon-q, antigravity, auggie, bob,
+  claude, cline, codeartsagent, codex, devin, forgecode, codebuddy, continue, costrict, crush,
+  cursor, factory, gemini, github-copilot, hermes, iflow, junie, kilocode, kimi, kiro, lingma,
+  vibe, oh-my-pi, opencode, pi, qoder, qwen, roocode, trae, zcode, windsurf.
+- Clients selected: `claude` only (matches `ADOPT-00`'s recorded client selection; no other
+  client resource generated).
+- Generated config path: `openspec/config.yaml` (confirmed by `find openspec -maxdepth 3 -print`:
+  `openspec`, `openspec/specs`, `openspec/changes`, `openspec/config.yaml`,
+  `openspec/changes/archive`).
+- Generated client resources: `.claude/commands/opsx/{explore,archive,apply,sync,update,propose}.md`
+  (6 commands); `.claude/skills/openspec-{apply-change,explore,update-change,archive-change,
+  propose,sync-specs}/SKILL.md` (6 skills) — confirmed by `find .claude/commands .claude/skills
+  -type f -o -type l`. No resources for any unselected client.
+- Per-client provisioning provenance: this run's `openspec init --tools claude` command directly
+  provisioned the `.claude/commands/opsx/*.md` and `.claude/skills/openspec-*/SKILL.md` resources
+  (observed in this session, not inferred from presence alone — see `00-conventions.md`,
+  "Capability availability is not installer provenance").
+- `openspec doctor` result: `Root: OpenSpec root: ok`; `References: (none declared)`. No errors.
+- Git changes: `git status --short` → `M .specboot/adoption/ADOPTION-RUN-LOG.md` (carried-forward
+  delta from checkpoint 1), `?? .claude/commands/`, `?? .claude/skills/` (new: the 6
+  `openspec-*` skill dirs; `specboot-adopt` still present as a symlink but git-ignored via the
+  shared `.git/info/exclude`, unchanged from before), `?? openspec/`.
+- Validation against PASS criteria: `openspec/` exists — YES; a configuration file exists
+  (`openspec/config.yaml`) — YES; client-specific OpenSpec resources exist for the selected
+  client (Claude) — YES; no resources added for unselected clients — YES (confirmed: only
+  `claude`-named paths present).
+- Result: PASS
+
+---
+
+## `ADOPT-03` — Import SpecBoot
+
+- Date: 2026-08-18
+- `<SPECBOOT_SOURCE>`: `/Users/landaeta/repos/specboot` — read from
+  `.specboot/local/canonical-source-path`, the same value `ADOPT-00` already resolved and
+  validated; not re-derived.
+- Payload materialization check: `test -d /Users/landaeta/repos/specboot/packages/specboot/template`
+  → **not materialized** (sparse checkout — `packages/` never populated in the working tree).
+- Extraction technique: `git archive` against the pinned commit, per this step's documented
+  fallback. Source repo confirmed clean and at `HEAD` = `ec90087ddd57024c08a94027152d0559a656564d`
+  (matches the pinned commit `ADOPT-00` recorded) before extraction.
+  - Command: `git archive ec90087ddd57024c08a94027152d0559a656564d packages/specboot/template |
+    tar -x -C <scratch>/specboot-payload` — exit 0.
+  - Source working tree confirmed untouched after extraction: `git status --porcelain | wc -l` →
+    `0`, both before and after.
+  - Extraction non-empty (not a silent zero-file result): scratch tree contained
+    `packages/specboot/template/{.cursor,docs,ai-specs}`.
+- Mechanical enumeration, run before the approval gate (per `00-conventions.md` evidence
+  discipline — literal command output, not recalled):
+  - Source: `find <scratch>/.../template/docs -maxdepth 2 -type f | wc -l` → `7`;
+    `find <scratch>/.../template/ai-specs -maxdepth 3 -type f | wc -l` → `20`.
+  - Pre-copy target: `ls docs ai-specs` → both "No such file or directory" (neither existed;
+    nothing will be skipped by `-n`).
+  - Source template root: no `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `codex.md`, and no symlinks —
+    this particular canonical source's template payload does not carry root instruction files at
+    all (the phase file's expected-content list is explicitly conditional: "depending on the
+    approved SpecBoot source"). Recorded as a finding, not a failure.
+- Copy command run: `cp -rn <scratch>/.../template/* .` — exit 0.
+- Post-copy enumeration (identical commands, target): `find docs -maxdepth 2 -type f -print` → 7
+  files (`frontend-standards.md`, `api-spec.yml`, `documentation-standards.md`, `data-model.md`,
+  `development_guide.md`, `backend-standards.md`, `base-standards.md`); `find ai-specs -maxdepth 3
+  -type f -print` → 20 files (`specboot-instructions.md`; `agents/{backend-developer,
+  product-strategy-analyst,frontend-developer}.md`; `scripts/code_review.sh`;
+  `skills/enrich-us/SKILL.md`; `skills/code-auditing/SKILL.md`;
+  `skills/writing-skills/{testing-skills-with-subagents.md,render-graphs.js,
+  anthropic-best-practices.md,persuasion-principles.md,SKILL.md,graphviz-conventions.dot}`;
+  `skills/specboot-verify/SKILL.md`; `skills/commit/SKILL.md`;
+  `skills/using-git-worktrees/SKILL.md`; `skills/explain/SKILL.md`; `skills/update-docs/SKILL.md`;
+  `skills/meta-prompt/SKILL.md`; `skills/adversarial-review/SKILL.md`). Counts match source
+  exactly (7 and 20) — zero files skipped, zero files missing.
+- Files added: all 27 (7 + 20) listed above. Files skipped because they existed: none (target
+  was empty pre-copy).
+- Hidden directories expected but not copied: `.cursor/` — confirmed absent from target
+  (`test -d .cursor` → absent), as expected: unquoted `*` glob does not match dot-prefixed names,
+  and Cursor was not the selected client in any case.
+- Root instruction symlink resolution: N/A — source template root carries no `AGENTS.md`,
+  `CLAUDE.md`, `GEMINI.md`, or `codex.md` for this canonical source, so none were created; no
+  divergent real file exists to correct either. Recorded as a genuine source-content difference,
+  not a copy failure.
+- Per-client provisioning provenance: N/A for this step — this step's copy is client-agnostic
+  (`docs/` and `ai-specs/` only); no hidden client directory was touched.
+- `git status --short` (post-copy, relevant lines): `?? ai-specs/`, `?? docs/` (plus
+  carried-forward `?? .claude/commands/`, `?? .claude/skills/`, `?? openspec/` from `ADOPT-02`,
+  and ` M .specboot/adoption/ADOPTION-RUN-LOG.md`).
+- **Approval gate — mechanical comparison**: post-copy enumeration matches this step's closed-rule
+  `Allowed modifications` exactly (byte-for-byte mirror of source `docs/` and `ai-specs/`;
+  4 root symlinks correctly absent because the source has none; nothing outside the two mirrored
+  trees). **Gate auto-approved** per this step's own text ("Where that mechanical comparison shows
+  the copy matches ... exactly ... the gate auto-approves").
+- Result: PASS
+
+---
+
+## Checkpoint ledger
+
+One row per checkpoint. A checkpoint is the smallest independently validated `ADOPT` step; a
+group requires a **written structural justification** — "fewer commits" is not one.
+
+| # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | `ADOPT-00` + `ADOPT-01` (grouped) | **Not a structural justification** (per `00-conventions.md`, honestly recorded rather than fabricated as structural): `ADOPT-00`'s own checkpoint was not committed immediately after it reached PASS during the original bootstrap session. By the time this gap was discovered (start of this fresh session, while executing `ADOPT-01`), `ADOPT-01`'s evidence — and the `ADOPT-15` fresh-session probe evidence — had already been appended to the same run-log file. Reconstructing a synthetic pre-`ADOPT-01` version of the run log to force two commits would stage content that was never the actual working state at any point in this session. True reason for grouping: operational recovery of a missed checkpoint, not structural inseparability. | `ADOPT-00` = PASS (recorded at bootstrap); `ADOPT-01` = PASS (this session, see evidence block above) | `ADOPT-00` evidence block above; `ADOPT-01` evidence block above; `ADOPT-15` fresh-session probe block above | YES — staged set `{.gitignore, .claude/CLAUDE.md, .specboot/adoption/ADOPTION-AUTHORIZATION.md, .specboot/adoption/ADOPTION-RUN-LOG.md, .specboot/adoption/BOOTSTRAP-MANIFEST.json}` is an exact subset of `ADOPT-00`'s declared mutation inventory (excluding the two machine-local/gitignored entries, which were correctly never staged) union `ADOPT-01`'s `none` plus the always-permitted run log. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`, granted by Landaone, 2026-08-18 — commit-gate conditions met: allowlist subset confirmed, standing authorization on file) | `.claude/CLAUDE.md` (A), `.gitignore` (M), `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (A), `.specboot/adoption/ADOPTION-RUN-LOG.md` (A), `.specboot/adoption/BOOTSTRAP-MANIFEST.json` (A) | `0f81bdb` | No CI configuration found in the working tree (no `.github/workflows/`, `.gitlab-ci.yml`, or `Jenkinsfile` at the repo root or in the shared common-repo root `/Users/landaeta/repos/labs/app-prices-rest`); no local git hooks configured. GitHub-side branch protection, rulesets, and webhooks **not inspected** — that inspection is external GitHub research and requires explicit operator authorization under `00-conventions.md`, not yet granted. Branch `experiment/specboot-ai-adoption-v4` has no upstream tracking configured (never pushed). **Initial verdict: UNKNOWN**, resolved by operator-authorized read-only GitHub inspection (see below). Per `00-conventions.md` and the skill's non-negotiable #5, unknown remote impact blocks the push until resolved to a known state. **GitHub-side inspection** (operator explicitly authorized this external research, 2026-08-18): `gh api repos/Landaone/app-prices-rest/branches/experiment/specboot-ai-adoption-v4/protection` → 404 (branch not yet pushed, no protection to find); `gh api repos/Landaone/app-prices-rest/rulesets` → `[]` (none configured); `gh api repos/Landaone/app-prices-rest/hooks` → `[]` (no webhooks); `gh api repos/Landaone/app-prices-rest/actions/workflows` → `{"total_count":0,"workflows":[]}` (no Actions workflows). **Resolved verdict: NO REMOTE IMPACT** — no CI, no webhook, no ruleset, no branch protection on this repository; the push triggers no automation. | Operator explicitly authorized: (1) the GitHub-side inspection above, and (2) the push itself, given the resolved no-impact verdict (see interactive approval, 2026-08-18). Push performed: fast-forward, new branch ref `experiment/specboot-ai-adoption-v4` on `origin`, commit `0f81bdb`. **PUSHED.** | Proposed: the guide/skill should prompt an explicit checkpoint immediately after each step reaches PASS, before the next step's `Action` begins, to prevent evidence from a later step commingling with an unclosed earlier checkpoint in the same run-log file. |
+| 2 | `ADOPT-02` + `ADOPT-03` (grouped) | **Not a structural justification**, honestly recorded per the same pattern as checkpoint 1: the executing agent proceeded directly from `ADOPT-02`'s `Action` into `ADOPT-03`'s `Action` without stopping to checkpoint `ADOPT-02` first, repeating the same process slip. The two steps' output paths are disjoint (`openspec/`, `.claude/commands/opsx/`, `.claude/skills/openspec-*/` for `ADOPT-02`; `docs/`, `ai-specs/` for `ADOPT-03`) and each independently satisfies its own PASS criteria — this was not structurally required. True reason for grouping: the same missed-checkpoint operational recovery as checkpoint 1, not inseparability. | `ADOPT-02` = PASS; `ADOPT-03` = PASS (see evidence blocks above) | `ADOPT-02` evidence block above; `ADOPT-03` evidence block above | YES — staged set is the exact union of `ADOPT-02`'s closed allowlist (`openspec/config.yaml`, `.claude/commands/opsx/*.md`, `.claude/skills/openspec-*/SKILL.md`) and `ADOPT-03`'s closed-rule allowlist (byte-for-byte mirror of source `docs/` and `ai-specs/`), plus the always-permitted run log. `git diff --cached --stat` confirms 44 files changed, all under those trees. No anomalies; no unexpected path. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed | `.claude/commands/opsx/*.md` (6, A), `.claude/skills/openspec-*/SKILL.md` (6, A), `openspec/config.yaml` (A), `docs/*` (7, A), `ai-specs/*` (31, A — includes nested files below the guide's `-maxdepth 3` validation depth, still within the mirrored tree), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from the checkpoint-1 baseline: no CI, no webhook, no ruleset, no branch protection on `Landaone/app-prices-rest` (re-affirmed; nothing in this checkpoint touches remote-facing config). **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None raised beyond the recurring-slip proposal already logged at checkpoint 1 — reinforced here: this session will checkpoint immediately after each subsequent step. |
