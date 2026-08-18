@@ -95,7 +95,7 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-12` | `05-agents-and-skills.md` | PASS | 2026-08-19 |
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PASS | 2026-08-19 |
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PASS | 2026-08-19 |
-| `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING | |
+| `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PASS | 2026-08-19 |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-18` | `10-debootstrap.md` | PENDING | |
@@ -922,6 +922,87 @@ Stop after reporting the negative control's result and the permission behavior.
 
 ---
 
+## `ADOPT-15` — Validate Runtime Discovery in a Fresh Client Session
+
+- Date: 2026-08-19. Client: Claude Code (the only client selected this run, per `ADOPT-00`) —
+  satisfies the once-per-client requirement with this single report.
+- Procedure followed: operator closed the session that performed `ADOPT-13`/`14`'s work, opened a
+  genuinely new session at the repository root, submitted the canonical prompt verbatim, and
+  returned the fresh session's report to this (a third, separate) session for recording. This
+  session did not and could not perform the fresh-session probe itself — it only records evidence
+  supplied by the operator from the actual fresh session, per this step's own designed
+  stop-and-hand-off.
+- **Discovery report** (as returned by the fresh session, via the operator):
+  - Client and mode: Claude Code CLI, default agent, plan/read-only stance; no agent or skill
+    formally invoked to perform the review itself.
+  - Root instruction files automatically loaded: `~/.claude/CLAUDE.md` (user global) and
+    `.claude/CLAUDE.md` (project), both injected automatically at session start.
+  - Canonical/adapted agent definitions automatically discovered: `.claude/agents/
+    java-backend-developer.md` and `.claude/agents/product-strategy-analyst.md` (the two symlinks
+    created at `ADOPT-13`), surfaced via the Agent tool's auto-populated type list; **confirmed
+    independently** by this session — the new-agent-availability system-reminder that appeared
+    when the operator's own message arrived in this conversation (visible above, listing
+    `java-backend-developer` as newly available and `backend-developer`/`frontend-developer` as no
+    longer available) is itself separate, first-hand corroborating evidence of the same discovery
+    mechanism working, from a different point in this same adoption. Neither agent was invoked.
+  - Skills automatically discovered: the full skill listing injected via system reminder, including
+    this repository's adapted skills (`specboot-adopt`, `code-auditing`, `openspec-*`, `commit`,
+    etc.) — matches this session's own repeated observation of the same mechanism throughout this
+    adoption (for example, immediately after `ADOPT-13`'s symlink creation, this session's own next
+    turn showed the 10 canonical skills newly listed). None invoked in the fresh session, since it
+    was a direct read-only review.
+  - Project documentation consumed: none automatically pushed into context; `docs/*.md` and
+    `openspec/` exist but nothing surfaced them without an explicit query.
+  - CodeGraph tools/commands used: none invoked explicitly by the fresh session; `codegraph_explore`
+    fired automatically via the `UserPromptSubmit` hook (the `CODEGRAPH_START/END` block provisioned
+    at `ADOPT-05`) and returned `PriceService`, `PriceRepository`, `PriceServiceImpl`, `PriceModel`
+    verbatim, including a blast-radius note flagging the repository query as having "no covering
+    tests found."
+  - Resources opened manually (automatic discovery did not surface them): `docs/*.md`, `openspec/`,
+    `.specboot/adoption/ADOPTION-RUN-LOG.md`, `.specboot/local/canonical-source-path`;
+    `PriceController.java`, `PriceEntity.java`, `V1_create_tables.sql`, `application.yaml`
+    (CodeGraph's automatic pass covered only the service/repository/model layer);
+    `PriceServiceImplTest.java` (opened manually to confirm CodeGraph's no-covering-tests flag).
+- **Primary implementation risk reported**: `PriceRepository`'s derived query
+  (`findFirstBy...OrderByPriorityDesc`, `PriceRepository.java:13`) has no deterministic tie-break
+  rule when priorities are equal for overlapping date ranges, and
+  `PriceServiceImplTest.java` mocks `PriceRepository` (`@MockBean`), so this derived query never
+  executes against a real database anywhere in the test suite — no `@DataJpaTest` or equivalent
+  exists. **Independently re-verified by this session**: read `PriceRepository.java` directly —
+  line 13 confirmed exact match (the full derived-query method signature, unchanged from earlier
+  `ADOPT-04`/`ADOPT-06` citations of the same file); read
+  `PriceServiceImplTest.java` directly — lines 26-27 confirmed `@MockBean private PriceRepository
+  priceRepository;`, corroborating the mocking claim exactly as reported.
+- **Secondary risk reported**: `PRICE DECIMAL(4,2)` mapped to Java `double`
+  (`PriceEntity.java:44`) risks floating-point rounding drift and caps prices at 99.99. **Matches
+  this run's own `ADOPT-06` evidence** (defect 3, `V1_create_tables.sql:12`'s `DECIMAL(4,2)` cap,
+  already documented in `docs/backend-standards.md`'s Known Risks and Defects section) — this is
+  the same underlying schema constraint viewed from the entity-mapping side rather than a new,
+  independently-discovered risk. **Independently re-verified**: read `PriceEntity.java` directly —
+  line 44 confirmed `private double price;`.
+- Files modified: none — confirmed by the fresh session's own report and consistent with this
+  step's prompt explicitly forbidding modification.
+- **Interpretation per this step's four-concept framework**: (1) automatic instruction/catalog/
+  profile discovery — root instructions, the 2 adapted agents, and the 10 canonical skills were all
+  discovered automatically, without being told to; CodeGraph's hook-driven auto-context is also
+  automatic discovery, not manual injection. (2) explicit invocation — none occurred; not a failure
+  condition per this step's own text ("a client that... never formally invokes an agent or skill
+  has not failed discovery"). (3) normal manual reading during task execution — the "resources
+  opened manually" list above is expected task behavior (reading `docs/`, entity/controller files,
+  the test file), not a discovery failure. (4) prohibited manual injection — none occurred; no
+  project documentation was front-loaded into the prompt to force a PASS.
+- **PASS basis**: automatic discovery (concept 1) demonstrably happened — root instructions, both
+  adapted agents, all canonical skills, and CodeGraph's hook-driven context all loaded without
+  being told to, and CodeGraph's automatic pass correctly surfaced the exact risk area (the
+  untested derived query) and its missing-coverage flag before any file was opened manually. No
+  concept-4 violation occurred.
+- **Approval**: read-only step per its own text — no approval gate. The operator's transmission of
+  the fresh-session report, and this session's independent re-verification of its citations, is the
+  evidence-recording act itself, not a separate gate.
+- Result: PASS
+
+---
+
 ## `ADOPT-11` — Inspect and Adapt Skills
 
 - Date: 2026-08-19
@@ -1282,4 +1363,5 @@ group requires a **written structural justification** — "fewer commits" is not
 | 8 | `ADOPT-07` + `ADOPT-08` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`04-context-and-openspec.md` header): "`ADOPT-07`'s adapt action is followed immediately by `ADOPT-08`'s read-only validation of the same configuration; per `00-conventions.md`'s checkpoint-grouping rule, this is a guide-documented executed pair eligible for one checkpoint... the same treatment `05-agents-and-skills.md` already states for `ADOPT-09`/`ADOPT-10` and `ADOPT-11`/`ADOPT-12`." This is the guide's own contract-recognized pairing (`00-conventions.md`'s third grounds: "this guide's own step contract makes them an executed pair"), not a convenience grouping by this run. | `ADOPT-07` = PASS (config written, all validations including falsifiable rules negative-control PASS); `ADOPT-08` = PASS (read-only re-verification, config confirmed byte-identical, zero corrections needed) | `ADOPT-07` and `ADOPT-08` evidence blocks above | YES — staged set `{openspec/config.yaml (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-07`'s closed allowlist (`openspec/config.yaml`, the only path that exists) — `ADOPT-08` is read-only and contributes no path of its own — plus the always-permitted run log. No anomalies; both scratch changes created during validation were removed before staging, confirmed absent. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed; `ADOPT-07`'s own approval gate is "none beyond the edit itself being reviewable," and `ADOPT-08` carries no gate | `openspec/config.yaml` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `25634fa` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `25368b5..25634fa`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
 | 9 | `ADOPT-09` + `ADOPT-10` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`05-agents-and-skills.md` header): "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair." Guide-recognized pairing (`00-conventions.md`'s third grounds), not a convenience grouping. | `ADOPT-09` = PASS (3 agents frontmatter-repaired representation-only, 1 new agent created, config selection updated); `ADOPT-10` = PASS (read-only re-verification, all 8 criteria PASS) | `ADOPT-09`/`ADOPT-10` evidence blocks above, including this session's independent re-verification (strict YAML re-parse, representation-only diff confirmation, domain/client-neutrality re-grep, config-scope diff check) | YES — staged set `{ai-specs/agents/backend-developer.md (M), ai-specs/agents/frontend-developer.md (M), ai-specs/agents/product-strategy-analyst.md (M), ai-specs/agents/java-backend-developer.md (A), openspec/config.yaml (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-09`'s declared allowlist (`ai-specs/agents/`, limited to new-agent creation and representation-only repairs; agent-selection portion of `openspec/config.yaml`) plus the always-permitted run log. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed; `[HUMAN APPROVAL REQUIRED]` for "removing or replacing an existing agent" was not reached since no existing agent was removed or replaced (all 3 preserved, representation-only) | `ai-specs/agents/backend-developer.md` (M), `ai-specs/agents/frontend-developer.md` (M), `ai-specs/agents/product-strategy-analyst.md` (M), `ai-specs/agents/java-backend-developer.md` (A), `openspec/config.yaml` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `019da24` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `25634fa..019da24`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
 | 10 | `ADOPT-11` + `ADOPT-12` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`05-agents-and-skills.md` header, same clause covering `ADOPT-09`/`10` and `ADOPT-11`/`12`): "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair." | `ADOPT-11` = PASS (4 skills adapted, 1 broken reference fixed, 1 self-caught defect corrected; completeness criterion PASS on explicit operator ruling); `ADOPT-12` = PASS (read-only re-verification, all 9 criteria PASS) | `ADOPT-11`/`ADOPT-12` evidence blocks above, including the operator's verbatim ruling and this session's independent re-verification (diff scope, fallback-command re-execution, guard confirmation, no-linter-declared re-check) | YES — staged set `{ai-specs/skills/code-auditing/SKILL.md (M), ai-specs/skills/code-auditing/references/audit-methodology.md (M), ai-specs/skills/code-auditing/references/dead-code-methodology.md (M), ai-specs/skills/using-git-worktrees/SKILL.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-11`'s declared allowlist (`ai-specs/skills/` only) plus the always-permitted run log. No anomalies. | YES | **live, on the completeness criterion specifically** — operator (Landaone) explicitly ruled via `AskUserQuestion`, 2026-08-19, that `propose`/`apply`/`archive` are satisfied by design through OpenSpec-CLI-generated client artifacts, per `specboot-instructions.md`'s own documented architecture; every other aspect of this checkpoint auto-qualifies under standing authorization (allowlist subset confirmed, no external research performed) | `ai-specs/skills/code-auditing/SKILL.md` (M), `ai-specs/skills/code-auditing/references/audit-methodology.md` (M), `ai-specs/skills/code-auditing/references/dead-code-methodology.md` (M), `ai-specs/skills/using-git-worktrees/SKILL.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `6775945` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `019da24..6775945`, `origin/experiment/specboot-ai-adoption-v4`. | See improvement proposal #1 above (guide's `ADOPT-11` completeness check conflicts with `specboot-instructions.md`'s own documented propose/apply/archive architecture). |
-| 11 | `ADOPT-13` + `ADOPT-14` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`06-adapters-and-discovery.md` header): "`ADOPT-13`'s adapt action is followed immediately by `ADOPT-14`'s read-only validation of the same adapters; ... this is a guide-documented executed pair eligible for one checkpoint." `ADOPT-15` explicitly excluded from this grouping per the same header note (fresh-session requirement). | `ADOPT-13` = PASS (12 symlinks created, exactly the already-validated agent/skill selection, gate auto-approved); `ADOPT-14` = PASS (read-only re-verification, zero broken links, all 7 criteria PASS) | `ADOPT-13`/`ADOPT-14` evidence blocks above | YES — staged set `{.claude/agents/java-backend-developer.md (A), .claude/agents/product-strategy-analyst.md (A), .claude/skills/adversarial-review (A), .claude/skills/code-auditing (A), .claude/skills/commit (A), .claude/skills/enrich-us (A), .claude/skills/explain (A), .claude/skills/meta-prompt (A), .claude/skills/specboot-verify (A), .claude/skills/update-docs (A), .claude/skills/using-git-worktrees (A), .claude/skills/writing-skills (A), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-13`'s closed rule (symlinks under the selected client's native agent/skill directories only, naming only already-validated agents/skills, never a real directory) plus the always-permitted run log. No anomalies — the pre-existing `specboot-adopt` symlink remains correctly git-ignored and outside this staged set. | YES | auto: the adapter plan exposed exactly the `ADOPT-09`–`ADOPT-12`-validated selection, per this step's own auto-approval text; also independently qualifies under standing authorization (allowlist subset confirmed) | `.claude/agents/java-backend-developer.md` (A), `.claude/agents/product-strategy-analyst.md` (A), 10 `.claude/skills/*` symlinks (A), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |
+| 11 | `ADOPT-13` + `ADOPT-14` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`06-adapters-and-discovery.md` header): "`ADOPT-13`'s adapt action is followed immediately by `ADOPT-14`'s read-only validation of the same adapters; ... this is a guide-documented executed pair eligible for one checkpoint." `ADOPT-15` explicitly excluded from this grouping per the same header note (fresh-session requirement). | `ADOPT-13` = PASS (12 symlinks created, exactly the already-validated agent/skill selection, gate auto-approved); `ADOPT-14` = PASS (read-only re-verification, zero broken links, all 7 criteria PASS) | `ADOPT-13`/`ADOPT-14` evidence blocks above | YES — staged set `{.claude/agents/java-backend-developer.md (A), .claude/agents/product-strategy-analyst.md (A), .claude/skills/adversarial-review (A), .claude/skills/code-auditing (A), .claude/skills/commit (A), .claude/skills/enrich-us (A), .claude/skills/explain (A), .claude/skills/meta-prompt (A), .claude/skills/specboot-verify (A), .claude/skills/update-docs (A), .claude/skills/using-git-worktrees (A), .claude/skills/writing-skills (A), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-13`'s closed rule (symlinks under the selected client's native agent/skill directories only, naming only already-validated agents/skills, never a real directory) plus the always-permitted run log. No anomalies — the pre-existing `specboot-adopt` symlink remains correctly git-ignored and outside this staged set. | YES | auto: the adapter plan exposed exactly the `ADOPT-09`–`ADOPT-12`-validated selection, per this step's own auto-approval text; also independently qualifies under standing authorization (allowlist subset confirmed) | `.claude/agents/java-backend-developer.md` (A), `.claude/agents/product-strategy-analyst.md` (A), 10 `.claude/skills/*` symlinks (A), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `7d24f22` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `6775945..7d24f22`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
+| 12 | `ADOPT-15` (single step — fresh-session evidence recording, run-log-only change) | N/A — single step, never grouped with `ADOPT-13`/`14` per the guide's own explicit text (fresh-session requirement is a structurally different kind of evidence). | `ADOPT-15` = PASS (fresh-session discovery report received, citations independently re-verified against actual source by this session) | `ADOPT-15` evidence block above | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; this step's own `Allowed modifications` is `none — read-only`. No anomalies. | YES | none required — read-only step per its own text; the operator's transmission of the fresh-session report was the evidence-recording act, not a mutation needing a gate | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |
