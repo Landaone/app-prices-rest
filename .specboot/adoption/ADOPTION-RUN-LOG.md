@@ -96,8 +96,8 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PASS | 2026-08-19 |
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PASS | 2026-08-19 |
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PASS | 2026-08-19 |
-| `ADOPT-16` | `07-baseline-and-checkpoint.md` | PENDING | |
-| `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
+| `ADOPT-16` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-19 |
+| `ADOPT-17` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-19 |
 | `ADOPT-18` | `10-debootstrap.md` | PENDING | |
 | `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 | `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
@@ -1003,6 +1003,93 @@ Stop after reporting the negative control's result and the permission behavior.
 
 ---
 
+## `ADOPT-16` — Run the Project Baseline
+
+- Date: 2026-08-19
+- Command determined from repository evidence: `mvn test` (Maven project per `pom.xml`; `mvnw`
+  present but non-functional in this checkout, per `ADOPT-01`/`ADOPT-06`/`ADOPT-11`'s consistent
+  finding — system `mvn` used directly, matching the canonical skills' own documented fallback
+  pattern from `ADOPT-11`).
+- No failed attempts: unlike the reference Java/Maven repository's own recorded experience (stale
+  `target/classes` from an offline run required a `target/` relocation and approval), this run's
+  `target/` was already fresh from `mvn test`/`mvn -q -DskipTests compile` runs performed earlier
+  in this session (during `ADOPT-11`'s independent verification) — no stale-output remediation was
+  needed. No approval gate reached (nothing removed or relocated).
+- Final command and result: `mvn test` → exit 0. Per-class results: `Tests run: 1, Failures: 0,
+  Errors: 0, Skipped: 0` (`PriceEntityModelConverterTest`); `Tests run: 1, Failures: 0, Errors: 0,
+  Skipped: 0` (`PriceServiceImplTest`); `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`
+  (`AppPricesRestApplicationTests`); `Tests run: 5, Failures: 0, Errors: 0, Skipped: 0`
+  (`PriceControllerTest`). Aggregate: `Tests run: 8, Failures: 0, Errors: 0, Skipped: 0` —
+  `BUILD SUCCESS`.
+- `openspec doctor` → `OpenSpec root: ok`, `References (none declared)` — zero warnings.
+- `git status --short` → clean except the always-permitted, carried-forward run-log delta from the
+  prior checkpoint (` M .specboot/adoption/ADOPTION-RUN-LOG.md`) — no unexpected paths.
+- `codegraph sync` → `Scanning files... Already up to date. Done` — CodeGraph current.
+- Result: PASS
+
+---
+
+## `ADOPT-17` — Review and Create a Clean Local Checkpoint
+
+- Date: 2026-08-19. Branch: `experiment/specboot-ai-adoption-v4`.
+- Context distinct from the reference run: this adoption checkpointed after **every** individual
+  step throughout (`ADOPT-00` through `ADOPT-16`), rather than deferring one large checkpoint to
+  this final step — consistent with `00-conventions.md`'s "smallest independently validated step"
+  default. `ADOPT-17`'s own union is therefore small: only `ADOPT-16`'s run-log delta remained
+  uncommitted at this point.
+- `git status --short` (pre-stage) → ` M .specboot/adoption/ADOPTION-RUN-LOG.md`, nothing else.
+- `git diff --stat` (pre-stage) → 1 file changed, 28 insertions, 2 deletions.
+- Staged: `git add .specboot/adoption/ADOPTION-RUN-LOG.md` (the only changed path — no
+  unconditional `git add -A` used).
+- `git diff --cached --stat` → same 1 file, 28/2. `git diff --cached --check` → exit 0, no
+  whitespace-problem output.
+- Staged diff saved for review: `git diff --cached > .specboot/adoption/staged.diff` (52 lines);
+  reviewed, then deleted before the commit step per this step's explicit instruction (confirmed
+  `git status --short` no longer lists it).
+- **Staged-scope checklist**, checked explicitly:
+  - Application source/test code the adoption did not intentionally change: none staged.
+  - Build outputs or generated artifacts: none staged (`target/` remains git-ignored, untouched).
+  - Personal client overrides accidentally staged: none — no `.claude/settings.local.json` exists.
+  - Intentional shared client settings omitted from review: none — `.claude/settings.json` was
+    already committed at its own `ADOPT-05B` checkpoint, not part of this diff.
+  - CodeGraph runtime/database files: none staged — `.codegraph/` remains git-ignored except its
+    already-committed `.gitignore`.
+  - Secret- or credential-shaped text: `git diff --cached` reviewed directly — none present (only
+    prose evidence text was added).
+  - Machine-specific absolute paths: none in the diff (checked directly — the diff only contains
+    narrative evidence referencing repository-relative paths and previously-recorded commit SHAs).
+  - Unexpected file modes: none — the single changed file is a regular text file, mode unchanged.
+  - Symlink targets/broken symlinks: re-checked as part of this review even though no symlink is in
+    this specific diff — `find -L .claude/agents .claude/skills -type l -print` → empty, confirming
+    the state committed at `ADOPT-13` remains intact.
+  - Adapters for unselected clients: none — no `.kiro/` exists.
+  - Unstaged changes left after staging: `git status --short` post-stage → only the `M ` (staged)
+    line, no unstaged remainder.
+  - Untracked files revealing an incomplete step: none — `git status --short` shows no `??` entries.
+- No correction was needed during this review, so the "rerun a fresh independent review after any
+  correction" clause did not apply — this was the single, final review of the staged diff.
+- **Validation against this step's acceptance criteria**:
+  - Baseline passes: PASS — `ADOPT-16` (`mvn test`, 8/8, `BUILD SUCCESS`).
+  - OpenSpec passes: PASS — `ADOPT-16`'s `openspec doctor`, zero warnings.
+  - CodeGraph current: PASS — `ADOPT-16`'s `codegraph sync`, already up to date.
+  - Diff contains only intended adoption changes: PASS — staged-scope checklist above, all clear.
+  - Staged diff reviewed and saved: PASS (then deleted, per this step's own instruction).
+  - `git diff --cached --check` triaged: PASS, exit 0 — no warnings to triage.
+  - Every staged-scope checklist item checked: PASS — see above.
+  - Independent final validation after correction: N/A — no correction was needed.
+  - Checkpoint protocol steps followed in order, both approvals recorded separately: see below.
+  - Remote-impact assessment performed from real evidence, reported before push approval: see below.
+  - Push, if performed, targeted the current working branch on the already-configured remote, not
+    a force push: see below.
+- **Commit approval**: staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md}` is a subset of the
+  always-permitted run log with no other path — **auto-approved** per standing authorization
+  (`ADOPTION-AUTHORIZATION.md`), recorded as evidence.
+- Result: PASS (commit SHA, remote-impact assessment, and push status recorded in the checkpoint
+  ledger entry below, per this step's own instruction that `ADOPT-17` reuses the checkpoint
+  protocol rather than duplicating its fields here).
+
+---
+
 ## `ADOPT-11` — Inspect and Adapt Skills
 
 - Date: 2026-08-19
@@ -1364,4 +1451,4 @@ group requires a **written structural justification** — "fewer commits" is not
 | 9 | `ADOPT-09` + `ADOPT-10` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`05-agents-and-skills.md` header): "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair." Guide-recognized pairing (`00-conventions.md`'s third grounds), not a convenience grouping. | `ADOPT-09` = PASS (3 agents frontmatter-repaired representation-only, 1 new agent created, config selection updated); `ADOPT-10` = PASS (read-only re-verification, all 8 criteria PASS) | `ADOPT-09`/`ADOPT-10` evidence blocks above, including this session's independent re-verification (strict YAML re-parse, representation-only diff confirmation, domain/client-neutrality re-grep, config-scope diff check) | YES — staged set `{ai-specs/agents/backend-developer.md (M), ai-specs/agents/frontend-developer.md (M), ai-specs/agents/product-strategy-analyst.md (M), ai-specs/agents/java-backend-developer.md (A), openspec/config.yaml (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-09`'s declared allowlist (`ai-specs/agents/`, limited to new-agent creation and representation-only repairs; agent-selection portion of `openspec/config.yaml`) plus the always-permitted run log. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed; `[HUMAN APPROVAL REQUIRED]` for "removing or replacing an existing agent" was not reached since no existing agent was removed or replaced (all 3 preserved, representation-only) | `ai-specs/agents/backend-developer.md` (M), `ai-specs/agents/frontend-developer.md` (M), `ai-specs/agents/product-strategy-analyst.md` (M), `ai-specs/agents/java-backend-developer.md` (A), `openspec/config.yaml` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `019da24` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `25634fa..019da24`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
 | 10 | `ADOPT-11` + `ADOPT-12` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`05-agents-and-skills.md` header, same clause covering `ADOPT-09`/`10` and `ADOPT-11`/`12`): "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair." | `ADOPT-11` = PASS (4 skills adapted, 1 broken reference fixed, 1 self-caught defect corrected; completeness criterion PASS on explicit operator ruling); `ADOPT-12` = PASS (read-only re-verification, all 9 criteria PASS) | `ADOPT-11`/`ADOPT-12` evidence blocks above, including the operator's verbatim ruling and this session's independent re-verification (diff scope, fallback-command re-execution, guard confirmation, no-linter-declared re-check) | YES — staged set `{ai-specs/skills/code-auditing/SKILL.md (M), ai-specs/skills/code-auditing/references/audit-methodology.md (M), ai-specs/skills/code-auditing/references/dead-code-methodology.md (M), ai-specs/skills/using-git-worktrees/SKILL.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-11`'s declared allowlist (`ai-specs/skills/` only) plus the always-permitted run log. No anomalies. | YES | **live, on the completeness criterion specifically** — operator (Landaone) explicitly ruled via `AskUserQuestion`, 2026-08-19, that `propose`/`apply`/`archive` are satisfied by design through OpenSpec-CLI-generated client artifacts, per `specboot-instructions.md`'s own documented architecture; every other aspect of this checkpoint auto-qualifies under standing authorization (allowlist subset confirmed, no external research performed) | `ai-specs/skills/code-auditing/SKILL.md` (M), `ai-specs/skills/code-auditing/references/audit-methodology.md` (M), `ai-specs/skills/code-auditing/references/dead-code-methodology.md` (M), `ai-specs/skills/using-git-worktrees/SKILL.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `6775945` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `019da24..6775945`, `origin/experiment/specboot-ai-adoption-v4`. | See improvement proposal #1 above (guide's `ADOPT-11` completeness check conflicts with `specboot-instructions.md`'s own documented propose/apply/archive architecture). |
 | 11 | `ADOPT-13` + `ADOPT-14` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`06-adapters-and-discovery.md` header): "`ADOPT-13`'s adapt action is followed immediately by `ADOPT-14`'s read-only validation of the same adapters; ... this is a guide-documented executed pair eligible for one checkpoint." `ADOPT-15` explicitly excluded from this grouping per the same header note (fresh-session requirement). | `ADOPT-13` = PASS (12 symlinks created, exactly the already-validated agent/skill selection, gate auto-approved); `ADOPT-14` = PASS (read-only re-verification, zero broken links, all 7 criteria PASS) | `ADOPT-13`/`ADOPT-14` evidence blocks above | YES — staged set `{.claude/agents/java-backend-developer.md (A), .claude/agents/product-strategy-analyst.md (A), .claude/skills/adversarial-review (A), .claude/skills/code-auditing (A), .claude/skills/commit (A), .claude/skills/enrich-us (A), .claude/skills/explain (A), .claude/skills/meta-prompt (A), .claude/skills/specboot-verify (A), .claude/skills/update-docs (A), .claude/skills/using-git-worktrees (A), .claude/skills/writing-skills (A), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-13`'s closed rule (symlinks under the selected client's native agent/skill directories only, naming only already-validated agents/skills, never a real directory) plus the always-permitted run log. No anomalies — the pre-existing `specboot-adopt` symlink remains correctly git-ignored and outside this staged set. | YES | auto: the adapter plan exposed exactly the `ADOPT-09`–`ADOPT-12`-validated selection, per this step's own auto-approval text; also independently qualifies under standing authorization (allowlist subset confirmed) | `.claude/agents/java-backend-developer.md` (A), `.claude/agents/product-strategy-analyst.md` (A), 10 `.claude/skills/*` symlinks (A), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `7d24f22` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `6775945..7d24f22`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
-| 12 | `ADOPT-15` (single step — fresh-session evidence recording, run-log-only change) | N/A — single step, never grouped with `ADOPT-13`/`14` per the guide's own explicit text (fresh-session requirement is a structurally different kind of evidence). | `ADOPT-15` = PASS (fresh-session discovery report received, citations independently re-verified against actual source by this session) | `ADOPT-15` evidence block above | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; this step's own `Allowed modifications` is `none — read-only`. No anomalies. | YES | none required — read-only step per its own text; the operator's transmission of the fresh-session report was the evidence-recording act, not a mutation needing a gate | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |
+| 12 | `ADOPT-15` (single step — fresh-session evidence recording, run-log-only change) | N/A — single step, never grouped with `ADOPT-13`/`14` per the guide's own explicit text (fresh-session requirement is a structurally different kind of evidence). | `ADOPT-15` = PASS (fresh-session discovery report received, citations independently re-verified against actual source by this session) | `ADOPT-15` evidence block above | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; this step's own `Allowed modifications` is `none — read-only`. No anomalies. | YES | none required — read-only step per its own text; the operator's transmission of the fresh-session report was the evidence-recording act, not a mutation needing a gate | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `1aed40a` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `7d24f22..1aed40a`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
