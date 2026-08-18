@@ -172,6 +172,17 @@ if [ -f pyproject.toml ]; then poetry install; fi
 
 # Go
 if [ -f go.mod ]; then go mod download; fi
+
+# Java (Maven) - prefer the committed wrapper if present, but fall back to system mvn
+# if the wrapper script exists without its .mvn/wrapper support files (broken/incomplete wrapper)
+if [ -f pom.xml ]; then
+    ./mvnw -q -DskipTests compile 2>/dev/null || mvn -q -DskipTests compile
+fi
+
+# Java/Kotlin (Gradle) - same wrapper-then-fallback pattern
+if [ -f build.gradle ] || [ -f build.gradle.kts ]; then
+    ./gradlew compileJava -x test 2>/dev/null || gradle compileJava -x test
+fi
 ```
 
 ## Step 4: Verify Clean Baseline
@@ -179,8 +190,10 @@ if [ -f go.mod ]; then go mod download; fi
 Run tests to ensure workspace starts clean:
 
 ```bash
-# Use project-appropriate command
-npm test / cargo test / pytest / go test ./...
+# Use project-appropriate command, derived from detected build files (Step 3)
+# npm test / cargo test / pytest / go test ./...
+# Java (Maven): ./mvnw test   (or `mvn test` if no wrapper)
+# Java/Kotlin (Gradle): ./gradlew test   (or `gradle test` if no wrapper)
 ```
 
 **If tests fail:** Report failures, ask whether to proceed or investigate.
@@ -292,7 +305,7 @@ Main checkout left untouched
 | Directory not ignored | Add to .gitignore + commit |
 | Permission error on create | Sandbox fallback, work in place |
 | Tests fail during baseline | Report failures + ask |
-| No package.json/Cargo.toml | Skip dependency install |
+| No package.json/Cargo.toml/pom.xml/build.gradle | Skip dependency install |
 | Work complete, in linked worktree | Run Step 5 cleanup |
 | Never created a worktree | Skip Step 5 |
 | Uncommitted/unpushed changes at cleanup | Stop and ask user |

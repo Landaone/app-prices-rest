@@ -13,24 +13,35 @@ Before analyzing code, establish the context:
 - **Project docs**: CLAUDE.md, README.md for project-specific guidelines
 
 ### 2. Baseline Checks
-Run existing linting and testing:
+Run existing linting and testing, using only commands the project's own build/dependency configuration already provides. Detect the stack from files that actually exist before choosing a command block below; skip any block whose marker file is absent.
+
 ```bash
-# JavaScript/TypeScript
+# JavaScript/TypeScript (if package.json exists)
 npm run lint
 npm run typecheck
 npm test
 
-# Python
+# Python (if requirements.txt / pyproject.toml exists)
 black --check .
 flake8
 pytest
 
-# Go
+# Go (if go.mod exists)
 go vet ./...
 golint ./...
+
+# Java/Kotlin - Maven (if pom.xml exists; prefer the committed wrapper if present)
+./mvnw test 2>/dev/null || mvn test
+# Only run these if the corresponding plugin is already declared in pom.xml — never add an undeclared plugin just to audit:
+# ./mvnw checkstyle:check   (only if the checkstyle-maven-plugin is already configured)
+# ./mvnw spotbugs:check     (only if the spotbugs-maven-plugin is already configured)
+
+# Java/Kotlin - Gradle (if build.gradle or build.gradle.kts exists; prefer the committed wrapper if present)
+./gradlew test 2>/dev/null || gradle test
+# ./gradlew check   (runs whatever verification tasks — lint/checkstyle/spotbugs — the build already declares)
 ```
 
-Document existing errors/warnings as baseline.
+Document existing errors/warnings as baseline. If a stack has no linting/static-analysis tool already configured (e.g. this project's `pom.xml` declares no checkstyle/spotbugs/pmd plugin), record that as a baseline gap rather than introducing a new plugin to fill it.
 
 ### 3. Documentation Loading
 Use Context7 to pre-load documentation for identified core libraries:

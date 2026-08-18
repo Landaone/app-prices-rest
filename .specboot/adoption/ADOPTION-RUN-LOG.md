@@ -91,8 +91,8 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-08` | `04-context-and-openspec.md` | PASS | 2026-08-19 |
 | `ADOPT-09` | `05-agents-and-skills.md` | PASS | 2026-08-19 |
 | `ADOPT-10` | `05-agents-and-skills.md` | PASS | 2026-08-19 |
-| `ADOPT-11` | `05-agents-and-skills.md` | PENDING | |
-| `ADOPT-12` | `05-agents-and-skills.md` | PENDING | |
+| `ADOPT-11` | `05-agents-and-skills.md` | PASS — operator ruling on completeness criterion, see evidence | 2026-08-19 |
+| `ADOPT-12` | `05-agents-and-skills.md` | PASS | 2026-08-19 |
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PENDING | |
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PENDING | |
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING | |
@@ -827,7 +827,167 @@ Stop after reporting the negative control's result and the permission behavior.
 
 ---
 
-## `ADOPT-09` — Inspect and Adapt Agents
+## `ADOPT-11` — Inspect and Adapt Skills
+
+- Date: 2026-08-19
+- Prompt used: the canonical consolidated prompt from `05-agents-and-skills.md` verbatim, executed
+  by a delegated general-purpose subagent, explicitly instructed not to touch this run log — this
+  session recorded evidence itself after independently reviewing the result.
+- Skills inspected (all 10 under `ai-specs/skills/`): `adversarial-review`, `code-auditing` (+2
+  reference files), `commit`, `enrich-us`, `explain`, `meta-prompt`, `specboot-verify`,
+  `update-docs`, `using-git-worktrees`, `writing-skills` (+5 supporting files). Stack detected from
+  files that actually exist: Java 11, Spring Boot 2.4.5, Maven (`mvnw`/`mvnw.cmd` present but
+  `.mvn/wrapper/` broken, per `ADOPT-01`), JPA, Flyway, H2, no frontend, no Gradle, no
+  linter/static-analysis Maven plugin declared (`grep -in "checkstyle\|spotbugs\|pmd\|jacoco"
+  pom.xml` → no output).
+- Assumptions found (and adapted): (1) `code-auditing/SKILL.md` and its two reference files
+  assumed only JS/TS/Python/Go stacks, with no Java path — a Java repo would silently get no
+  dead-code/baseline guidance; (2) `dead-code-methodology.md` unconditionally referenced
+  `${CLAUDE_PLUGIN_ROOT}/scripts/dead-code-detect.sh`, confirmed genuinely absent anywhere in this
+  repository (`find . -name "dead-code-detect.sh"` → no match) — a broken reference, not merely a
+  stack gap; (3) `using-git-worktrees/SKILL.md` Steps 3-4 had no Java/Maven/Gradle path, so a fresh
+  worktree here would get no compile/test baseline step.
+- Skills preserved unchanged: `adversarial-review`, `commit`, `enrich-us`, `explain`,
+  `meta-prompt`, `specboot-verify`, `update-docs`, `writing-skills` — already technology-agnostic
+  (git/gh/OpenSpec-artifact/generic-reasoning operations, no embedded language assumptions).
+- Skills adapted, all conditional on marker-file existence (`pom.xml`/`build.gradle`), never
+  unconditionally assuming Java:
+  - `code-auditing/SKILL.md`: Phase 0 generalized to check whatever build files actually exist;
+    Dead Code Tools section gated JS tooling on presence, added a Java/Kotlin entry that explicitly
+    forbids installing an undeclared plugin and defers to manual review instead.
+  - `code-auditing/references/audit-methodology.md`: added conditional Java/Maven and Java/Gradle
+    baseline-check commands, static-analysis commands explicitly commented "only if already
+    declared" (matching this repo's actual absence of any).
+  - `code-auditing/references/dead-code-methodology.md`: added a Java/Kotlin section (no zero-install
+    tool exists; check for an already-declared plugin first, never add one); fixed the broken script
+    reference by guarding it behind an existence/executable check with a documented fallback.
+  - `using-git-worktrees/SKILL.md`: added Java(Maven)/Java(Gradle) blocks to Steps 3-4 and the
+    Quick Reference table. **The delegated agent's own first draft used a `[ -x ./mvnw ]`
+    conditional and self-caught it during validation** — this exact repository has an executable
+    but non-functional `mvnw` (confirmed: `.mvn/wrapper/` missing), which would have made that
+    conditional select a failing command; replaced with the same resilient `./mvnw ... 2>/dev/null
+    || mvn ...` fallback pattern used in `audit-methodology.md`.
+- **Independent verification by this session** (not merely trusting the subagent's self-report):
+  `git status --short` confirms only the 4 files under `ai-specs/skills/` were touched (plus the
+  run log, added by this session afterward) — `.specboot/`, `.claude/skills/openspec-*`, and every
+  other path untouched. Re-ran the fixed compile fallback directly: `./mvnw -q -DskipTests compile`
+  → fails with `ClassNotFoundException: org.apache.maven.wrapper.MavenWrapperMain` (confirms the
+  wrapper genuinely is broken, matching the documented rationale for the fallback pattern);
+  `mvn -q -DskipTests compile` → succeeds. Re-confirmed the `dead-code-detect.sh` reference is now
+  guarded (`grep -n "dead-code-detect.sh"` shows it inside an `if [ -x ... ]` block, not bare).
+  Re-ran `grep -in "checkstyle\|spotbugs\|pmd\|jacoco" pom.xml` → no output, confirming the "no
+  linter declared" premise the adapted skills rely on.
+- Files modified (all under `ai-specs/skills/`, matching this step's `Allowed modifications`
+  exactly): `code-auditing/SKILL.md`, `code-auditing/references/audit-methodology.md`,
+  `code-auditing/references/dead-code-methodology.md`, `using-git-worktrees/SKILL.md`.
+- External web/GitHub/package-registry research: not performed (no authorization was in scope for
+  this delegated task) — sections of `code-auditing` that would need it were left as documented,
+  unexercised limitations rather than run or stripped out, per this step's own rule.
+- **Mandatory-capability completeness check** — quoted verbatim from
+  `ai-specs/specboot-instructions.md:183`: "There are **six required workflow capabilities**, in
+  order: `enrich-us`, `propose`, `apply`, `specboot-verify`, `adversarial-review`, `archive`."
+  Cross-checked against `ai-specs/skills/`:
+
+  | Capability | Skill under `ai-specs/skills/`? | Literal result |
+  |---|---|---|
+  | `enrich-us` | `ai-specs/skills/enrich-us/SKILL.md` exists | PASS |
+  | `propose` | none | **FAIL** (literal) |
+  | `apply` | none | **FAIL** (literal) |
+  | `specboot-verify` | `ai-specs/skills/specboot-verify/SKILL.md` exists | PASS |
+  | `adversarial-review` | `ai-specs/skills/adversarial-review/SKILL.md` exists | PASS |
+  | `archive` | none | **FAIL** (literal) |
+
+  **This session identified a genuine tension between two parts of the canonical guide itself,
+  not a defect in this repository's provisioning**, and stopped to present it rather than
+  resolving it unilaterally: `ai-specs/specboot-instructions.md` (lines 180-193, imported at
+  `ADOPT-03`, unmodified since) explicitly documents `propose`, `apply`, and `archive` as
+  **intentionally** OpenSpec-CLI-generated, client-specific artifacts — `/opsx:propose`,
+  `/opsx:apply`, `/opsx:archive` — never intended to exist as `ai-specs/skills/`-based canonical
+  skills, by the guide's own stated design ("uses the commands the installed OpenSpec 1.7 CLI
+  actually generates"). Confirmed present and functioning as such: `.claude/skills/openspec-propose/
+  SKILL.md`, `.claude/skills/openspec-apply-change/SKILL.md`,
+  `.claude/skills/openspec-archive-change/SKILL.md`, `.claude/commands/opsx/{propose,apply,
+  archive}.md` — all confirmed present via `test -f`. This step's own validation text
+  ("A mandatory capability with no corresponding skill anywhere under `ai-specs/skills/` is a step
+  FAIL, never a silent pass") does not on its face account for a capability satisfied by design
+  through a different, non-`ai-specs/skills/` mechanism.
+  - **Operator ruling, requested and obtained live rather than self-decided**: presented this exact
+    tension (literal-FAIL reading vs. the guide's own documented architecture) to the operator via
+    `AskUserQuestion`. Operator (Landaone) explicitly ruled, 2026-08-19: treat `propose`/`apply`/
+    `archive` as satisfied by design through the OpenSpec-CLI-generated, per-client artifacts
+    confirmed above, per `specboot-instructions.md`'s own stated architecture. This is recorded as
+    the operator's explicit ruling and reasoning, not a self-approval by the executing agent.
+  - Per this step's own explicit prohibitions, no attempt was made to "fix" this by creating
+    `ai-specs/skills/` copies of `propose`/`apply`/`archive` ("Do not copy client-generated skills
+    into the canonical shared source," "Do not create client adapters in this step") — the ruling
+    accepts the existing, by-design architecture rather than manufacturing conformance to the
+    literal check.
+- Blockers vs. optional improvements: no blockers remain after the operator ruling above. Optional,
+  not made: no Java static-analysis tooling exists to wire into `code-auditing` (correctly deferred,
+  not fabricated); `writing-skills/SKILL.md` references `superpowers:test-driven-development` and
+  `superpowers:systematic-debugging` skill names not present anywhere in this repository — a
+  meta-authoring cross-reference, not a stack-adaptation defect; noted as a limitation, not acted on.
+- **Approval gate**: none beyond the edit being reviewable, per this step's own text — no external
+  research was performed requiring authorization. The completeness-criterion tension above required
+  and received a separate, explicit operator ruling as documented.
+- Result: **PASS** — per the operator's explicit ruling on the completeness criterion; every other
+  validation independently confirmed PASS by this session.
+
+---
+
+## `ADOPT-12` — Validate Skills
+
+- Date: 2026-08-19 (same session, executed immediately after `ADOPT-11` per this guide's own
+  documented executed-pair treatment — `05-agents-and-skills.md`: "Each adapt step is followed
+  immediately by its read-only validation step; they are executed as a pair.")
+- Commands run (read-only, as this step specifies), by this session directly:
+  - `find ai-specs/skills -mindepth 1 -maxdepth 2 -type f -print` → 10 `SKILL.md` entry files
+    confirmed (one per skill directory), plus the known supporting resource files under
+    `code-auditing/references/` and `writing-skills/`.
+  - `find ai-specs/skills -type l -print -exec readlink {} \;` → no symlinks found under
+    `ai-specs/skills/` (expected — canonical skills are real files; symlinks belong to client
+    discovery at `ADOPT-13`, not yet run).
+  - `git diff -- ai-specs/skills` → confirms exactly the 4 files reported at `ADOPT-11`, no other
+    path.
+  - `grep -n "mandatory" ai-specs/specboot-instructions.md` → surfaces the six-required-capabilities
+    line (line 183) and related mandatory-step language, cross-checked against the `ADOPT-11`
+    completeness table above.
+- **Validation, PASS criterion by criterion**:
+  - Every canonical skill exists: PASS — all 10 `SKILL.md` files present.
+  - Expected entry file exists: PASS — same evidence.
+  - Supporting resources resolve: PASS — `references/audit-methodology.md`,
+    `references/dead-code-methodology.md`, and `writing-skills/`'s supporting files all confirmed
+    present via direct `test -f` in this session.
+  - Stack-aware skills inspect repository configuration: PASS — the adapted commands branch on
+    `pom.xml`/`build.gradle` existence, re-confirmed by this session's own re-execution of the
+    fallback commands above.
+  - Technology-specific commands are conditional: PASS — re-inspected all 4 diffs directly; every
+    Java/Gradle block is gated behind existence checks, none unconditional.
+  - No undeclared dependency is required: PASS — re-confirmed via this session's own
+    `grep -in "checkstyle\|spotbugs\|pmd\|jacoco" pom.xml` (no output).
+  - Client-generated OpenSpec skills not copied into canonical shared skills: PASS —
+    `git status --short` shows `.claude/skills/openspec-*` untouched; no copy exists under
+    `ai-specs/skills/`.
+  - Shared skills suitable for selected clients: PASS — edits are plain bash conditionals, no
+    client-specific syntax.
+  - Every mandatory workflow capability has a corresponding skill present: **PASS on the operator's
+    explicit ruling** recorded at `ADOPT-11` (3 of 6 literally absent under `ai-specs/skills/` but
+    satisfied by design through OpenSpec-CLI-generated client artifacts, per
+    `specboot-instructions.md`'s own architecture) — not re-litigated here; this step re-confirms
+    the same underlying facts (capability list, skill inventory) rather than reopening the ruling.
+- Result: PASS
+
+---
+
+## Improvement proposals
+
+Raised after validated checkpoints. Never applied during the adoption run.
+
+| # | Checkpoint | Target file | Proposal | Status |
+|---|---|---|---|---|
+| 1 | `ADOPT-11`/`ADOPT-12` | `05-agents-and-skills.md` (`ADOPT-11`'s validation text) | The completeness check ("every mandatory workflow capability named in `ai-specs/specboot-instructions.md` has a corresponding skill under `ai-specs/skills/`") conflicts with `ai-specs/specboot-instructions.md`'s own documented architecture, where 3 of 6 mandatory capabilities (`propose`, `apply`, `archive`) are intentionally OpenSpec-CLI-generated, client-specific artifacts rather than `ai-specs/skills/`-based canonical skills. This forced a live operator ruling this run that a future adoption would have to make again from scratch. Proposal: either (a) restate the completeness check as "available to every selected client, whether as an `ai-specs/skills/` canonical skill or an OpenSpec-CLI-generated client artifact — matching `specboot-verify`'s own stated scope of confirming availability" (`specboot-instructions.md` line 189 already frames it this way), or (b) explicitly name the propose/apply/archive exception inline in `ADOPT-11`'s own validation list so it does not read as an unqualified "never a silent pass." | proposed |
+
+---
 
 - Date: 2026-08-19
 - Prompt used: the canonical consolidated prompt from `05-agents-and-skills.md` verbatim, executed
@@ -1025,4 +1185,5 @@ group requires a **written structural justification** — "fewer commits" is not
 | 6 | `ADOPT-05B` closure (smoke-test alternative criterion; run-log-only change) | N/A — single-step closure, no file mutation beyond the run log itself. | `ADOPT-05B` = PASS (closed on the alternative criterion for Claude Code/macOS; Windows/Linux `PENDING EVIDENCE`) | `ADOPT-05B` evidence block above (negative-control result, alternative-criterion sub-criteria, operator ruling verbatim) | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; no other path touched. No anomalies. | YES | **live** — `[HUMAN APPROVAL REQUIRED]` to close on the alternative criterion, exercised: operator (Landaone) explicitly ruled and supplied the required reasoning (negative control's silent execution as the basis for `NOT APPLICABLE ON THIS CLIENT`), 2026-08-19 | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `9ebcf0a` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `60b624e..9ebcf0a`, `origin/experiment/specboot-ai-adoption-v4`. | Residual note (operator-flagged, non-blocking): this client's silent execution of an off-allowlist negative control suggests a global permission override independent of `.claude/settings.json` may be in effect in this environment — worth investigating independently, since it would affect every future command here, not only this smoke test. Not resolved; carried forward as a limitation. |
 | 7 | `ADOPT-06` (single step — no grouping) | N/A — single step, checkpointed immediately. | `ADOPT-06` = PASS (see evidence block above) | `ADOPT-06` evidence block above (delegated-agent report plus this session's independent spot-checks: 3 citations, contamination grep, YAML validation, git-diff scope) | YES — staged set `{docs/api-spec.yml (M), docs/backend-standards.md (M), docs/base-standards.md (M), docs/data-model.md (M), docs/development_guide.md (M), docs/documentation-standards.md (M), docs/frontend-standards.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-06`'s declared allowlist (`docs/` only) plus the always-permitted run log. No anomalies — confirmed no path outside `docs/` touched. | YES | **live** — operator shown the diff summary, independent verification results, and defect list; approved 2026-08-19 ("Approve (Recommended)") | `docs/api-spec.yml` (M), `docs/backend-standards.md` (M), `docs/base-standards.md` (M), `docs/data-model.md` (M), `docs/development_guide.md` (M), `docs/documentation-standards.md` (M), `docs/frontend-standards.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `25368b5` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `9ebcf0a..25368b5`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
 | 8 | `ADOPT-07` + `ADOPT-08` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`04-context-and-openspec.md` header): "`ADOPT-07`'s adapt action is followed immediately by `ADOPT-08`'s read-only validation of the same configuration; per `00-conventions.md`'s checkpoint-grouping rule, this is a guide-documented executed pair eligible for one checkpoint... the same treatment `05-agents-and-skills.md` already states for `ADOPT-09`/`ADOPT-10` and `ADOPT-11`/`ADOPT-12`." This is the guide's own contract-recognized pairing (`00-conventions.md`'s third grounds: "this guide's own step contract makes them an executed pair"), not a convenience grouping by this run. | `ADOPT-07` = PASS (config written, all validations including falsifiable rules negative-control PASS); `ADOPT-08` = PASS (read-only re-verification, config confirmed byte-identical, zero corrections needed) | `ADOPT-07` and `ADOPT-08` evidence blocks above | YES — staged set `{openspec/config.yaml (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-07`'s closed allowlist (`openspec/config.yaml`, the only path that exists) — `ADOPT-08` is read-only and contributes no path of its own — plus the always-permitted run log. No anomalies; both scratch changes created during validation were removed before staging, confirmed absent. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed; `ADOPT-07`'s own approval gate is "none beyond the edit itself being reviewable," and `ADOPT-08` carries no gate | `openspec/config.yaml` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `25634fa` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `25368b5..25634fa`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
-| 9 | `ADOPT-09` + `ADOPT-10` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`05-agents-and-skills.md` header): "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair." Guide-recognized pairing (`00-conventions.md`'s third grounds), not a convenience grouping. | `ADOPT-09` = PASS (3 agents frontmatter-repaired representation-only, 1 new agent created, config selection updated); `ADOPT-10` = PASS (read-only re-verification, all 8 criteria PASS) | `ADOPT-09`/`ADOPT-10` evidence blocks above, including this session's independent re-verification (strict YAML re-parse, representation-only diff confirmation, domain/client-neutrality re-grep, config-scope diff check) | YES — staged set `{ai-specs/agents/backend-developer.md (M), ai-specs/agents/frontend-developer.md (M), ai-specs/agents/product-strategy-analyst.md (M), ai-specs/agents/java-backend-developer.md (A), openspec/config.yaml (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-09`'s declared allowlist (`ai-specs/agents/`, limited to new-agent creation and representation-only repairs; agent-selection portion of `openspec/config.yaml`) plus the always-permitted run log. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed; `[HUMAN APPROVAL REQUIRED]` for "removing or replacing an existing agent" was not reached since no existing agent was removed or replaced (all 3 preserved, representation-only) | `ai-specs/agents/backend-developer.md` (M), `ai-specs/agents/frontend-developer.md` (M), `ai-specs/agents/product-strategy-analyst.md` (M), `ai-specs/agents/java-backend-developer.md` (A), `openspec/config.yaml` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |
+| 9 | `ADOPT-09` + `ADOPT-10` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`05-agents-and-skills.md` header): "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair." Guide-recognized pairing (`00-conventions.md`'s third grounds), not a convenience grouping. | `ADOPT-09` = PASS (3 agents frontmatter-repaired representation-only, 1 new agent created, config selection updated); `ADOPT-10` = PASS (read-only re-verification, all 8 criteria PASS) | `ADOPT-09`/`ADOPT-10` evidence blocks above, including this session's independent re-verification (strict YAML re-parse, representation-only diff confirmation, domain/client-neutrality re-grep, config-scope diff check) | YES — staged set `{ai-specs/agents/backend-developer.md (M), ai-specs/agents/frontend-developer.md (M), ai-specs/agents/product-strategy-analyst.md (M), ai-specs/agents/java-backend-developer.md (A), openspec/config.yaml (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-09`'s declared allowlist (`ai-specs/agents/`, limited to new-agent creation and representation-only repairs; agent-selection portion of `openspec/config.yaml`) plus the always-permitted run log. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed; `[HUMAN APPROVAL REQUIRED]` for "removing or replacing an existing agent" was not reached since no existing agent was removed or replaced (all 3 preserved, representation-only) | `ai-specs/agents/backend-developer.md` (M), `ai-specs/agents/frontend-developer.md` (M), `ai-specs/agents/product-strategy-analyst.md` (M), `ai-specs/agents/java-backend-developer.md` (A), `openspec/config.yaml` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `019da24` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `25634fa..019da24`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
+| 10 | `ADOPT-11` + `ADOPT-12` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`05-agents-and-skills.md` header, same clause covering `ADOPT-09`/`10` and `ADOPT-11`/`12`): "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair." | `ADOPT-11` = PASS (4 skills adapted, 1 broken reference fixed, 1 self-caught defect corrected; completeness criterion PASS on explicit operator ruling); `ADOPT-12` = PASS (read-only re-verification, all 9 criteria PASS) | `ADOPT-11`/`ADOPT-12` evidence blocks above, including the operator's verbatim ruling and this session's independent re-verification (diff scope, fallback-command re-execution, guard confirmation, no-linter-declared re-check) | YES — staged set `{ai-specs/skills/code-auditing/SKILL.md (M), ai-specs/skills/code-auditing/references/audit-methodology.md (M), ai-specs/skills/code-auditing/references/dead-code-methodology.md (M), ai-specs/skills/using-git-worktrees/SKILL.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-11`'s declared allowlist (`ai-specs/skills/` only) plus the always-permitted run log. No anomalies. | YES | **live, on the completeness criterion specifically** — operator (Landaone) explicitly ruled via `AskUserQuestion`, 2026-08-19, that `propose`/`apply`/`archive` are satisfied by design through OpenSpec-CLI-generated client artifacts, per `specboot-instructions.md`'s own documented architecture; every other aspect of this checkpoint auto-qualifies under standing authorization (allowlist subset confirmed, no external research performed) | `ai-specs/skills/code-auditing/SKILL.md` (M), `ai-specs/skills/code-auditing/references/audit-methodology.md` (M), `ai-specs/skills/code-auditing/references/dead-code-methodology.md` (M), `ai-specs/skills/using-git-worktrees/SKILL.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | See improvement proposal #1 above (guide's `ADOPT-11` completeness check conflicts with `specboot-instructions.md`'s own documented propose/apply/archive architecture). |

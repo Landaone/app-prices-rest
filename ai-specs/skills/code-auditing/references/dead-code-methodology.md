@@ -127,6 +127,14 @@ deadcode . --exclude tests/
 - Unused classes (DC04)
 - Unused methods (DC05)
 
+### Java/Kotlin (Maven/Gradle)
+
+There is no zero-install, zero-config dead-code tool for a bare Java/Maven or Java/Gradle project. Before running anything:
+
+1. **Check whether the project's own build already declares a relevant plugin** — search `pom.xml` for `spotbugs-maven-plugin`, `pmd-maven-plugin`, or `maven-checkstyle-plugin` (or the Gradle equivalents `com.github.spotbugs`, `pmd`, `checkstyle` in `build.gradle`/`build.gradle.kts`). If one is declared, run it via the wrapper (`./mvnw spotbugs:check`, `./mvnw pmd:check`, `./gradlew check`, etc.) — this is resolving a dependency the project already declares, which is allowed.
+2. **If none is declared, do not add one merely to perform this audit.** Adding `spotbugs`/`pmd`/`checkstyle` to `pom.xml`/`build.gradle` to enable dead-code detection is introducing a new, undeclared dependency — not allowed as part of an inspection task. Report this as a limitation instead: "No dead-code/static-analysis tool is configured for this Java project; automated detection was not possible without adding a new build dependency."
+3. **Fall back to manual review** for this stack: unused private methods/fields (compiler `-Xlint` warnings can surface some of these during `mvn compile`), unused imports (most IDEs flag these; `mvn compile` does not), and classes with no inbound references found via a repository-wide symbol search (e.g. CodeGraph, if available, or `grep`/`git grep` for the class/method name across `src/`).
+
 ## False Positive Detection
 
 **CRITICAL: Always verify findings before reporting to the user.**
@@ -202,8 +210,15 @@ For each flagged item, the agent MUST:
 
 ### 1. Run Detection Tool
 ```bash
-# Use the helper script
-${CLAUDE_PLUGIN_ROOT}/scripts/dead-code-detect.sh --format json
+# If this skill is installed as a Claude plugin that ships the optional helper script,
+# ${CLAUDE_PLUGIN_ROOT}/scripts/dead-code-detect.sh may exist — check before relying on it:
+if [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && [ -x "${CLAUDE_PLUGIN_ROOT}/scripts/dead-code-detect.sh" ]; then
+    "${CLAUDE_PLUGIN_ROOT}/scripts/dead-code-detect.sh" --format json
+else
+    # Fallback: run the stack-appropriate tool directly (see stack sections above).
+    # e.g. npx knip --reporter json   |   deadcode . --dry   |   (Java: see Java/Kotlin section — manual review)
+    :
+fi
 ```
 
 ### 2. Parse and Categorize
