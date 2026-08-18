@@ -11,11 +11,22 @@ Route (manual / autodiscovery): autodiscovery
 
 ```text
 Clients supported: Claude
-Stacks supported: Java / Spring Boot / Maven (per pom.xml, mvnw)
-Shells supported: zsh (observed); bash assumed compatible
-Operating systems supported: macOS (observed)
-Evidence used to derive this matrix, if any (or "none — declared directly"): pom.xml, mvnw,
-mvnw.cmd present at repository root; OS/shell observed directly in this session
+Stacks supported: Java 11 / Spring Boot / Maven (per pom.xml, mvnw, mvnw.cmd)
+Shells supported: zsh, bash, PowerShell (default-broad per `03-client-permissions.md` Step 2 — "default
+  broad, narrow only on stated evidence — never the reverse"; no stated reason to narrow exists for
+  this project. Supersedes the ADOPT-00 evidence-derived draft below, which recorded only this
+  machine's own observed shell.)
+Operating systems supported: macOS, Linux, Windows (same default-broad rule; supersedes the ADOPT-00
+  draft, which recorded only this machine's own observed OS)
+Evidence used to derive this matrix, if any (or "none — declared directly"): Clients/Stacks rows
+  still corroborated by repository evidence (pom.xml, mvnw, mvnw.cmd at repository root; ADOPT-02's
+  recorded client selection). Shells/Operating systems rows are a declaration per the guide's own
+  default, not a derivation from this machine or repository — no single adopting machine or
+  repository can evidence a whole team's heterogeneity, and this matrix governs only read-only,
+  project-scoped, low-risk command patterns (`19-permissions-policy.md`), so declaring broadly is
+  not a privilege increase.
+Recorded at ADOPT-05B (2026-08-19), superseding the ADOPT-00 bootstrap draft in place — same file,
+  not a second one.
 ```
 
 ## OpenSpec version policy

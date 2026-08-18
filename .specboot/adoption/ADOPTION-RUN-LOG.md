@@ -85,7 +85,7 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-03` | `01-prerequisites-and-install.md` | PASS | 2026-08-18 |
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-18 |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-19 |
-| `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PENDING | |
+| `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PENDING — provisioning (Steps 1-4) complete; mandatory fresh-session smoke test outstanding, see evidence block | 2026-08-19 |
 | `ADOPT-06` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
@@ -458,6 +458,150 @@ asked, rather than the run proceeding with no client: YES
 
 ---
 
+## `ADOPT-05B` — Configure Selected-Client Permissions (Early, One-Time)
+
+- Date: 2026-08-19
+- Clients selected: Claude Code only (per `ADOPT-00`/`ADOPT-02`). No `.kiro/settings/permissions.yaml`
+  or Codex equivalent created — Kiro and Codex are `NOT SELECTED`.
+
+**Step 1 — Provisioning**
+
+- Source baseline located: the canonical SpecBoot source's own reviewed `.claude/settings.json`,
+  read via `git show ec90087ddd57024c08a94027152d0559a656564d:.claude/settings.json` — the pinned
+  commit `ADOPT-00` resolved and validated, never the source's current working tree, never edited
+  at the source. 2067 bytes, 74 lines. This is the organization's reviewed starting allowlist for
+  Claude Code; the source repository is itself the reference Java/Maven implementation, so the
+  baseline is already stack-appropriate.
+- Observation, not drift requiring reconciliation: the source repository's own `HEAD` has since
+  advanced to `9b01067d79afb76a32dc0cf2839f70f14c4b8e9d` (checked incidentally while performing
+  this read) — the pinned identity itself, `ec90087`, is unaffected, since this read (and every
+  prior read of the source in this run — `ADOPT-03`'s `git archive`, this step's `git show`) always
+  targeted the pinned commit explicitly, never a fresh `HEAD`. Source remains read-only for this
+  adoption.
+- Target file existed before this step: **YES** — `.claude/settings.json` was created by `ADOPT-05`
+  (`codegraph install`), containing only a `hooks.UserPromptSubmit` block, no `permissions` key.
+- Decision: **MERGE**, not overwrite. No key-level conflicts: the baseline contributes `$schema`,
+  `enabledMcpjsonServers`, and `permissions.allow`; the target's own `hooks` block (from `ADOPT-05`,
+  itself already checkpointed) is retained unchanged.
+
+**Step 2 — Declared supported-environment matrix**
+
+- Recorded into `ADOPTION-AUTHORIZATION.md`'s environment-matrix section (updated in place,
+  superseding the `ADOPT-00` evidence-derived draft): Clients = Claude; Stacks = Java 11/Spring
+  Boot/Maven; Shells = zsh, bash, PowerShell (default-broad); Operating systems = macOS, Linux,
+  Windows (default-broad). Per this step's own rule ("default broad, narrow only on stated
+  evidence — never the reverse") — no stated reason to narrow exists for this project, so the
+  guide's own default applies directly; this did not require a separate live operator ruling
+  (unlike this same repository's `v3` adoption, which had to *correct* an initially-narrow draft —
+  this run declared broadly from the start).
+
+**Step 3 — Reconciliation**
+
+- Entries removed as out-of-matrix: **none**. The baseline's 65 entries (64 `Bash(...)` patterns +
+  1 `mcp__codegraph__codegraph_explore`) are all cross-platform-shaped (POSIX tools plus generic
+  `git`/`openspec`/`mvn`/`codegraph` invocations); none is OS- or shell-specific in a way the
+  declared matrix would exclude.
+- Entries retained for supported environments not present on this machine: all 65, plus
+  `enabledMcpjsonServers: ["codegraph"]` and the `$schema` reference — correct, since `ADOPT-04`/
+  `ADOPT-05` adopted CodeGraph. Nothing stripped for being unused on this adopting machine.
+- Entries added for the real project: **none, by explicit operator decision.** This step's
+  baseline already includes `mvn`-based validate/test patterns matching this repository's stack
+  (Java 11 + Maven, per `pom.xml`). A candidate addition of 10 `./mvnw`/`mvnw.cmd` wrapper-form
+  entries (mirroring this same repository's own prior `v3` adoption, whose wrapper was functional)
+  was proposed and **explicitly declined** by the operator at the live approval gate below — this
+  repository's `mvnw`/`mvnw.cmd` wrapper is currently non-functional here (missing
+  `.mvn/wrapper/maven-wrapper.properties`, recorded at `ADOPT-01`), so the operator chose not to
+  pre-authorize commands this checkout cannot actually run. Recorded as a deliberate scope decision,
+  not an oversight; a future checkpoint may add these if the wrapper is repaired and the team wants
+  wrapper-form commands allowlisted.
+
+**Step 4 — Safety and syntax**
+
+- Safety scan (`grep -iE "password|secret|token|api[_-]?key|/Users/|/home/|credential"
+  .claude/settings.json`): no matches — no credentials, no personal absolute paths, no
+  machine-specific dependency locations. No unsafe broad patterns (no bare shell loops,
+  filesystem-wide globs, or mutation-capable wildcards) — every `:*` wildcard trails a fixed,
+  read-only or local-artifact-only subcommand.
+- Syntax validation: `python3 -c "import json; json.load(open('.claude/settings.json'))"` →
+  `VALID JSON`, exit 0.
+
+**Step 5 — Generic source baseline unchanged**
+
+- Confirmed: nothing was written to the canonical source. The merge target was this repository's
+  own `.claude/settings.json` only; the source's `.claude/settings.json` at `ec90087` was read via
+  `git show`, never opened for editing.
+
+**Approval gate**
+
+- This gate covers two acts, exercised separately here: (a) creating/merging strictly within the
+  reviewed baseline — **auto-approvable** per this step's own text, since content is deterministic
+  and sourced from a baseline reviewed once, elsewhere, in advance; (b) broadening with a command
+  family absent from that baseline (the proposed 10 `mvnw`/`mvnw.cmd` entries) — **live
+  `[HUMAN APPROVAL REQUIRED]`, exercised**: the operator was shown the exact baseline content, its
+  provenance, and the proposed addition, and explicitly chose "baseline only, drop mvnw additions."
+  The file actually written contains **only** the reviewed baseline (a) — no broadening occurred,
+  so (b)'s gate was presented and the broadening was declined, not granted.
+- The harness's own safety classifier independently blocked an unapproved write to
+  `.claude/settings.json` (a permissions-relevant file) before the live gate above was even
+  reached, consistent with treating this file's mutation as requiring explicit human review.
+
+**Mandatory fresh-session smoke test — NOT YET RUN, this session cannot evidence it**
+
+Per this step's own text: "This step's smoke test terminates in a stop-and-hand-off... The session
+that just wrote the permission file cannot evidence it: its permission state was established before
+the file existed... Generate the exact fresh-session prompt below and stop." This is this step's own
+designed stopping point, not a "continue?" question — reaching it, this run stops here rather than
+proceeding into `ADOPT-06`.
+
+Fresh-session prompt to run, verbatim, in a **new** Claude Code session in this repository:
+
+```text
+Perform a read-only smoke test of this repository's project-local permissions.
+
+First, run one command deliberately absent from this project's permission allowlist — for
+example `date` — as a negative control. Evaluate it before any other command; its result routes
+the rest of this test:
+- If it requests permission: the test can measure the permission file. Continue below.
+- If it does not request permission: this client auto-approves outside the allowlist regardless
+  of the file under test, so no command below can demonstrate anything about that file. Stop
+  here and report NOT APPLICABLE ON THIS CLIENT, with this result as the reason. Do not run
+  the remaining commands as smoke-test evidence.
+
+Only if the negative control requested permission, run these commands separately, without
+combining them with shell operators:
+- openspec --version
+- openspec doctor --json
+- openspec context --json
+- openspec schemas
+- openspec templates
+- git status --short
+- git diff -- openspec/config.yaml
+- one read-only CodeGraph exploration query (for example: codegraph explore "list entry points")
+
+Do not modify files.
+
+For each command report:
+- whether it executed;
+- whether it requested permission;
+- PASS or FAIL.
+
+Treat an unexecuted or failed command as FAIL, never an inferred PASS from empty output.
+
+Stop after reporting the negative control's result and the permission behavior.
+```
+
+| Client / OS | Available? | Negative control | Result |
+|---|---|---|---|
+| Claude Code / macOS | yes | not yet run | PENDING EVIDENCE — fresh-session smoke test not yet performed |
+| Claude Code / Linux | not available on this adoption's hardware | — | `PENDING EVIDENCE` |
+| Claude Code / Windows | not available on this adoption's hardware | — | `PENDING EVIDENCE` |
+
+- Result: **PENDING** — Steps 1-4 complete and PASS on their own criteria; the step as a whole
+  cannot close until the fresh-session smoke test (or, for `NOT APPLICABLE ON THIS CLIENT`, the
+  alternative criterion with live operator ruling) closes at least the macOS/Claude Code row.
+
+---
+
 ## Checkpoint ledger
 
 One row per checkpoint. A checkpoint is the smallest independently validated `ADOPT` step; a
@@ -468,4 +612,5 @@ group requires a **written structural justification** — "fewer commits" is not
 | 1 | `ADOPT-00` + `ADOPT-01` (grouped) | **Not a structural justification** (per `00-conventions.md`, honestly recorded rather than fabricated as structural): `ADOPT-00`'s own checkpoint was not committed immediately after it reached PASS during the original bootstrap session. By the time this gap was discovered (start of this fresh session, while executing `ADOPT-01`), `ADOPT-01`'s evidence — and the `ADOPT-15` fresh-session probe evidence — had already been appended to the same run-log file. Reconstructing a synthetic pre-`ADOPT-01` version of the run log to force two commits would stage content that was never the actual working state at any point in this session. True reason for grouping: operational recovery of a missed checkpoint, not structural inseparability. | `ADOPT-00` = PASS (recorded at bootstrap); `ADOPT-01` = PASS (this session, see evidence block above) | `ADOPT-00` evidence block above; `ADOPT-01` evidence block above; `ADOPT-15` fresh-session probe block above | YES — staged set `{.gitignore, .claude/CLAUDE.md, .specboot/adoption/ADOPTION-AUTHORIZATION.md, .specboot/adoption/ADOPTION-RUN-LOG.md, .specboot/adoption/BOOTSTRAP-MANIFEST.json}` is an exact subset of `ADOPT-00`'s declared mutation inventory (excluding the two machine-local/gitignored entries, which were correctly never staged) union `ADOPT-01`'s `none` plus the always-permitted run log. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`, granted by Landaone, 2026-08-18 — commit-gate conditions met: allowlist subset confirmed, standing authorization on file) | `.claude/CLAUDE.md` (A), `.gitignore` (M), `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (A), `.specboot/adoption/ADOPTION-RUN-LOG.md` (A), `.specboot/adoption/BOOTSTRAP-MANIFEST.json` (A) | `0f81bdb` | No CI configuration found in the working tree (no `.github/workflows/`, `.gitlab-ci.yml`, or `Jenkinsfile` at the repo root or in the shared common-repo root `/Users/landaeta/repos/labs/app-prices-rest`); no local git hooks configured. GitHub-side branch protection, rulesets, and webhooks **not inspected** — that inspection is external GitHub research and requires explicit operator authorization under `00-conventions.md`, not yet granted. Branch `experiment/specboot-ai-adoption-v4` has no upstream tracking configured (never pushed). **Initial verdict: UNKNOWN**, resolved by operator-authorized read-only GitHub inspection (see below). Per `00-conventions.md` and the skill's non-negotiable #5, unknown remote impact blocks the push until resolved to a known state. **GitHub-side inspection** (operator explicitly authorized this external research, 2026-08-18): `gh api repos/Landaone/app-prices-rest/branches/experiment/specboot-ai-adoption-v4/protection` → 404 (branch not yet pushed, no protection to find); `gh api repos/Landaone/app-prices-rest/rulesets` → `[]` (none configured); `gh api repos/Landaone/app-prices-rest/hooks` → `[]` (no webhooks); `gh api repos/Landaone/app-prices-rest/actions/workflows` → `{"total_count":0,"workflows":[]}` (no Actions workflows). **Resolved verdict: NO REMOTE IMPACT** — no CI, no webhook, no ruleset, no branch protection on this repository; the push triggers no automation. | Operator explicitly authorized: (1) the GitHub-side inspection above, and (2) the push itself, given the resolved no-impact verdict (see interactive approval, 2026-08-18). Push performed: fast-forward, new branch ref `experiment/specboot-ai-adoption-v4` on `origin`, commit `0f81bdb`. **PUSHED.** | Proposed: the guide/skill should prompt an explicit checkpoint immediately after each step reaches PASS, before the next step's `Action` begins, to prevent evidence from a later step commingling with an unclosed earlier checkpoint in the same run-log file. |
 | 2 | `ADOPT-02` + `ADOPT-03` (grouped) | **Not a structural justification**, honestly recorded per the same pattern as checkpoint 1: the executing agent proceeded directly from `ADOPT-02`'s `Action` into `ADOPT-03`'s `Action` without stopping to checkpoint `ADOPT-02` first, repeating the same process slip. The two steps' output paths are disjoint (`openspec/`, `.claude/commands/opsx/`, `.claude/skills/openspec-*/` for `ADOPT-02`; `docs/`, `ai-specs/` for `ADOPT-03`) and each independently satisfies its own PASS criteria — this was not structurally required. True reason for grouping: the same missed-checkpoint operational recovery as checkpoint 1, not inseparability. | `ADOPT-02` = PASS; `ADOPT-03` = PASS (see evidence blocks above) | `ADOPT-02` evidence block above; `ADOPT-03` evidence block above | YES — staged set is the exact union of `ADOPT-02`'s closed allowlist (`openspec/config.yaml`, `.claude/commands/opsx/*.md`, `.claude/skills/openspec-*/SKILL.md`) and `ADOPT-03`'s closed-rule allowlist (byte-for-byte mirror of source `docs/` and `ai-specs/`), plus the always-permitted run log. `git diff --cached --stat` confirms 44 files changed, all under those trees. No anomalies; no unexpected path. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed | `.claude/commands/opsx/*.md` (6, A), `.claude/skills/openspec-*/SKILL.md` (6, A), `openspec/config.yaml` (A), `docs/*` (7, A), `ai-specs/*` (31, A — includes nested files below the guide's `-maxdepth 3` validation depth, still within the mirrored tree), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `b4c2da2` | Unchanged from the checkpoint-1 baseline: no CI, no webhook, no ruleset, no branch protection on `Landaone/app-prices-rest` (re-affirmed; nothing in this checkpoint touches remote-facing config). **Verdict: NO REMOTE IMPACT.** | Push approval requested live (the auto-mode safety classifier blocks automated `git push` regardless of standing authorization on file; operator explicitly confirmed via interactive prompt, 2026-08-18). **PUSHED** — fast-forward, `0f81bdb..b4c2da2`, `experiment/specboot-ai-adoption-v4 -> experiment/specboot-ai-adoption-v4` on `origin`. | Proposed: `ADOPTION-AUTHORIZATION.md`'s standing-authorization mechanism should note that the *executing harness's own* safety layer (independent of this guide) may still require a live confirmation per push regardless of standing authorization — the guide's auto-approval and the harness's own gate are two different mechanisms, and only the guide's is waivable by this file. |
 | 3 | `ADOPT-04` (single step — no grouping) | N/A — single step, checkpointed immediately after reaching PASS, correcting the pattern from checkpoints 1–2. | `ADOPT-04` = PASS (see evidence block above) | `ADOPT-04` evidence block above | YES — staged set `{.codegraph/.gitignore, .specboot/adoption/ADOPTION-RUN-LOG.md}` is an exact subset of `ADOPT-04`'s closed allowlist (`.codegraph/` — only `.gitignore` ever trackable) plus the always-permitted run log. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed | `.codegraph/.gitignore` (A), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `04bed96` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | Push approval: standing authorization (harness did not block this push). **PUSHED** — fast-forward, `b4c2da2..04bed96`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
-| 4 | `ADOPT-05` (single step — no grouping) | N/A — single step, checkpointed immediately. | `ADOPT-05` = PASS (see evidence block above) | `ADOPT-05` evidence block above; `ADOPTION-AUTHORIZATION.md` code-graph-privilege-scope section | YES — staged set `{.claude/CLAUDE.md (M), .claude/settings.json (A), .mcp.json (A), .specboot/adoption/ADOPTION-AUTHORIZATION.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-05`'s closed allowlist (`.mcp.json`; the Claude permission file `.claude/settings.json`; the additive `CODEGRAPH_START/END` block in `.claude/CLAUDE.md`; `ADOPTION-AUTHORIZATION.md` update-only) plus the always-permitted run log. No anomalies. | YES | **live** — operator explicitly directed the exact command (`codegraph install -y --target claude --location local --no-permissions`), citing `v1` precedent and accepting the documented trade-off; not an auto-approval (the invocation-form deviation from canonical explicit-flag-only, itself recorded in `ADOPTION-AUTHORIZATION.md`, meant this reached the live gate rather than auto-approving on form, even though the *resulting* scope/auto-allow choices independently matched the least-privilege criteria) | `.claude/CLAUDE.md` (M), `.claude/settings.json` (A), `.mcp.json` (A), `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | Proposed: `02-codegraph.md` could note that pty-driven automation of `codegraph install`'s explicit-flag form may be environment-fragile (this run: 4/4 attempts failed identically at the second sub-question), and that `-y` combined with explicit `--target`/`--location`/`--no-permissions` overrides is a viable, evidenced fallback whose only uncontrollable dimension is the CLI-on-PATH default — worth documenting as a recognized (not merely tolerated) fallback path alongside the pty-automation guidance. |
+| 4 | `ADOPT-05` (single step — no grouping) | N/A — single step, checkpointed immediately. | `ADOPT-05` = PASS (see evidence block above) | `ADOPT-05` evidence block above; `ADOPTION-AUTHORIZATION.md` code-graph-privilege-scope section | YES — staged set `{.claude/CLAUDE.md (M), .claude/settings.json (A), .mcp.json (A), .specboot/adoption/ADOPTION-AUTHORIZATION.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-05`'s closed allowlist (`.mcp.json`; the Claude permission file `.claude/settings.json`; the additive `CODEGRAPH_START/END` block in `.claude/CLAUDE.md`; `ADOPTION-AUTHORIZATION.md` update-only) plus the always-permitted run log. No anomalies. | YES | **live** — operator explicitly directed the exact command (`codegraph install -y --target claude --location local --no-permissions`), citing `v1` precedent and accepting the documented trade-off; not an auto-approval (the invocation-form deviation from canonical explicit-flag-only, itself recorded in `ADOPTION-AUTHORIZATION.md`, meant this reached the live gate rather than auto-approving on form, even though the *resulting* scope/auto-allow choices independently matched the least-privilege criteria) | `.claude/CLAUDE.md` (M), `.claude/settings.json` (A), `.mcp.json` (A), `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `3ea53de` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `04bed96..3ea53de`, `origin/experiment/specboot-ai-adoption-v4`. | Proposed: `02-codegraph.md` could note that pty-driven automation of `codegraph install`'s explicit-flag form may be environment-fragile (this run: 4/4 attempts failed identically at the second sub-question), and that `-y` combined with explicit `--target`/`--location`/`--no-permissions` overrides is a viable, evidenced fallback whose only uncontrollable dimension is the CLI-on-PATH default — worth documenting as a recognized (not merely tolerated) fallback path alongside the pty-automation guidance. |
+| 5 | `ADOPT-05B` Steps 1-4 (provisioning only — smoke test outstanding, step not yet PASS) | Not a full-step checkpoint by design: this step's own text mandates a stop-and-hand-off before the smoke test can be evidenced, so Steps 1-4's provisioning work is checkpointed now rather than left uncommitted while awaiting a fresh session. | Steps 1-4 individually validated (safety scan clean, JSON valid, merge matches baseline exactly per operator's approved scope); the step as a whole remains PENDING pending the smoke test. | `ADOPT-05B` evidence block above; `ADOPTION-AUTHORIZATION.md` environment-matrix section | YES — staged set `{.claude/settings.json (M), .specboot/adoption/ADOPTION-AUTHORIZATION.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-05B`'s closed allowlist (the Claude permission file; `ADOPTION-AUTHORIZATION.md` update-only) plus the always-permitted run log. No anomalies. | YES | **live** — operator was shown the exact baseline content, provenance, and the proposed `mvnw` broadening, and explicitly chose "baseline only, drop mvnw additions" (harness classifier also independently blocked the unapproved write until this approval) | `.claude/settings.json` (M), `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None beyond the mvnw-addition note already recorded in the `ADOPT-05B` evidence block (a future checkpoint may revisit if the wrapper is repaired). |
