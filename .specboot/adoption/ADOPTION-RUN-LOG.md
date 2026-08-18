@@ -98,7 +98,7 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PASS | 2026-08-19 |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-19 |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-19 |
-| `ADOPT-18` | `10-debootstrap.md` | PENDING | |
+| `ADOPT-18` | `10-debootstrap.md` | PASS | 2026-08-19 |
 | `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 | `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 
@@ -1090,6 +1090,93 @@ Stop after reporting the negative control's result and the permission behavior.
 
 ---
 
+## `ADOPT-18` — De-bootstrap and Reconcile Client Artifacts
+
+- Date: 2026-08-19. `.specboot/adoption/BOOTSTRAP-MANIFEST.json` exists → this step's `always`
+  condition applies (not the `SKIPPED — no bootstrap performed` path).
+- **Preconditions confirmed before step 1**: `ADOPT-17` = PASS (checked above). `ADOPT-11`/`12`'s
+  mandatory-capability completeness check = PASS — confirmed via the operator ruling recorded at
+  `ADOPT-11` (`propose`/`apply`/`archive` satisfied by design through OpenSpec-CLI-generated client
+  artifacts). This precondition was verified **before** any manifest entry was read or removed, per
+  this step's own explicit ordering requirement.
+- Delivery mode read from the manifest: `source-linked`. Both mode obligations already recorded:
+  `payload: "SKIPPED — source-linked mode"`, `container: "SKIPPED — source-linked mode"` — neither
+  was ever created, confirmed by `test -d .specboot/bootstrap` → absent.
+- **Manifest read** (step 1): 2 entries. Entry 1: `.claude/skills/specboot-adopt`,
+  `ownership: bootstrap-created`, `mode: symlink`, `intended-permanent-replacement: null`,
+  `machineLocal: true`. Entry 2: `.claude/CLAUDE.md`, `ownership: bootstrap-created`,
+  `mode: real-file`, `intended-permanent-replacement: null`, `machineLocal: false`.
+- **Replacement verification (step 2)**: both entries carry `intended-permanent-replacement: null`
+  — no replacement claimed for either, so nothing to verify or create. Not a refusal condition
+  (a `null` intended replacement is not a missing/unresolved one).
+- **Act per entry (step 3)**:
+  - Entry 1 (`symlink` mode): `unlink .claude/skills/specboot-adopt` → exit 0. Confirmed removed:
+    `ls -la .claude/skills/specboot-adopt` → "No such file or directory". Never followed — the
+    unlink targets the entry path itself, not its absolute external target.
+  - Entry 2 (`real-file` mode, **operator-approved deviation from the literal disposition**): the
+    manifest's `real-file` mode reflects the file's content exactly as `ADOPT-00` created it (the
+    checksum `sha256:b25e5f4b...` corresponds to the SPECBOOT-BOOTSTRAP delimited block being the
+    entire file at bootstrap time). `ADOPT-05` (already checkpointed, commit `3ea53de`) later
+    appended a permanent, non-bootstrap `CODEGRAPH_START/END` block into this same file. A literal
+    full-file removal would have destroyed that already-checkpointed permanent content — this
+    tension was presented to the operator (not resolved unilaterally) via `AskUserQuestion`, who
+    explicitly approved: remove only the delimited `<!-- SPECBOOT-BOOTSTRAP:BEGIN/END -->` block,
+    byte-preserving the rest. Read the file in full before editing (5 lines were the bootstrap
+    block, 1 blank separator line, 10 lines were the CodeGraph block); removed exactly the
+    bootstrap block plus its trailing blank separator line via `Edit`; **re-read the file after**
+    to confirm byte-for-byte preservation of the `CODEGRAPH_START`...`CODEGRAPH_END` content,
+    unchanged from `ADOPT-05`'s own recorded text. The file itself is retained (not removed), since
+    it now holds only non-bootstrap, permanent content.
+- **Root instruction file conversion (step 4)**: N/A — confirmed at `ADOPT-03` that this canonical
+  source's template carries no root-level `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`/`codex.md`, so none
+  exists in this repository to convert. `.claude/CLAUDE.md` (inside the client directory) is a
+  distinct file from a root instruction file and is not in scope for this step's step-4 conversion
+  rule.
+- **Transient payload container (step 5)**: `SKIPPED — source-linked mode` — recorded explicitly in
+  the manifest's `modeObligations`, unchanged from `ADOPT-00`; never created, nothing to remove.
+- **Step 5b — machine-local source-path store**: `.specboot/local/` existed
+  (`.specboot/local/canonical-source-path`, containing `/Users/landaeta/repos/specboot`) — removed
+  via `rm -rf .specboot/local`; confirmed absent via `test -d .specboot/local`. The external
+  canonical source the store pointed at was never touched by this removal (removing a pointer never
+  follows what it named). `.specboot/adoption/BOOTSTRAP-MANIFEST.json` and
+  `.specboot/adoption/ADOPTION-RUN-LOG.md` preserved (updated, not deleted).
+- **Unselected/unverified client artifacts (step 6)**: none exist — confirmed `.kiro/` absent (no
+  Kiro artifacts to remove); Codex was never selected and has no artifacts either.
+- **Re-validation (step 7)**: `ADOPT-14`'s filesystem checks re-run in full: `find .claude/agents
+  -type l -print -exec readlink {} \;` → 2 symlinks, both resolving correctly; `find .claude/skills
+  -type l -print -exec readlink {} \;` → 10 canonical skill symlinks, all resolving (the
+  `specboot-adopt` entry no longer appears, correctly, since it was just unlinked);
+  `find .claude/skills -mindepth 1 -maxdepth 1 -type d -print` → the same 6 real `openspec-*`
+  directories, unchanged; `find -L .claude/agents .claude/skills -type l -print` → **empty — zero
+  broken symlinks**; `test -d .kiro` → absent, confirmed no unselected-client adapter.
+  **Second `ADOPT-15` fresh-session check**: **not required** — disposition touched only entries
+  within the manifest's exact `bootstrap-created` set (the `specboot-adopt` symlink, the delimited
+  block inside `.claude/CLAUDE.md`, and the `.specboot/local/` store), nothing beyond it. This
+  `ADOPT-14` filesystem re-check is recorded as the explicit substitute evidence per this step's own
+  design-D-Y rule, not silently treated as equivalent to an unexercised fresh-session test.
+- **Write-back (step 8)**: `.specboot/adoption/BOOTSTRAP-MANIFEST.json` updated —
+  entry 1: `cleanup-status: "removed"`, `final-disposition` recorded (unlinked, never followed,
+  absence is the ordinary state on any machine but the one that ran `ADOPT-00`). Entry 2:
+  `cleanup-status: "retained-with-reason"`, `final-disposition` recorded in full (the operator-
+  approved deviation reasoning above). Both entries now carry a **terminal** `cleanup-status` and a
+  `final-disposition` — none left `pending`. JSON re-validated:
+  `python3 -c "import json; json.load(open('.specboot/adoption/BOOTSTRAP-MANIFEST.json'))"` →
+  no error.
+- **No refusal reached**: neither refusal condition (unresolved replacement; unrecorded content in
+  scope for removal) applied — both entries had `null` intended replacements (nothing to resolve),
+  and no unrecorded content was encountered during processing.
+- **External canonical source**: never touched — re-confirmed via `cd /Users/landaeta/repos/specboot
+  && git status --porcelain` → empty (checked as part of this step's own diligence, consistent with
+  every prior read of the source in this run using pinned-commit or read-only access only).
+- **Approval gate**: **[HUMAN APPROVAL REQUIRED]** before any removal — exercised live. The
+  complete removal plan (unlink `specboot-adopt`; remove `.specboot/local/`;
+  `.specboot/bootstrap/` correctly SKIPPED; the `.claude/CLAUDE.md` tension and proposed
+  resolution) was presented via `AskUserQuestion`; operator (Landaone) approved the recommended
+  resolution (remove only the delimited block), 2026-08-19.
+- Result: PASS
+
+---
+
 ## `ADOPT-11` — Inspect and Adapt Skills
 
 - Date: 2026-08-19
@@ -1452,3 +1539,5 @@ group requires a **written structural justification** — "fewer commits" is not
 | 10 | `ADOPT-11` + `ADOPT-12` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`05-agents-and-skills.md` header, same clause covering `ADOPT-09`/`10` and `ADOPT-11`/`12`): "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair." | `ADOPT-11` = PASS (4 skills adapted, 1 broken reference fixed, 1 self-caught defect corrected; completeness criterion PASS on explicit operator ruling); `ADOPT-12` = PASS (read-only re-verification, all 9 criteria PASS) | `ADOPT-11`/`ADOPT-12` evidence blocks above, including the operator's verbatim ruling and this session's independent re-verification (diff scope, fallback-command re-execution, guard confirmation, no-linter-declared re-check) | YES — staged set `{ai-specs/skills/code-auditing/SKILL.md (M), ai-specs/skills/code-auditing/references/audit-methodology.md (M), ai-specs/skills/code-auditing/references/dead-code-methodology.md (M), ai-specs/skills/using-git-worktrees/SKILL.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-11`'s declared allowlist (`ai-specs/skills/` only) plus the always-permitted run log. No anomalies. | YES | **live, on the completeness criterion specifically** — operator (Landaone) explicitly ruled via `AskUserQuestion`, 2026-08-19, that `propose`/`apply`/`archive` are satisfied by design through OpenSpec-CLI-generated client artifacts, per `specboot-instructions.md`'s own documented architecture; every other aspect of this checkpoint auto-qualifies under standing authorization (allowlist subset confirmed, no external research performed) | `ai-specs/skills/code-auditing/SKILL.md` (M), `ai-specs/skills/code-auditing/references/audit-methodology.md` (M), `ai-specs/skills/code-auditing/references/dead-code-methodology.md` (M), `ai-specs/skills/using-git-worktrees/SKILL.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `6775945` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `019da24..6775945`, `origin/experiment/specboot-ai-adoption-v4`. | See improvement proposal #1 above (guide's `ADOPT-11` completeness check conflicts with `specboot-instructions.md`'s own documented propose/apply/archive architecture). |
 | 11 | `ADOPT-13` + `ADOPT-14` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`06-adapters-and-discovery.md` header): "`ADOPT-13`'s adapt action is followed immediately by `ADOPT-14`'s read-only validation of the same adapters; ... this is a guide-documented executed pair eligible for one checkpoint." `ADOPT-15` explicitly excluded from this grouping per the same header note (fresh-session requirement). | `ADOPT-13` = PASS (12 symlinks created, exactly the already-validated agent/skill selection, gate auto-approved); `ADOPT-14` = PASS (read-only re-verification, zero broken links, all 7 criteria PASS) | `ADOPT-13`/`ADOPT-14` evidence blocks above | YES — staged set `{.claude/agents/java-backend-developer.md (A), .claude/agents/product-strategy-analyst.md (A), .claude/skills/adversarial-review (A), .claude/skills/code-auditing (A), .claude/skills/commit (A), .claude/skills/enrich-us (A), .claude/skills/explain (A), .claude/skills/meta-prompt (A), .claude/skills/specboot-verify (A), .claude/skills/update-docs (A), .claude/skills/using-git-worktrees (A), .claude/skills/writing-skills (A), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-13`'s closed rule (symlinks under the selected client's native agent/skill directories only, naming only already-validated agents/skills, never a real directory) plus the always-permitted run log. No anomalies — the pre-existing `specboot-adopt` symlink remains correctly git-ignored and outside this staged set. | YES | auto: the adapter plan exposed exactly the `ADOPT-09`–`ADOPT-12`-validated selection, per this step's own auto-approval text; also independently qualifies under standing authorization (allowlist subset confirmed) | `.claude/agents/java-backend-developer.md` (A), `.claude/agents/product-strategy-analyst.md` (A), 10 `.claude/skills/*` symlinks (A), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `7d24f22` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `6775945..7d24f22`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
 | 12 | `ADOPT-15` (single step — fresh-session evidence recording, run-log-only change) | N/A — single step, never grouped with `ADOPT-13`/`14` per the guide's own explicit text (fresh-session requirement is a structurally different kind of evidence). | `ADOPT-15` = PASS (fresh-session discovery report received, citations independently re-verified against actual source by this session) | `ADOPT-15` evidence block above | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; this step's own `Allowed modifications` is `none — read-only`. No anomalies. | YES | none required — read-only step per its own text; the operator's transmission of the fresh-session report was the evidence-recording act, not a mutation needing a gate | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `1aed40a` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `7d24f22..1aed40a`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
+| 13 | `ADOPT-16` + `ADOPT-17` (`ADOPT-17` is the final checkpoint of the adoption itself, absorbing `ADOPT-16`'s not-yet-committed run-log delta) | Per `ADOPT-17`'s own text: "this step... covering the cumulative union of every prior step's own `Allowed modifications` for whatever those steps produced but a checkpoint has not yet committed." Since every step through `ADOPT-15` was already individually checkpointed, that union was only `ADOPT-16`'s run-log delta. | `ADOPT-16` = PASS (baseline: 8/8 tests, `openspec doctor` clean, CodeGraph current); `ADOPT-17` = PASS (staged-scope checklist clean, no correction needed) | `ADOPT-16`/`ADOPT-17` evidence blocks above | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; `ADOPT-16`'s own allowlist is `none by default`. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `198928f` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `1aed40a..198928f`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
+| 14 | `ADOPT-18` (its own checkpoint, per the guide's own text — not grouped with `ADOPT-17`) | N/A — single step; the guide's own header explicitly states `ADOPT-18` "invokes the checkpoint protocol... exactly like any other independently validated step," distinct from `ADOPT-17`'s final-adoption checkpoint. | `ADOPT-18` = PASS (both manifest entries reached terminal disposition; `ADOPT-14` re-check PASS with zero broken links; no refusal reached; external source untouched) | `ADOPT-18` evidence block above, including the operator's approved deviation on `.claude/CLAUDE.md` | YES — staged set `{.claude/CLAUDE.md (M), .specboot/adoption/BOOTSTRAP-MANIFEST.json (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-18`'s closed rule (manifest-recorded entry paths only, plus the manifest and run log themselves) plus the always-permitted run log. No anomalies — the machine-local `specboot-adopt` symlink and `.specboot/local/` removals are correctly absent from this staged set (never git-tracked). | YES | **live** — `[HUMAN APPROVAL REQUIRED]` before any removal, exercised: the complete removal plan, including the `.claude/CLAUDE.md` tension and its proposed resolution, was presented via `AskUserQuestion` and approved by the operator, 2026-08-19 | `.claude/CLAUDE.md` (M), `.specboot/adoption/BOOTSTRAP-MANIFEST.json` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |

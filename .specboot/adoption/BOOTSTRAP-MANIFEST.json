@@ -38,7 +38,8 @@
       "ownership": "bootstrap-created",
       "mode": "symlink",
       "intended-permanent-replacement": null,
-      "cleanup-status": "pending",
+      "cleanup-status": "removed",
+      "final-disposition": "Unlinked at ADOPT-18, 2026-08-19. Never followed. Machine-local entry; absence is the ordinary state on every machine but the one that ran ADOPT-00.",
       "machineLocal": true
     },
     {
@@ -51,7 +52,8 @@
       "ownership": "bootstrap-created",
       "mode": "real-file",
       "intended-permanent-replacement": null,
-      "cleanup-status": "pending",
+      "cleanup-status": "retained-with-reason",
+      "final-disposition": "Deviation from the literal 'real-file -> remove' disposition, operator-approved at ADOPT-18, 2026-08-19: the entry's checksum reflects the file's content exactly as ADOPT-00 created it (the SPECBOOT-BOOTSTRAP delimited block, and nothing else, was the entire file at bootstrap time). ADOPT-05 (already checkpointed, commit 3ea53de) subsequently appended a permanent, non-bootstrap CODEGRAPH_START/END block into this same file. A literal full-file removal per the recorded 'real-file' mode would have destroyed that already-checkpointed permanent content. Resolved by removing only the delimited <!-- SPECBOOT-BOOTSTRAP:BEGIN/END --> block, byte-preserving the rest of the file (the CodeGraph block) unchanged — the same outcome 'appended-block' mode would have produced, applied here because it matches the file's actual current structure rather than its recorded mode label. The file itself is retained (not removed) because it now holds only non-bootstrap content.",
       "machineLocal": false
     }
   ],
