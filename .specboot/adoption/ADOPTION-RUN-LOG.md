@@ -93,8 +93,8 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-10` | `05-agents-and-skills.md` | PASS | 2026-08-19 |
 | `ADOPT-11` | `05-agents-and-skills.md` | PASS — operator ruling on completeness criterion, see evidence | 2026-08-19 |
 | `ADOPT-12` | `05-agents-and-skills.md` | PASS | 2026-08-19 |
-| `ADOPT-13` | `06-adapters-and-discovery.md` | PENDING | |
-| `ADOPT-14` | `06-adapters-and-discovery.md` | PENDING | |
+| `ADOPT-13` | `06-adapters-and-discovery.md` | PASS | 2026-08-19 |
+| `ADOPT-14` | `06-adapters-and-discovery.md` | PASS | 2026-08-19 |
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING | |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
@@ -827,6 +827,101 @@ Stop after reporting the negative control's result and the permission behavior.
 
 ---
 
+## `ADOPT-13` — Create Selected-Client Adapters
+
+- Date: 2026-08-19
+- Prompt used: the canonical consolidated prompt from `06-adapters-and-discovery.md`, executed
+  directly by this session (contained enough — symlink creation only, no content generation).
+- Selected clients detected from real client configuration: Claude only (`.claude/` present,
+  OpenSpec-generated `.claude/commands/opsx/*`, `.claude/skills/openspec-*`, `.claude/settings.json`,
+  `.mcp.json` all confirmed present from `ADOPT-02`/`ADOPT-05`/`ADOPT-05B`); no `.kiro/` directory
+  exists — confirmed via `test -d .kiro` — so no Kiro adapters were created.
+- Pre-inspection: `.claude/agents/` did not exist yet (`ls -la .claude/agents` → "No such file or
+  directory"); `.claude/skills/` contained 6 real OpenSpec-generated directories
+  (`openspec-apply-change`, `openspec-archive-change`, `openspec-explore`, `openspec-propose`,
+  `openspec-sync-specs`, `openspec-update-change`) plus the machine-local `specboot-adopt` symlink
+  from `ADOPT-00` (absolute target, git-ignored via `.git/info/exclude` — distinct from this step's
+  canonical, relative symlinks).
+- Exposed agents, determined from `openspec/config.yaml`'s active agent-selection rules (from
+  `ADOPT-09`) plus applicability: `ai-specs/agents/java-backend-developer.md` (selected, applicable
+  — this repository's entire implementation surface is Java/Spring Boot) and
+  `ai-specs/agents/product-strategy-analyst.md` (technology-agnostic, selected, applies unchanged).
+  **Not exposed**, per the config's own explicit rejection: `ai-specs/agents/backend-developer.md`
+  (TypeScript-scoped, config explicitly says "do not select") and
+  `ai-specs/agents/frontend-developer.md` (no frontend exists, config explicitly says "do not
+  select") — both remain canonical and preserved, simply not symlinked for this client.
+- Exposed skills: all 10 canonical skills under `ai-specs/skills/` (`adversarial-review`,
+  `code-auditing`, `commit`, `enrich-us`, `explain`, `meta-prompt`, `specboot-verify`,
+  `update-docs`, `using-git-worktrees`, `writing-skills`) — none collides by name with any of the
+  6 real OpenSpec-generated skill directories, so no collision/skip case was triggered.
+- Symlinks created (all relative, per this step's preference): 2 under `.claude/agents/`
+  (`java-backend-developer.md` → `../../ai-specs/agents/java-backend-developer.md`,
+  `product-strategy-analyst.md` → `../../ai-specs/agents/product-strategy-analyst.md`); 10 under
+  `.claude/skills/` (each → `../../ai-specs/skills/<name>`) — commands: `mkdir -p .claude/agents`,
+  then explicit per-item `ln -s` invocations (not a Bash word-splitting loop, per this step's own
+  shell-safety rule — zsh is this session's active shell).
+- Real directories preserved unchanged: all 6 `openspec-*` directories under `.claude/skills/` —
+  none replaced, moved, deleted, or converted to a symlink.
+- Existing files unchanged: `.claude/CLAUDE.md`, `.claude/settings.json`, `.claude/commands/`,
+  `.mcp.json` — none touched by this step (confirmed no diff on these paths).
+- Unselected clients checked: `.kiro/` confirmed absent — no adapters created for Kiro.
+- Validation (this step's own filesystem checks, run after creation):
+  - `find -L .claude/agents .claude/skills -type l -print` → empty — **no broken symlinks**.
+  - `find .claude/skills -mindepth 1 -maxdepth 1 -type d -print` → the same 6 real `openspec-*`
+    directories, unchanged.
+  - `find .claude/agents .claude/skills -name "* *"` → empty — **no malformed (space-containing)
+    symlink names**.
+  - `test -d .kiro` → absent — confirmed no unselected-client adapter created.
+- Files modified: 12 new symlinks (2 agent, 10 skill) under `.claude/agents/` and `.claude/skills/`.
+  No other path touched.
+- **Approval gate**: the adapter plan exposes exactly the agents and skills already validated at
+  `ADOPT-09`–`ADOPT-12` (the same 2 agents `openspec/config.yaml` selects, the same 10 canonical
+  skills, no different selection, nothing not already in that evidence) — **gate auto-approved**
+  per this step's own text, recorded as evidence here rather than presented as a live question.
+- **This step's own text**: "Do not claim runtime discovery has passed; that requires a fresh
+  client session" — no such claim made here; deferred to `ADOPT-15`.
+- Result: PASS
+
+---
+
+## `ADOPT-14` — Validate Adapter Files, Symlinks, and Generated Directories
+
+- Date: 2026-08-19 (same session, executed immediately after `ADOPT-13` — this guide's own
+  documented executed pair, per `06-adapters-and-discovery.md`'s header note, the same treatment as
+  `ADOPT-09`/`10` and `ADOPT-11`/`12`.)
+- Commands run (read-only, substituting the actual selected client — Claude only; no `.kiro/`
+  paths exist so those arguments were omitted rather than passed against a nonexistent directory):
+  - `find .claude/agents -type l -print -exec readlink {} \;` → 2 symlinks, both resolving to their
+    recorded relative targets under `ai-specs/agents/`.
+  - `find .claude/skills -type l -print -exec readlink {} \;` → 11 symlinks: the 10 canonical skill
+    symlinks (relative, resolving to `ai-specs/skills/<name>`) plus the pre-existing, unrelated
+    `specboot-adopt` machine-local symlink from `ADOPT-00` (absolute target, out of this step's
+    scope — it is not a canonical agent/skill adapter, it is the orchestration skill's own
+    discovery entry).
+  - `find .claude/skills -mindepth 1 -maxdepth 1 -type d -print` → the same 6 real `openspec-*`
+    directories, confirmed still real (not symlinks).
+  - `find -L .claude/agents .claude/skills -type l -print` → empty — **zero broken symlinks**,
+    satisfying this step's explicit "non-empty final broken-link result is FAIL" criterion.
+- Total symlink count in this repository at this point: 12 canonical adapter symlinks (2 agent +
+  10 skill) + 1 machine-local `specboot-adopt` (not a counted adapter) + 4 root-instruction symlinks
+  from `ADOPT-03`... **correction, checked directly rather than assumed**: `ADOPT-03`'s own evidence
+  recorded that this canonical source's template carries **no** root-instruction symlinks
+  (`AGENTS.md`/`CLAUDE.md`/`GEMINI.md`/`codex.md` all absent from the source template root), so
+  this repository's actual total is 12 canonical adapters, not the reference run's illustrative 30 —
+  consistent with `ADOPT-14`'s own framing of that figure as "illustrative evidence, not a fixed
+  target for every repository."
+- **Validation, PASS criterion by criterion**:
+  - Agent adapters point to canonical files: PASS — both resolve under `ai-specs/agents/`.
+  - Skill adapters point to canonical directories: PASS — all 10 resolve under `ai-specs/skills/`.
+  - Targets exist: PASS — re-confirmed via `find -L` producing zero broken-link output.
+  - Generated directories remain real: PASS — 6 `openspec-*` directories confirmed still real.
+  - No broken links: PASS.
+  - No malformed symlink names: PASS — re-confirmed via `find ... -name "* *"` → empty.
+  - No adapters for unselected clients: PASS — `.kiro/` confirmed absent.
+- Result: PASS
+
+---
+
 ## `ADOPT-11` — Inspect and Adapt Skills
 
 - Date: 2026-08-19
@@ -1186,4 +1281,5 @@ group requires a **written structural justification** — "fewer commits" is not
 | 7 | `ADOPT-06` (single step — no grouping) | N/A — single step, checkpointed immediately. | `ADOPT-06` = PASS (see evidence block above) | `ADOPT-06` evidence block above (delegated-agent report plus this session's independent spot-checks: 3 citations, contamination grep, YAML validation, git-diff scope) | YES — staged set `{docs/api-spec.yml (M), docs/backend-standards.md (M), docs/base-standards.md (M), docs/data-model.md (M), docs/development_guide.md (M), docs/documentation-standards.md (M), docs/frontend-standards.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-06`'s declared allowlist (`docs/` only) plus the always-permitted run log. No anomalies — confirmed no path outside `docs/` touched. | YES | **live** — operator shown the diff summary, independent verification results, and defect list; approved 2026-08-19 ("Approve (Recommended)") | `docs/api-spec.yml` (M), `docs/backend-standards.md` (M), `docs/base-standards.md` (M), `docs/data-model.md` (M), `docs/development_guide.md` (M), `docs/documentation-standards.md` (M), `docs/frontend-standards.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `25368b5` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `9ebcf0a..25368b5`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
 | 8 | `ADOPT-07` + `ADOPT-08` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`04-context-and-openspec.md` header): "`ADOPT-07`'s adapt action is followed immediately by `ADOPT-08`'s read-only validation of the same configuration; per `00-conventions.md`'s checkpoint-grouping rule, this is a guide-documented executed pair eligible for one checkpoint... the same treatment `05-agents-and-skills.md` already states for `ADOPT-09`/`ADOPT-10` and `ADOPT-11`/`ADOPT-12`." This is the guide's own contract-recognized pairing (`00-conventions.md`'s third grounds: "this guide's own step contract makes them an executed pair"), not a convenience grouping by this run. | `ADOPT-07` = PASS (config written, all validations including falsifiable rules negative-control PASS); `ADOPT-08` = PASS (read-only re-verification, config confirmed byte-identical, zero corrections needed) | `ADOPT-07` and `ADOPT-08` evidence blocks above | YES — staged set `{openspec/config.yaml (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-07`'s closed allowlist (`openspec/config.yaml`, the only path that exists) — `ADOPT-08` is read-only and contributes no path of its own — plus the always-permitted run log. No anomalies; both scratch changes created during validation were removed before staging, confirmed absent. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed; `ADOPT-07`'s own approval gate is "none beyond the edit itself being reviewable," and `ADOPT-08` carries no gate | `openspec/config.yaml` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `25634fa` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `25368b5..25634fa`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
 | 9 | `ADOPT-09` + `ADOPT-10` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`05-agents-and-skills.md` header): "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair." Guide-recognized pairing (`00-conventions.md`'s third grounds), not a convenience grouping. | `ADOPT-09` = PASS (3 agents frontmatter-repaired representation-only, 1 new agent created, config selection updated); `ADOPT-10` = PASS (read-only re-verification, all 8 criteria PASS) | `ADOPT-09`/`ADOPT-10` evidence blocks above, including this session's independent re-verification (strict YAML re-parse, representation-only diff confirmation, domain/client-neutrality re-grep, config-scope diff check) | YES — staged set `{ai-specs/agents/backend-developer.md (M), ai-specs/agents/frontend-developer.md (M), ai-specs/agents/product-strategy-analyst.md (M), ai-specs/agents/java-backend-developer.md (A), openspec/config.yaml (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-09`'s declared allowlist (`ai-specs/agents/`, limited to new-agent creation and representation-only repairs; agent-selection portion of `openspec/config.yaml`) plus the always-permitted run log. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed; `[HUMAN APPROVAL REQUIRED]` for "removing or replacing an existing agent" was not reached since no existing agent was removed or replaced (all 3 preserved, representation-only) | `ai-specs/agents/backend-developer.md` (M), `ai-specs/agents/frontend-developer.md` (M), `ai-specs/agents/product-strategy-analyst.md` (M), `ai-specs/agents/java-backend-developer.md` (A), `openspec/config.yaml` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `019da24` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `25634fa..019da24`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
-| 10 | `ADOPT-11` + `ADOPT-12` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`05-agents-and-skills.md` header, same clause covering `ADOPT-09`/`10` and `ADOPT-11`/`12`): "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair." | `ADOPT-11` = PASS (4 skills adapted, 1 broken reference fixed, 1 self-caught defect corrected; completeness criterion PASS on explicit operator ruling); `ADOPT-12` = PASS (read-only re-verification, all 9 criteria PASS) | `ADOPT-11`/`ADOPT-12` evidence blocks above, including the operator's verbatim ruling and this session's independent re-verification (diff scope, fallback-command re-execution, guard confirmation, no-linter-declared re-check) | YES — staged set `{ai-specs/skills/code-auditing/SKILL.md (M), ai-specs/skills/code-auditing/references/audit-methodology.md (M), ai-specs/skills/code-auditing/references/dead-code-methodology.md (M), ai-specs/skills/using-git-worktrees/SKILL.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-11`'s declared allowlist (`ai-specs/skills/` only) plus the always-permitted run log. No anomalies. | YES | **live, on the completeness criterion specifically** — operator (Landaone) explicitly ruled via `AskUserQuestion`, 2026-08-19, that `propose`/`apply`/`archive` are satisfied by design through OpenSpec-CLI-generated client artifacts, per `specboot-instructions.md`'s own documented architecture; every other aspect of this checkpoint auto-qualifies under standing authorization (allowlist subset confirmed, no external research performed) | `ai-specs/skills/code-auditing/SKILL.md` (M), `ai-specs/skills/code-auditing/references/audit-methodology.md` (M), `ai-specs/skills/code-auditing/references/dead-code-methodology.md` (M), `ai-specs/skills/using-git-worktrees/SKILL.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | See improvement proposal #1 above (guide's `ADOPT-11` completeness check conflicts with `specboot-instructions.md`'s own documented propose/apply/archive architecture). |
+| 10 | `ADOPT-11` + `ADOPT-12` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`05-agents-and-skills.md` header, same clause covering `ADOPT-09`/`10` and `ADOPT-11`/`12`): "Each adapt step is followed immediately by its read-only validation step; they are executed as a pair." | `ADOPT-11` = PASS (4 skills adapted, 1 broken reference fixed, 1 self-caught defect corrected; completeness criterion PASS on explicit operator ruling); `ADOPT-12` = PASS (read-only re-verification, all 9 criteria PASS) | `ADOPT-11`/`ADOPT-12` evidence blocks above, including the operator's verbatim ruling and this session's independent re-verification (diff scope, fallback-command re-execution, guard confirmation, no-linter-declared re-check) | YES — staged set `{ai-specs/skills/code-auditing/SKILL.md (M), ai-specs/skills/code-auditing/references/audit-methodology.md (M), ai-specs/skills/code-auditing/references/dead-code-methodology.md (M), ai-specs/skills/using-git-worktrees/SKILL.md (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-11`'s declared allowlist (`ai-specs/skills/` only) plus the always-permitted run log. No anomalies. | YES | **live, on the completeness criterion specifically** — operator (Landaone) explicitly ruled via `AskUserQuestion`, 2026-08-19, that `propose`/`apply`/`archive` are satisfied by design through OpenSpec-CLI-generated client artifacts, per `specboot-instructions.md`'s own documented architecture; every other aspect of this checkpoint auto-qualifies under standing authorization (allowlist subset confirmed, no external research performed) | `ai-specs/skills/code-auditing/SKILL.md` (M), `ai-specs/skills/code-auditing/references/audit-methodology.md` (M), `ai-specs/skills/code-auditing/references/dead-code-methodology.md` (M), `ai-specs/skills/using-git-worktrees/SKILL.md` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `6775945` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `019da24..6775945`, `origin/experiment/specboot-ai-adoption-v4`. | See improvement proposal #1 above (guide's `ADOPT-11` completeness check conflicts with `specboot-instructions.md`'s own documented propose/apply/archive architecture). |
+| 11 | `ADOPT-13` + `ADOPT-14` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`06-adapters-and-discovery.md` header): "`ADOPT-13`'s adapt action is followed immediately by `ADOPT-14`'s read-only validation of the same adapters; ... this is a guide-documented executed pair eligible for one checkpoint." `ADOPT-15` explicitly excluded from this grouping per the same header note (fresh-session requirement). | `ADOPT-13` = PASS (12 symlinks created, exactly the already-validated agent/skill selection, gate auto-approved); `ADOPT-14` = PASS (read-only re-verification, zero broken links, all 7 criteria PASS) | `ADOPT-13`/`ADOPT-14` evidence blocks above | YES — staged set `{.claude/agents/java-backend-developer.md (A), .claude/agents/product-strategy-analyst.md (A), .claude/skills/adversarial-review (A), .claude/skills/code-auditing (A), .claude/skills/commit (A), .claude/skills/enrich-us (A), .claude/skills/explain (A), .claude/skills/meta-prompt (A), .claude/skills/specboot-verify (A), .claude/skills/update-docs (A), .claude/skills/using-git-worktrees (A), .claude/skills/writing-skills (A), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-13`'s closed rule (symlinks under the selected client's native agent/skill directories only, naming only already-validated agents/skills, never a real directory) plus the always-permitted run log. No anomalies — the pre-existing `specboot-adopt` symlink remains correctly git-ignored and outside this staged set. | YES | auto: the adapter plan exposed exactly the `ADOPT-09`–`ADOPT-12`-validated selection, per this step's own auto-approval text; also independently qualifies under standing authorization (allowlist subset confirmed) | `.claude/agents/java-backend-developer.md` (A), `.claude/agents/product-strategy-analyst.md` (A), 10 `.claude/skills/*` symlinks (A), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |
