@@ -100,7 +100,7 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-19 |
 | `ADOPT-18` | `10-debootstrap.md` | PASS | 2026-08-19 |
 | `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PASS | 2026-08-19 |
-| `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
+| `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PASS | 2026-08-19 |
 
 ---
 
@@ -1326,6 +1326,47 @@ Prompt corrections required: none — every canonical prompt (enrich-us, propose
 
 ---
 
+## `ADOPT-20` — Pull-Request Readiness Gate
+
+- Date: 2026-08-19. Verification only — this step created and modified nothing.
+- Per-step confirmation from **recorded evidence** (read from this run log's own Step state table
+  and each step's individual evidence block, not inferred or recalled):
+
+  | Step | Recorded status | Evidence pointer |
+  |---|---|---|
+  | `ADOPT-00` | PASS | `ADOPT-00` evidence block (Bootstrap Client Discovery), this run log |
+  | `ADOPT-01` | PASS | `ADOPT-01` evidence block (Install Prerequisites) |
+  | `ADOPT-02` | PASS | `ADOPT-02` evidence block (OpenSpec install/init) |
+  | `ADOPT-03` | PASS | `ADOPT-03` evidence block (Import SpecBoot) |
+  | `ADOPT-04` | PASS | `ADOPT-04` evidence block (Initialize CodeGraph) |
+  | `ADOPT-05` | PASS | `ADOPT-05` evidence block (Configure CodeGraph for Claude) |
+  | `ADOPT-05B` | PASS (closed via alternative criterion, operator-ruled) | `ADOPT-05B` evidence block (Selected-Client Permissions) |
+  | `ADOPT-06` | PASS | `ADOPT-06` evidence block (Adapt Technical Context) |
+  | `ADOPT-07` | PASS | `ADOPT-07` evidence block (Configure OpenSpec) |
+  | `ADOPT-08` | PASS | `ADOPT-08` evidence block (Verify OpenSpec Configuration) |
+  | `ADOPT-09` | PASS | `ADOPT-09` evidence block (Inspect and Adapt Agents) |
+  | `ADOPT-10` | PASS | `ADOPT-10` evidence block (Validate Agents) |
+  | `ADOPT-11` | PASS (operator ruling on completeness criterion) | `ADOPT-11` evidence block (Inspect and Adapt Skills) |
+  | `ADOPT-12` | PASS | `ADOPT-12` evidence block (Validate Skills) |
+  | `ADOPT-13` | PASS | `ADOPT-13` evidence block (Create Selected-Client Adapters) |
+  | `ADOPT-14` | PASS | `ADOPT-14` evidence block (Validate Adapter Files) |
+  | `ADOPT-15` | PASS | `ADOPT-15` evidence block (Fresh-Session Runtime Discovery) |
+  | `ADOPT-16` | PASS | `ADOPT-16` evidence block (Run the Project Baseline) |
+  | `ADOPT-17` | PASS | `ADOPT-17` evidence block (Clean Local Checkpoint) |
+  | `ADOPT-18` | PASS | `ADOPT-18` evidence block (De-bootstrap and Reconcile) |
+  | `ADOPT-19` | PASS | `ADOPT-19` / Daily workflow pilot evidence block |
+
+- Any row at FAIL, PENDING, or blank (must be NONE): **NONE** — all 20 rows confirmed PASS from
+  their individual evidence blocks, cross-checked against the Step state table above (same status
+  on both).
+- Readiness verdict: **READY**.
+- Approval: pull-request creation itself is a separate `[HUMAN APPROVAL REQUIRED]` gate this step
+  does not self-grant — see below.
+- Pull request created (identifier), if any: not yet requested — see below.
+- Result: PASS
+
+---
+
 ## `ADOPT-11` — Inspect and Adapt Skills
 
 - Date: 2026-08-19
@@ -1690,4 +1731,5 @@ group requires a **written structural justification** — "fewer commits" is not
 | 12 | `ADOPT-15` (single step — fresh-session evidence recording, run-log-only change) | N/A — single step, never grouped with `ADOPT-13`/`14` per the guide's own explicit text (fresh-session requirement is a structurally different kind of evidence). | `ADOPT-15` = PASS (fresh-session discovery report received, citations independently re-verified against actual source by this session) | `ADOPT-15` evidence block above | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; this step's own `Allowed modifications` is `none — read-only`. No anomalies. | YES | none required — read-only step per its own text; the operator's transmission of the fresh-session report was the evidence-recording act, not a mutation needing a gate | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `1aed40a` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `7d24f22..1aed40a`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
 | 13 | `ADOPT-16` + `ADOPT-17` (`ADOPT-17` is the final checkpoint of the adoption itself, absorbing `ADOPT-16`'s not-yet-committed run-log delta) | Per `ADOPT-17`'s own text: "this step... covering the cumulative union of every prior step's own `Allowed modifications` for whatever those steps produced but a checkpoint has not yet committed." Since every step through `ADOPT-15` was already individually checkpointed, that union was only `ADOPT-16`'s run-log delta. | `ADOPT-16` = PASS (baseline: 8/8 tests, `openspec doctor` clean, CodeGraph current); `ADOPT-17` = PASS (staged-scope checklist clean, no correction needed) | `ADOPT-16`/`ADOPT-17` evidence blocks above | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; `ADOPT-16`'s own allowlist is `none by default`. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `198928f` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `1aed40a..198928f`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
 | 14 | `ADOPT-18` (its own checkpoint, per the guide's own text — not grouped with `ADOPT-17`) | N/A — single step; the guide's own header explicitly states `ADOPT-18` "invokes the checkpoint protocol... exactly like any other independently validated step," distinct from `ADOPT-17`'s final-adoption checkpoint. | `ADOPT-18` = PASS (both manifest entries reached terminal disposition; `ADOPT-14` re-check PASS with zero broken links; no refusal reached; external source untouched) | `ADOPT-18` evidence block above, including the operator's approved deviation on `.claude/CLAUDE.md` | YES — staged set `{.claude/CLAUDE.md (M), .specboot/adoption/BOOTSTRAP-MANIFEST.json (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-18`'s closed rule (manifest-recorded entry paths only, plus the manifest and run log themselves) plus the always-permitted run log. No anomalies — the machine-local `specboot-adopt` symlink and `.specboot/local/` removals are correctly absent from this staged set (never git-tracked). | YES | **live** — `[HUMAN APPROVAL REQUIRED]` before any removal, exercised: the complete removal plan, including the `.claude/CLAUDE.md` tension and its proposed resolution, was presented via `AskUserQuestion` and approved by the operator, 2026-08-19 | `.claude/CLAUDE.md` (M), `.specboot/adoption/BOOTSTRAP-MANIFEST.json` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `cd2f2bc` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `198928f..cd2f2bc`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
-| 15 | `ADOPT-19` (its own checkpoint, per the guide's own text — orchestration/evidence-recording only) | N/A — single step; the guide's own header states "`ADOPT-19` is its own checkpoint, like every independently validated step." The pilot's actual code change was committed separately, locally, on `feature/fix-price-priority-tie-break-backend` (commit `8b7df7b`) — a different branch and a different checkpoint scope, not part of this adoption's own checkpoint chain. | `ADOPT-19` = PASS — all six required capabilities reached their required outcome on the human-named pilot task, evidenced by the pilot change's own artifacts (archived at `openspec/changes/archive/2026-08-19-fix-price-priority-tie-break/`) | `ADOPT-19` evidence block above (Daily workflow pilot block) | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; `ADOPT-19`'s own text says it "does not itself carry a separate write scope beyond" orchestration/evidence recording. No anomalies. | YES | **live** — this checkpoint's approval gate is "at the pilot change's own archive gate, per the normal daily workflow" (`ADOPT-19`'s own text) — that gate was exercised live: operator directed a post-review fix before granting explicit archive approval, 2026-08-19 | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None beyond the same-session-fallback adversarial-review caveat already recorded in the pilot evidence block above. |
+| 15 | `ADOPT-19` (its own checkpoint, per the guide's own text — orchestration/evidence-recording only) | N/A — single step; the guide's own header states "`ADOPT-19` is its own checkpoint, like every independently validated step." The pilot's actual code change was committed separately, locally, on `feature/fix-price-priority-tie-break-backend` (commit `8b7df7b`) — a different branch and a different checkpoint scope, not part of this adoption's own checkpoint chain. | `ADOPT-19` = PASS — all six required capabilities reached their required outcome on the human-named pilot task, evidenced by the pilot change's own artifacts (archived at `openspec/changes/archive/2026-08-19-fix-price-priority-tie-break/`) | `ADOPT-19` evidence block above (Daily workflow pilot block) | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; `ADOPT-19`'s own text says it "does not itself carry a separate write scope beyond" orchestration/evidence recording. No anomalies. | YES | **live** — this checkpoint's approval gate is "at the pilot change's own archive gate, per the normal daily workflow" (`ADOPT-19`'s own text) — that gate was exercised live: operator directed a post-review fix before granting explicit archive approval, 2026-08-19 | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `d68316e` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `cd2f2bc..d68316e`, `origin/experiment/specboot-ai-adoption-v4`. | None beyond the same-session-fallback adversarial-review caveat already recorded in the pilot evidence block above. |
+| 16 | `ADOPT-20` (verification only) | N/A — single step; creates and modifies nothing per its own text. | `ADOPT-20` = PASS — 20/20 rows (`ADOPT-00`-`ADOPT-19`) confirmed PASS from their individual evidence blocks; readiness verdict READY | `ADOPT-20` evidence block above (per-step table with evidence pointers) | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; this step's own allowlist is `none`. No anomalies. | YES | none required — read-only verification step, no mutation | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |
