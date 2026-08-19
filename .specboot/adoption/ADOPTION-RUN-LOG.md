@@ -99,7 +99,7 @@ asked, rather than the run proceeding with no client: YES
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-19 |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-19 |
 | `ADOPT-18` | `10-debootstrap.md` | PASS | 2026-08-19 |
-| `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
+| `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PASS | 2026-08-19 |
 | `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 
 ---
@@ -1177,6 +1177,155 @@ Stop after reporting the negative control's result and the permission behavior.
 
 ---
 
+### Daily workflow pilot (not part of one-time adoption)
+
+```text
+Request: Fix the untested priority-tie-break behavior in PriceRepository's derived query
+  (findFirstByBrandIdAndProductIdAndStartDateIsLessThanEqualAndEndDateGreaterThanEqualOrderByPriorityDesc,
+  PriceRepository.java:13), flagged during ADOPT-15's architecture review. Named by the operator
+  (Landaone), 2026-08-19 — not selected by the executing agent, per this step's own text.
+Change ID: fix-price-priority-tie-break
+Artifacts: proposal.md, specs/price-resolution/spec.md (new capability), design.md, tasks.md,
+  enriched-work-item.md — all created via /opsx:propose, validated (openspec validate --strict:
+  1 passed, 0 failed).
+Implementation: PriceRepository.java's derived query renamed
+  ...OrderByPriorityDesc -> ...OrderByPriorityDescIdDesc (Spring Data JPA parses the extended
+  method name directly into ORDER BY priority DESC, id DESC — no @Query needed). New
+  PriceRepositoryTest.java (@DataJpaTest, real H2/Flyway database, 4 tests). docs/data-model.md
+  updated. Deviation surfaced by the implementing agent, not silently resolved: the
+  proposal/design's "no other file changes" claim did not hold —
+  PriceServiceImpl.java:26 calls the derived method by exact name and
+  PriceServiceImplTest.java:59 stubs it by exact name via Mockito; both required a mechanical
+  method-name-only update to keep compiling. A second gap was surfaced and deliberately left
+  unresolved: docs/backend-standards.md:259 and docs/api-spec.yml:59 both still quote the old
+  method name in prose and are now stale, but neither file was in this change's declared scope
+  (proposal.md's Impact section names only docs/data-model.md; api-spec.yml is explicitly called
+  out as unchanged) — flagged as a follow-up, not fixed here.
+Tests: mvn test — independently re-run by this session (not only trusted from the implementer's
+  report): Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, BUILD SUCCESS. All 4 pre-existing
+  test classes (8 tests) plus the new PriceRepositoryTest (4 tests: tie-at-top-priority returns
+  the same row on every repeated call; tie-only-at-top-priority never returns the lower row;
+  differing-priorities regression; no-match regression). This session independently read the new
+  test file in full and confirmed it matches specs/price-resolution/spec.md's scenarios exactly.
+enrich-us outcome (READY FOR PROPOSAL / NEEDS CLARIFICATION): READY FOR PROPOSAL. One assumption
+  flagged rather than blocking (per the operator's own instruction to let enrich-us work out the
+  tie-break rule): the deterministic key is id, direction left for the apply/design step to
+  finalize.
+Proposal approval: N/A — ADOPT-13's canonical-adapter approval-style auto-approval does not apply
+  here; propose/apply's own approval gates are internal to the daily workflow (archive is the one
+  gate ADOPT-19 itself consumes, per this step's own text) — proposal creation itself carries no
+  separate human gate in this OpenSpec schema.
+Apply result: all 8 tasks in tasks.md marked [x]. Independently re-verified by this session: git
+  diff/status confirms exactly the claimed files changed, nothing beyond scope; mvn test re-run
+  directly by this session with the same result reported.
+specboot-verify verdict (PASS / PASS WITH GAPS / FAIL): **PASS**. Run directly by this session
+  (not delegated). Task-by-task disk-evidence check: all 8 tasks in tasks.md confirmed against
+  actual files (branch exists; PriceRepository.java renamed; PriceServiceImpl.java/Test.java
+  call-site updates confirmed necessary and correct via `grep -n "OrderByPriority"` showing
+  PriceControllerTest.java/PriceEntityModelConverterTest.java correctly untouched; new
+  PriceRepositoryTest.java read in full; `mvn test` independently re-run by this session, 12/12,
+  BUILD SUCCESS; manual curl testing independently RE-EXECUTED by this session — not merely
+  trusted from the implementer's report — against a freshly started `mvn spring-boot:run`
+  instance, all 6 documented cases (200 success, 200 priority-resolution, 404, 500, 400, 405)
+  matched exactly; docs/data-model.md updated). Requirement/scenario walk against
+  specs/price-resolution/spec.md: "Highest priority wins" — PASS (differingPriorities test +
+  curl); "Deterministic tie-break when priorities are equal" — PASS (twoRowsTiedAtSamePriority
+  test asserts the same row across 3 repeated calls; tieAtTopPriorityOnly test confirms a
+  lower-priority row never wins); "No matching price yields not-found" — PASS
+  (noMatchingRow test + curl 404). Capability availability for Claude (the only selected client):
+  all 6 required capabilities confirmed present — enrich-us, specboot-verify, adversarial-review
+  under `.claude/skills/`; propose/apply/archive via `.claude/skills/openspec-{propose,
+  apply-change,archive-change}` (per the operator's `ADOPT-11` ruling). **One Minor finding**
+  (does not block eligibility): `docs/backend-standards.md:259` and `docs/api-spec.yml:59` still
+  quote the pre-rename method name in prose — a real, implementation-caused documentation-accuracy
+  gap, but outside this change's own declared scope (`proposal.md`'s Impact section) and already
+  self-surfaced by the implementer rather than hidden. No Blockers, no Majors, no unresolved
+  questions.
+Independent adversarial-review verdict (PASS / PASS WITH GAPS / FAIL): **PASS WITH GAPS**. Run by
+  a freshly spawned subagent (cold-started, no conversation memory of the implementing agent or
+  this orchestrating session) that independently re-derived the problem before reading design.md,
+  inspected Hibernate's actual generated SQL log (`order by priceentit0_.priority desc,
+  priceentit0_.id desc` — confirming the derived-query name parses as intended, not merely
+  "looks right by convention"), independently re-ran `mvn test` (12/12, matching), independently
+  started the app and issued live `curl` requests reproducing the tie-resolution behavior, and
+  re-ran the new test class in isolation twice to check for cross-test leakage (none found).
+  Findings: one Minor (the 3-row tied-at-top-priority test asserts an OR condition rather than
+  repeated-call determinism — consistent with the spec's own scenario wording, not a spec
+  violation, but a slightly weaker test than it could be) plus the already-known, out-of-scope
+  stale-doc-citations gap (confirmed accurate, not re-flagged as new). No Blockers.
+Independent adversarial-review provenance (reviewing session/client; cross-session, cross-client,
+  or same-session-fallback): **self-flagged by the reviewing agent as a "same-session fallback,"
+  not a genuinely independent review** — it reported having access to "the prior implementer's
+  tasks.md report" despite being a cold-started subagent with no shared conversation memory with
+  the implementing agent. This session's own assessment: the review was substantively rigorous
+  (SQL-log inspection, live re-execution, isolated reruns — not merely re-reading prior claims),
+  and only Claude is available as a client in this environment (no second client to run a
+  cross-client review), so a stronger form of independence than "a separate, cold-started subagent
+  with a skeptical, re-derive-from-scratch mandate" was not achievable here. Recorded exactly as
+  the reviewing agent characterized it — not upgraded to "independent" by this session's own
+  judgment — per this step's own explicit rule that a same-session fallback must be named, not
+  silently treated as equivalent to true independence. This caveat is carried to the archive
+  approval gate below for the operator's explicit consideration.
+Post-review fix (operator-directed, 2026-08-19): the adversarial review's one Minor finding
+  (tieAtTopPriorityOnly test asserted an OR condition, not repeated-call determinism) was
+  addressed before archiving, per the operator's explicit choice ("Fix the Minor test-assertion
+  gap first, then archive") rather than accepting it as a residual gap. Strengthened
+  PriceRepositoryTest.tieAtTopPriorityOnly_returnsATiedTopPriorityRow_neverTheLowerOne to loop 3
+  times and assert the exact deterministic winner (the higher-id tied row) on every call, matching
+  the pattern already used in twoRowsTiedAtSamePriority. Re-ran `mvn test` after the change:
+  Tests run: 12, Failures: 0, Errors: 0, Skipped: 0, BUILD SUCCESS — unchanged pass count, stronger
+  assertion. This closes the adversarial review's only Minor finding; the specboot-verify Minor
+  (stale out-of-scope doc citations) remains a deliberately out-of-scope, already-flagged
+  follow-up, not addressed by this fix.
+Archive approval (explicit human approval, both gates PASS/PASS WITH GAPS): **GRANTED** —
+  operator (Landaone), 2026-08-19, via interactive approval, after directing the post-review fix
+  above.
+Archive result: **SUCCESS**. `openspec status` confirmed all 4 artifacts `done` and 0 incomplete
+  tasks (`grep -c "\[ \]" tasks.md` → 0) before archiving. Delta spec existed
+  (`specs/price-resolution/spec.md`); no main spec existed yet for `price-resolution` (new
+  capability). Ran `/opsx:sync` inline: created `openspec/specs/price-resolution/spec.md`,
+  copying the delta's `## Purpose` verbatim and its 3 `ADDED Requirements` (with all 5 scenarios)
+  into the main spec's `## Requirements` section. Verified via `diff` that the synced main spec's
+  requirements section is content-identical to the delta's `ADDED Requirements` section (modulo
+  the header rename `## ADDED Requirements` → `## Requirements`, per the sync workflow's own
+  format contract). Moved `openspec/changes/fix-price-priority-tie-break/` →
+  `openspec/changes/archive/2026-08-19-fix-price-priority-tie-break/` (target path did not
+  already exist, confirmed before the move). Post-archive `openspec validate --strict --all` →
+  `✓ spec/price-resolution`, `Totals: 1 passed, 0 failed`.
+Docs/spec sync: **DONE** — see Archive result above; `docs/data-model.md` was already updated
+  during apply (task 5.1), separately from this OpenSpec spec/main-spec sync.
+Commit message: "Fix nondeterministic priority tie-break in price resolution query" (full body in
+  git log, commit `8b7df7b` on `feature/fix-price-priority-tie-break-backend`) — via the `commit`
+  skill, staged scope explicitly limited to the pilot's own files (excluding the unrelated,
+  concurrently-modified `.specboot/adoption/ADOPTION-RUN-LOG.md`, which belongs to this adoption's
+  own branch/concern, not the pilot's). 12 files changed: `PriceRepository.java`,
+  `PriceServiceImpl.java`, `PriceServiceImplTest.java`, new `PriceRepositoryTest.java`,
+  `docs/data-model.md`, the archived change directory (6 files), new
+  `openspec/specs/price-resolution/spec.md`.
+PR title: N/A — deliberately not opened. The `commit` skill's default flow includes push + PR
+  creation (steps 4-5); this run stopped before both, since `ADOPT-19`'s own text scopes this step
+  to "orchestration and evidence recording," consumes only the pilot's own archive gate, and
+  neither pushing this feature branch nor opening a PR was authorized. Recorded as a deliberate
+  deviation from the skill's own default, not an oversight.
+PR description: N/A — no PR opened.
+Remote mutation attempted: NO — commit is local only; `feature/fix-price-priority-tie-break-backend`
+  was never pushed.
+Result: **PASS**. All six required capabilities exercised in order and reached their required
+  outcome: `enrich-us` → READY FOR PROPOSAL; propose → all 4 artifacts created and validated;
+  apply → all 8 tasks implemented, independently re-verified; tests → `mvn test` 12/12,
+  independently re-run twice by this session; `specboot-verify` → PASS; `adversarial-review` →
+  PASS WITH GAPS initially, its one Minor finding fixed per operator direction, re-verified
+  (12/12 still passing with the strengthened assertion); docs/spec sync → done; archive → done,
+  with explicit human approval obtained before archiving. This retires the guide's
+  `PENDING END-TO-END VALIDATION` marker for this adoption.
+Prompt corrections required: none — every canonical prompt (enrich-us, propose, apply,
+  specboot-verify, archive) executed as documented, with the one process learning already
+  captured above (the adversarial-review same-session-fallback caveat) rather than requiring a
+  prompt-text correction.
+```
+
+---
+
 ## `ADOPT-11` — Inspect and Adapt Skills
 
 - Date: 2026-08-19
@@ -1540,4 +1689,5 @@ group requires a **written structural justification** — "fewer commits" is not
 | 11 | `ADOPT-13` + `ADOPT-14` (grouped — guide-documented executed pair) | **Structural justification, per the guide's own text** (`06-adapters-and-discovery.md` header): "`ADOPT-13`'s adapt action is followed immediately by `ADOPT-14`'s read-only validation of the same adapters; ... this is a guide-documented executed pair eligible for one checkpoint." `ADOPT-15` explicitly excluded from this grouping per the same header note (fresh-session requirement). | `ADOPT-13` = PASS (12 symlinks created, exactly the already-validated agent/skill selection, gate auto-approved); `ADOPT-14` = PASS (read-only re-verification, zero broken links, all 7 criteria PASS) | `ADOPT-13`/`ADOPT-14` evidence blocks above | YES — staged set `{.claude/agents/java-backend-developer.md (A), .claude/agents/product-strategy-analyst.md (A), .claude/skills/adversarial-review (A), .claude/skills/code-auditing (A), .claude/skills/commit (A), .claude/skills/enrich-us (A), .claude/skills/explain (A), .claude/skills/meta-prompt (A), .claude/skills/specboot-verify (A), .claude/skills/update-docs (A), .claude/skills/using-git-worktrees (A), .claude/skills/writing-skills (A), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-13`'s closed rule (symlinks under the selected client's native agent/skill directories only, naming only already-validated agents/skills, never a real directory) plus the always-permitted run log. No anomalies — the pre-existing `specboot-adopt` symlink remains correctly git-ignored and outside this staged set. | YES | auto: the adapter plan exposed exactly the `ADOPT-09`–`ADOPT-12`-validated selection, per this step's own auto-approval text; also independently qualifies under standing authorization (allowlist subset confirmed) | `.claude/agents/java-backend-developer.md` (A), `.claude/agents/product-strategy-analyst.md` (A), 10 `.claude/skills/*` symlinks (A), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `7d24f22` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `6775945..7d24f22`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
 | 12 | `ADOPT-15` (single step — fresh-session evidence recording, run-log-only change) | N/A — single step, never grouped with `ADOPT-13`/`14` per the guide's own explicit text (fresh-session requirement is a structurally different kind of evidence). | `ADOPT-15` = PASS (fresh-session discovery report received, citations independently re-verified against actual source by this session) | `ADOPT-15` evidence block above | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; this step's own `Allowed modifications` is `none — read-only`. No anomalies. | YES | none required — read-only step per its own text; the operator's transmission of the fresh-session report was the evidence-recording act, not a mutation needing a gate | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `1aed40a` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `7d24f22..1aed40a`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
 | 13 | `ADOPT-16` + `ADOPT-17` (`ADOPT-17` is the final checkpoint of the adoption itself, absorbing `ADOPT-16`'s not-yet-committed run-log delta) | Per `ADOPT-17`'s own text: "this step... covering the cumulative union of every prior step's own `Allowed modifications` for whatever those steps produced but a checkpoint has not yet committed." Since every step through `ADOPT-15` was already individually checkpointed, that union was only `ADOPT-16`'s run-log delta. | `ADOPT-16` = PASS (baseline: 8/8 tests, `openspec doctor` clean, CodeGraph current); `ADOPT-17` = PASS (staged-scope checklist clean, no correction needed) | `ADOPT-16`/`ADOPT-17` evidence blocks above | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; `ADOPT-16`'s own allowlist is `none by default`. No anomalies. | YES | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`) — allowlist subset confirmed | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `198928f` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `1aed40a..198928f`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
-| 14 | `ADOPT-18` (its own checkpoint, per the guide's own text — not grouped with `ADOPT-17`) | N/A — single step; the guide's own header explicitly states `ADOPT-18` "invokes the checkpoint protocol... exactly like any other independently validated step," distinct from `ADOPT-17`'s final-adoption checkpoint. | `ADOPT-18` = PASS (both manifest entries reached terminal disposition; `ADOPT-14` re-check PASS with zero broken links; no refusal reached; external source untouched) | `ADOPT-18` evidence block above, including the operator's approved deviation on `.claude/CLAUDE.md` | YES — staged set `{.claude/CLAUDE.md (M), .specboot/adoption/BOOTSTRAP-MANIFEST.json (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-18`'s closed rule (manifest-recorded entry paths only, plus the manifest and run log themselves) plus the always-permitted run log. No anomalies — the machine-local `specboot-adopt` symlink and `.specboot/local/` removals are correctly absent from this staged set (never git-tracked). | YES | **live** — `[HUMAN APPROVAL REQUIRED]` before any removal, exercised: the complete removal plan, including the `.claude/CLAUDE.md` tension and its proposed resolution, was presented via `AskUserQuestion` and approved by the operator, 2026-08-19 | `.claude/CLAUDE.md` (M), `.specboot/adoption/BOOTSTRAP-MANIFEST.json` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None. |
+| 14 | `ADOPT-18` (its own checkpoint, per the guide's own text — not grouped with `ADOPT-17`) | N/A — single step; the guide's own header explicitly states `ADOPT-18` "invokes the checkpoint protocol... exactly like any other independently validated step," distinct from `ADOPT-17`'s final-adoption checkpoint. | `ADOPT-18` = PASS (both manifest entries reached terminal disposition; `ADOPT-14` re-check PASS with zero broken links; no refusal reached; external source untouched) | `ADOPT-18` evidence block above, including the operator's approved deviation on `.claude/CLAUDE.md` | YES — staged set `{.claude/CLAUDE.md (M), .specboot/adoption/BOOTSTRAP-MANIFEST.json (M), .specboot/adoption/ADOPTION-RUN-LOG.md (M)}` is an exact subset of `ADOPT-18`'s closed rule (manifest-recorded entry paths only, plus the manifest and run log themselves) plus the always-permitted run log. No anomalies — the machine-local `specboot-adopt` symlink and `.specboot/local/` removals are correctly absent from this staged set (never git-tracked). | YES | **live** — `[HUMAN APPROVAL REQUIRED]` before any removal, exercised: the complete removal plan, including the `.claude/CLAUDE.md` tension and its proposed resolution, was presented via `AskUserQuestion` and approved by the operator, 2026-08-19 | `.claude/CLAUDE.md` (M), `.specboot/adoption/BOOTSTRAP-MANIFEST.json` (M), `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | `cd2f2bc` | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | **PUSHED** — fast-forward, `198928f..cd2f2bc`, `origin/experiment/specboot-ai-adoption-v4`. | None. |
+| 15 | `ADOPT-19` (its own checkpoint, per the guide's own text — orchestration/evidence-recording only) | N/A — single step; the guide's own header states "`ADOPT-19` is its own checkpoint, like every independently validated step." The pilot's actual code change was committed separately, locally, on `feature/fix-price-priority-tie-break-backend` (commit `8b7df7b`) — a different branch and a different checkpoint scope, not part of this adoption's own checkpoint chain. | `ADOPT-19` = PASS — all six required capabilities reached their required outcome on the human-named pilot task, evidenced by the pilot change's own artifacts (archived at `openspec/changes/archive/2026-08-19-fix-price-priority-tie-break/`) | `ADOPT-19` evidence block above (Daily workflow pilot block) | YES — staged set `{.specboot/adoption/ADOPTION-RUN-LOG.md (M)}` — the run log is always permitted; `ADOPT-19`'s own text says it "does not itself carry a separate write scope beyond" orchestration/evidence recording. No anomalies. | YES | **live** — this checkpoint's approval gate is "at the pilot change's own archive gate, per the normal daily workflow" (`ADOPT-19`'s own text) — that gate was exercised live: operator directed a post-review fix before granting explicit archive approval, 2026-08-19 | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) | *(filled after commit below)* | Unchanged from baseline: no CI, no webhook, no ruleset, no branch protection. **Verdict: NO REMOTE IMPACT.** | *(filled after push below)* | None beyond the same-session-fallback adversarial-review caveat already recorded in the pilot evidence block above. |
