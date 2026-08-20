@@ -96,7 +96,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PASS | 2026-08-20 |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-20 |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-20 |
-| `ADOPT-18` | `10-debootstrap.md` | PENDING — removals done, second ADOPT-15 fresh-session re-check required and not yet observed | 2026-08-20 |
+| `ADOPT-18` | `10-debootstrap.md` | PASS | 2026-08-20 |
 | `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 | `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 
@@ -1125,7 +1125,62 @@ still discovered automatically; nothing else regressed as a side effect of the `
 
 | Client | Status |
 |---|---|
-| Claude | PENDING EVIDENCE — awaiting the fresh-session run above |
+| Claude | PASS — see evidence below |
+
+**Fresh-session evidence obtained.** The operator opened a genuinely separate Claude Code window
+at this repository path and ran the exact handoff prompt verbatim; its full report was relayed
+back verbatim. Authenticity cross-checks before trusting it: the agent roster it discovered is
+exactly the 2 `ADOPT-13`-exposed agents (`java-backend-developer`, `product-strategy-analyst`),
+with no mention of `specboot-adopt` among the skills it lists as discovered — consistent with
+this step's own removal of that skill; the reported primary risk (the untested
+`PriceRepository` derived query and its undocumented `PRIORITY` tie-break) matches this run's own
+already-documented, citation-backed risk from `ADOPT-06`
+(`docs/api-spec.yml`'s `x-known-risks-and-defects`,
+`no-covering-test-for-repository-query-method`) and CodeGraph's own blast-radius flag
+(`⚠️ no covering tests found`) — genuine repository-specific findings, not a generic answer.
+
+- **Client and active agent/mode**: Claude Code (VSCode extension), default `claude` agent,
+  interactive session — no subagent or slash-command mode active
+- **Root repository instruction files automatically loaded** (1): `/Users/landaeta/.claude/CLAUDE.md`
+  (user-global), project-root `CLAUDE.md` (symlink to `docs/base-standards.md`), `.claude/CLAUDE.md`
+  (now carrying only the `CodeGraph` guidance, confirmed — the `SPECBOOT-BOOTSTRAP` block this
+  step removed is gone from what the fresh session reports)
+- **Agent definitions discovered, not invoked** (1, correctly reported separately from
+  invocation): `java-backend-developer.md`, `product-strategy-analyst.md` — exactly the 2 agents
+  `ADOPT-13` exposed, confirming the adapter symlinks this step's removals ran alongside are
+  intact and unaffected
+- **Skills discovered, none invoked** (1): full roster surfaced automatically; the session
+  explicitly named `code-auditing`, `specboot-verify`, `adversarial-review` as present, and did
+  **not** name `specboot-adopt` — the intended, direct confirmation that this step's removal of
+  `.claude/skills/specboot-adopt` succeeded and did not somehow leave a stale roster entry behind
+- **Project documentation consumed**: `docs/base-standards.md` (auto-loaded via the `CLAUDE.md`
+  symlink) — manual reading (3), reported honestly as not extending to the other `docs/*` files
+  since they weren't needed for this finding
+- **CodeGraph tools used**: the `UserPromptSubmit` hook fired automatically (1) before any
+  action, returning 32 symbols across 4 files including the same "no covering tests" blast-radius
+  flag this run's own `ADOPT-06` evidence already cites — confirms the hook (and by extension
+  `.claude/CLAUDE.md`'s surviving CodeGraph guidance) still functions correctly after this step's
+  edit to that file
+- **Resources opened manually**: `PriceController.java`, `PriceEntity.java`,
+  `PriceServiceImplTest.java`, plus `ls`/`find` over `.claude/`, `.codegraph/`, `ai-specs/`,
+  `openspec/`, `docs/`, `src/`, `.specboot/` — reported explicitly as manual (3), not claimed as
+  automatic
+- **Primary implementation risk reported**: `PriceRepository`'s derived query
+  (`findFirstBy...OrderByPriorityDesc`, `PriceRepository.java:13`) is the sole gate on pricing
+  correctness with zero repository-level test coverage (`PriceServiceImplTest` mocks the
+  repository entirely) and an undocumented tie-break when two rows share equal `PRIORITY` — the
+  same risk already documented at `ADOPT-06`, independently rediscovered here
+- **Files modified**: none — confirmed both by the fresh session's own report and by this
+  session's `git status --short` after relay, showing no working-tree change attributable to it
+- **PASS/FAIL for automatic runtime discovery**: PASS — (1) genuinely happened (root
+  instructions, agent roster, skill catalog, CodeGraph hook, all automatic and all consistent
+  with this step's changes); (4) did not occur
+- **Approval gate: none** — read-only, and the prompt forbade file modification; confirmed
+  followed
+- **Result: PASS** — both `ADOPT-18` acceptance criteria that depended on this evidence
+  (`ADOPT-14` re-check PASS, second `ADOPT-15` fresh-session re-check PASS) are now satisfied;
+  every other acceptance criterion was already satisfied at the time of the removals above.
+  **`ADOPT-18` is PASS.**
 
 ---
 
@@ -1213,6 +1268,7 @@ still discovered automatically; nothing else regressed as a side effect of the `
 2026-08-20 — ADOPT-16 — ./mvnw test failed (broken .mvn/wrapper/, pre-existing repository defect, not fixed as out of scope); fell back to the already-validated system mvn 3.9.16 from ADOPT-01 — mvn test passed clean on first attempt with the fallback, 8 tests/0 failures/0 errors/0 skipped, openspec doctor and codegraph sync both clean, git status empty — no approval required (no build output removed or relocated)
 2026-08-20 — ADOPT-17 — git status/diff all empty; this run's own discipline of checkpointing every step individually throughout ADOPT-00-ADOPT-16 already satisfies this step's "clean, reviewable local checkpoint" purpose, distributed across 24 prior checkpoints rather than one final commit here — no commit or push act exists for this step to gate; result PASS, no approval required
 2026-08-20 — ADOPT-18 — de-bootstrap disposition plan (unlink .claude/skills/specboot-adopt; remove only the SPECBOOT-BOOTSTRAP block from .claude/CLAUDE.md and .gitignore; remove .specboot/local/) presented via AskUserQuestion — approved by landaeta: "Approve as-is"; all 3 manifest entries reached terminal cleanup-status=removed with recorded final-disposition text; ADOPT-14 re-check PASS; second ADOPT-15 fresh-session re-check determined mandatory (disposition touched .gitignore, outside the exact bootstrap-created set) and handed off — step result PENDING until that evidence arrives
+2026-08-20 — ADOPT-18 — second fresh-session re-check evidence relayed and cross-checked (agent roster matches ADOPT-13 exactly, specboot-adopt correctly absent from discovered skills, primary risk matches this run's own ADOPT-06 citation) — result PASS; ADOPT-18 marked PASS; manifest's debootstrap block updated with the result — observed by this session, no approval required
 ```
 
 ## Correction record

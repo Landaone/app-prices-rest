@@ -91,6 +91,7 @@
     "mandatoryCapabilityCompletenessCheckedBeforeFirstRemoval": true,
     "adopt14RevalidationResult": "PASS",
     "adopt15SecondFreshSessionCheckRequired": true,
-    "adopt15SecondFreshSessionCheckReason": "disposition touched .gitignore, which is ownership: pre-existing-modified — outside the manifest's exact bootstrap-created set ({.claude/skills/specboot-adopt, .claude/CLAUDE.md}) — so the ADOPT-14 filesystem re-check alone is not a sufficient substitute per 10-debootstrap.md step 7; the full fresh-session check is mandatory and pending as of this write-back"
+    "adopt15SecondFreshSessionCheckReason": "disposition touched .gitignore, which is ownership: pre-existing-modified — outside the manifest's exact bootstrap-created set ({.claude/skills/specboot-adopt, .claude/CLAUDE.md}) — so the ADOPT-14 filesystem re-check alone is not a sufficient substitute per 10-debootstrap.md step 7; the full fresh-session check is mandatory",
+    "adopt15SecondFreshSessionCheckResult": "PASS — genuinely separate Claude Code session confirmed automatic discovery of root instructions, the 2 ADOPT-13 agents, the skill catalog (specboot-adopt correctly absent from it), and the CodeGraph hook; independently rediscovered this run's own ADOPT-06-documented risk; zero files modified. Full evidence recorded in ADOPTION-RUN-LOG.md's ADOPT-18 section."
   }
 }
