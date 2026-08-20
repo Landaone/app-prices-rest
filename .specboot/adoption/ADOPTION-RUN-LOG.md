@@ -86,7 +86,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS — fresh-session smoke test resolved via alternative criterion (Claude Code/macOS `NOT APPLICABLE ON THIS CLIENT`); Linux/Windows PENDING EVIDENCE (no machine available) | 2026-08-20 |
 | `ADOPT-06` | `04-context-and-openspec.md` | PASS | 2026-08-20 |
 | `ADOPT-07` | `04-context-and-openspec.md` | PASS | 2026-08-20 |
-| `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
+| `ADOPT-08` | `04-context-and-openspec.md` | PASS | 2026-08-20 |
 | `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-10` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-11` | `05-agents-and-skills.md` | PENDING | |
@@ -402,6 +402,37 @@ Stop after reporting the negative control's result and the permission behavior.
 
 ---
 
+### `ADOPT-08` — Verify OpenSpec Configuration
+
+**Read-only verification, this session — no files modified.** Unlike `ADOPT-07`'s own validation
+(which created and deleted two scratch changes), this step's own text requires "Do not modify
+files," so no scratch change was created here; the `rules`/`operations` structural check below
+was performed by direct YAML inspection instead of by generating artifact instructions — a
+narrower but still-real check, and this step's own criteria do not require re-deriving `ADOPT-07`'s
+already-recorded falsifiable negative-control evidence.
+
+| Check | Command / inspection | File or path | Result |
+|---|---|---|---|
+| OpenSpec version, supported commands | `openspec --version` | n/a | PASS — `1.7.0` |
+| Config file exists | `test -f openspec/config.yaml` | `openspec/config.yaml` | PASS |
+| YAML syntax valid | `python3 -c "import yaml; yaml.safe_load(open('openspec/config.yaml'))"` | `openspec/config.yaml` | PASS — `VALID YAML`, exit 0 |
+| Configured schema resolves | `openspec schema which spec-driven` | n/a | PASS — `Source: package`, resolved path under the installed `@fission-ai/openspec` package |
+| Every path referenced by context exists | direct `test -e` on each of 10 referenced paths | `docs/base-standards.md`, `docs/backend-standards.md`, `docs/frontend-standards.md`, `docs/documentation-standards.md`, `docs/api-spec.yml`, `docs/data-model.md`, `ai-specs/agents/backend-developer.md`, `ai-specs/agents/frontend-developer.md`, `ai-specs/skills/commit`, `ai-specs/skills/update-docs` | PASS — all 10 exist |
+| Context references intended repository documentation | direct inspection of `context` field content | `openspec/config.yaml` | PASS — names `docs/base-standards.md` as primary, plus `backend-standards.md`, `frontend-standards.md`, `documentation-standards.md`, `api-spec.yml`, `data-model.md` |
+| Proposal/specs/design/tasks rules parse correctly | `python3` YAML structural check: `rules` keyed exactly `{proposal, specs, design, tasks}`, every value a list of strings | `openspec/config.yaml` | PASS — 4/4 artifact ids present, 2 string entries each |
+| Apply/archive guidance parses correctly when configured | same script: `operations` keyed exactly `{apply, archive}` (matching the installed package's `OPERATION_IDS`), each with a `guidance` list of strings | `openspec/config.yaml` | PASS — `apply`: 2 entries, `archive`: 1 entry |
+| Referenced canonical agents exist under `ai-specs/agents/` | `find ai-specs/agents -type f` | `ai-specs/agents/` | PASS — `backend-developer.md` (referenced) present; `frontend-developer.md` (referenced as explicitly not applicable) also present; `product-strategy-analyst.md` present but not referenced (not applicable to this backend-only repository) |
+| Referenced canonical skills exist under `ai-specs/skills/` | `find ai-specs/skills -maxdepth 1 -type d` | `ai-specs/skills/` | PASS — `commit`, `update-docs` (the two named examples) confirmed present among 10 skill directories |
+| Repository paths are relative, not machine-specific absolute | `grep -n "/Users/\|/home/" openspec/config.yaml` | `openspec/config.yaml` | PASS — no matches |
+| `openspec doctor` zero warnings | `openspec doctor` | n/a | PASS — `OpenSpec root: ok`, `References: (none declared)`, no warnings text |
+
+No failures found; no corrections made (this step's own text: "Do not correct failures during this validation" — not exercised, since none occurred).
+
+- **Approval gate: none** — this step is read-only; no `[HUMAN APPROVAL REQUIRED]` gate applies
+- **Result: PASS**
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -460,6 +491,7 @@ Stop after reporting the negative control's result and the permission behavior.
 2026-08-20 — ADOPT-05B — fresh-session smoke test's negative control (`date`) ran with no permission prompt; per the guide's own routing rule this made the primary (prompt-observing) criterion inapplicable — resolved via the documented alternative criterion (allowlist coverage by inspection + successful execution of every canonical-prompt command, no file modified) — observed by this session, no separate approval required (observation plus a documented fallback path, not a mutation decision)
 2026-08-20 — ADOPT-06 — replaced the LTI-template docs/ content (Node.js/TypeScript/Prisma/React recruitment platform) with content derived from this repository's actual Java/Spring Boot Prices API, citation-verified against source; presented via AskUserQuestion with the exact scope and a diff-review option — approved by landaeta: "Approve as-is"
 2026-08-20 — ADOPT-07 — configured openspec/config.yaml's context/rules/operations from the adapted docs/ and ai-specs/agents/, ai-specs/skills/; validated the rules block with a falsifiable negative control (sentinel injected, confirmed reported, removed, confirmed absent) since openspec doctor does not read that block — no separate approval gate applies per this step's own text (edit reviewable, no live human-approval requirement); observed and executed by this session
+2026-08-20 — ADOPT-08 — read-only re-verification of the ADOPT-07 configuration; all 12 documented checks PASS, zero warnings, no files modified, no corrections made — no approval gate applies per this step's own text; observed and executed by this session
 ```
 
 ## Correction record
