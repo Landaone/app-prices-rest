@@ -79,7 +79,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 |---|---|---|---|
 | `ADOPT-00` | `09-bootstrap.md` | PASS — fresh-session discovery-and-execution gate observed | 2026-08-19 |
 | `ADOPT-01` | `01-prerequisites-and-install.md` | PASS | 2026-08-19 |
-| `ADOPT-02` | `01-prerequisites-and-install.md` | PENDING | |
+| `ADOPT-02` | `01-prerequisites-and-install.md` | PASS | 2026-08-20 |
 | `ADOPT-03` | `01-prerequisites-and-install.md` | PENDING | |
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PENDING | |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PENDING | |
@@ -209,12 +209,30 @@ retroactively erased, per the non-negotiable that an honest record beats a clean
 
 ---
 
+### `ADOPT-02` — Install and Initialize OpenSpec with Explicitly Selected Clients
+
+- OpenSpec version: `1.7.0` (already installed, meets the documented requirement)
+- Install/upgrade command run or skipped: SKIPPED — `openspec --version` returned `1.7.0` before any action, which already supports the documented keys this guide requires; the `npm install -g @fission-ai/openspec@latest` command was not run, and its `[HUMAN APPROVAL REQUIRED]` gate was never reached (nothing installed or upgraded)
+- `ADOPTION-AUTHORIZATION.md`'s OpenSpec-version-policy section: unchanged — this run's evidence (already-installed version met the minimum) matches the template's default policy exactly, no deviation required
+- Command run: `openspec init --tools claude --no-animation` (non-interactive; the "clients offered" step of the interactive flow was replaced by the `--tools` flag, restricted to exactly the previously-recorded selection — Claude only, per `ADOPTION-AUTHORIZATION.md` and the manifest's `clientSelection`), exit 0
+- Clients offered: all clients `openspec init --tools` supports (`amazon-q, antigravity, auggie, bob, claude, cline, codeartsagent, codex, devin, forgecode, codebuddy, continue, costrict, crush, cursor, factory, gemini, github-copilot, hermes, iflow, junie, kilocode, kimi, kiro, lingma, vibe, oh-my-pi, opencode, pi, qoder, qwen, roocode, trae, zcode`, per `openspec init --help`) — none offered interactively since `--tools claude` bypassed the prompt with the single already-recorded selection
+- Clients selected: Claude only (matches `ADOPT-00`'s recorded selection exactly — no re-selection performed)
+- Generated config path: `openspec/config.yaml` (the installed version generates `.yaml`, not `.yml`)
+- Generated client resources: `.claude/commands/opsx/{apply,archive,explore,propose,sync,update}.md` (6 files) and `.claude/skills/openspec-{apply-change,archive-change,explore,propose,sync-specs,update-change}/SKILL.md` (6 files) — confirmed via `find .claude/commands .claude/skills -type f`
+- Per-client provisioning provenance: this run's own `openspec init --tools claude` invocation, observed directly in this session — not inferred from file presence (per `00-conventions.md`, "Capability availability is not installer provenance")
+- No resources found for any unselected client (`find . -maxdepth 2 -iname "*.kiro*" -o -maxdepth 2 -iname "*codex*"` → empty)
+- `openspec doctor` result: `Root: /Users/landaeta/repos/labs/app-prices-rest-specboot-ai-adoption-v5`, `OpenSpec root: ok`, `References: (none declared)`, exit 0
+- Git changes (`git status --short`): `?? .claude/commands/`, `?? .claude/skills/`, `?? openspec/` (plus the already-tracked `M .specboot/adoption/ADOPTION-RUN-LOG.md` from the prior checkpoint's SHA-backfill delta, not part of this step's own output)
+- **Result: PASS**
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | `ADOPT-00` + `ADOPT-01` | grouped **as executed, not as planned**: `ADOPT-01` made no repository-local write of its own (`Allowed modifications: none`) and its evidence was recorded into the run log before `ADOPT-00`'s checkpoint was staged, so the only staged delta for `ADOPT-01` is the run-log text itself — the same file `ADOPT-00`'s checkpoint already carries. There is no independently stageable state to split into a second commit; this is the "run log is always a permitted write, never a step's own state" case, not a preference for fewer commits | `ADOPT-00`: PASS (fresh-session discovery-and-execution gate observed, this session). `ADOPT-01`: PASS (all prerequisite tools already installed and meeting/exceeding the documented minimum/reference versions — see evidence block above) | run log `ADOPT-00` and `ADOPT-01` evidence blocks above; `BOOTSTRAP-MANIFEST.json`; `ADOPTION-AUTHORIZATION.md` | YES — staged set is exactly `{.gitignore, .claude/CLAUDE.md, .specboot/adoption/ADOPTION-AUTHORIZATION.md, .specboot/adoption/ADOPTION-RUN-LOG.md, .specboot/adoption/BOOTSTRAP-MANIFEST.json}`, a subset of `ADOPT-00`'s 7-path inventory plus the run log implicitly permitted by `ADOPT-01` (the 2 machine-local paths — `.claude/skills/specboot-adopt`, `.specboot/local/canonical-source-path` — correctly excluded, confirmed ignored/excluded via `git check-ignore`) | YES — declared after independent review of `git diff --cached` | auto: standing authorization (`ADOPTION-AUTHORIZATION.md`, granted 2026-08-19T01:17:25Z by landaeta) — commit and push both auto-approved; conditions verified: staged set is a subset of `Allowed modifications`, push is to `experiment/specboot-ai-adoption-v5` (the authorized branch), fast-forward (branch did not previously exist on `origin`), remote-impact unchanged from the `ADOPT-00` baseline | `.gitignore`, `.claude/CLAUDE.md`, `.specboot/adoption/ADOPTION-AUTHORIZATION.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md`, `.specboot/adoption/BOOTSTRAP-MANIFEST.json` | `14af6e5` | Inspected read-only: no `.github/workflows` or other CI config at `HEAD` or `origin/master`; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; no branch protection on `master` (404 "Branch not protected"); target branch did not exist on `origin` before this push. Verdict: no automation triggered, impact unchanged from baseline (none known before, none known after) | pushed — `git push origin experiment/specboot-ai-adoption-v5` created the branch on `origin`, exit 0, non-force | none raised at this checkpoint |
-| 2 | (SHA-backfill delta only) | not a group — the run log's own commit-SHA cell for checkpoint 1, filled after that commit existed, per `00-conventions.md`'s "The commit-SHA cell cannot be filled inside the commit it describes" | n/a — no `ADOPT` step's own validation; this is the run log carrying its one-line delta forward | this row | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES | auto: standing authorization — same conditions as checkpoint 1, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | (pending — filled after this commit) | unchanged from checkpoint 1 (no new writes to any CI/ruleset/webhook/branch-protection surface since) | pending | none raised at this checkpoint |
+| 2 | (SHA-backfill delta only) | not a group — the run log's own commit-SHA cell for checkpoint 1, filled after that commit existed, per `00-conventions.md`'s "The commit-SHA cell cannot be filled inside the commit it describes" | n/a — no `ADOPT` step's own validation; this is the run log carrying its one-line delta forward | this row | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES | auto: standing authorization — same conditions as checkpoint 1, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `1aad273` | unchanged from checkpoint 1 (no new writes to any CI/ruleset/webhook/branch-protection surface since) | pushed — fast-forward `14af6e5..1aad273`, exit 0, non-force | none raised at this checkpoint |
 
 ---
 
