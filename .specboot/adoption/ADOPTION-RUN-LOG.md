@@ -95,7 +95,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PASS | 2026-08-20 |
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PASS | 2026-08-20 |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-20 |
-| `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
+| `ADOPT-17` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-20 |
 | `ADOPT-18` | `10-debootstrap.md` | PENDING | |
 | `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 | `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
@@ -957,6 +957,54 @@ and line citations are consistent with this repository's real structure.
 
 ---
 
+### `ADOPT-17` — Review and Create a Clean Local Checkpoint
+
+- Branch: `experiment/specboot-ai-adoption-v5`
+- `git status --short`: **empty**. `git diff`: **empty**. `git diff --stat`: **empty**.
+  `git status --porcelain=v1 --untracked-files=all`: **empty** — no untracked files exist either
+  (`target/` is present but git-ignored, confirmed already at `ADOPT-16`)
+- **Nothing to stage.** This is not a step failure or a skipped review — it is the direct,
+  expected consequence of this run's own discipline throughout `ADOPT-00`–`ADOPT-16`: every
+  single step, including every read-only validation step, was checkpointed individually
+  (commit + push) immediately upon reaching PASS, per the checkpoint protocol's own instruction
+  to checkpoint "before starting the next step's `Action`, not merely at some point after this
+  one's." `ADOPT-17`'s own stated purpose — "Preserve the adoption as a reviewable local
+  checkpoint before starting product work" — is therefore already satisfied, distributed across
+  the 24 prior checkpoints this run recorded rather than concentrated into one final commit here.
+  There is no single "the adoption's changes" diff left unpreserved for this step to capture.
+- Staged diff: N/A — nothing was staged, so no `staged.diff` was created, reviewed, or needed
+  deletion; the staged-scope checklist has no staged content to check against it
+- `git diff --cached --check`: N/A — nothing staged
+- Verification that the local branch and `origin` already agree, so "clean local checkpoint"
+  and "already pushed" are the same state here: `git rev-parse HEAD` →
+  `87dcebd7e614102f2c8001cd5ceed14105e3fb25`; `git rev-parse
+  origin/experiment/specboot-ai-adoption-v5` → identical — confirmed exact match
+- Acceptance criteria, evaluated against this step's own list:
+  - Baseline passes: PASS — `ADOPT-16`
+  - OpenSpec passes: PASS — `ADOPT-16`'s `openspec doctor`, re-confirmed unchanged (no writes
+    since)
+  - CodeGraph is current: PASS — `ADOPT-16`'s `codegraph sync` → "Already up to date"
+  - Diff contains only intended adoption changes: vacuously PASS — the diff is empty; every
+    intended change already went through its own step's own review and staged-scope discipline
+    at the checkpoint that actually introduced it
+  - Staged diff reviewed and saved: N/A, nothing staged — recorded as N/A rather than silently
+    omitted
+  - `git diff --cached --check` triaged: N/A, nothing staged
+  - Staged-scope checklist: N/A, nothing staged
+  - Independent final validation after any correction: N/A — no correction occurred in this
+    step
+  - Checkpoint protocol steps followed in order, both approvals recorded separately: N/A for
+    this specific checkpoint (no commit/push act exists here to gate) — already true for every
+    prior checkpoint that did act, each recorded individually above
+  - Remote-impact assessment performed and reported before push approval: N/A — no push to
+    perform; `origin` and `HEAD` already agree
+  - Push targeted the current working branch, non-force: N/A — no push performed by this step
+- **Approval gate**: not reached — there is no commit or push act for either gate to cover
+- **Result: PASS** — the adoption's clean local checkpoint already exists, incrementally, and is
+  already fully pushed
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -984,6 +1032,7 @@ and line citations are consistent with this repository's real structure.
 | 21 | `ADOPT-15` first-attempt correction (near-miss record) | not a group — a single, self-contained correction record, distinct from checkpoint 20's hand-off and from checkpoint 22's eventual PASS | n/a — no step reached PASS in this checkpoint; this is the documented refusal to fabricate evidence | run log `ADOPT-15` Correction record entry above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `0e37478` | unchanged from checkpoint 20 (no new writes to any CI/ruleset/webhook/branch-protection surface) | pushed — fast-forward `a6f147c..0e37478`, exit 0, non-force | none raised at this checkpoint |
 | 22 | `ADOPT-15` | not a group — single step | PASS — genuinely fresh, separate Claude Code session's transcript relayed back and cross-checked (primary risk matches this run's own `ADOPT-06` citation; file set matches the real repository structure); both of this step's actual failure conditions ((1) not happening, or (4) occurring) absent | run log `ADOPT-15` evidence block above (fresh-session-evidence section) | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `2fb2eb9` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `0e37478..2fb2eb9`, exit 0, non-force | proposal #1 raised at this checkpoint (see Improvement proposals) |
 | 23 | (SHA-backfill delta) + `ADOPT-16` | grouped **as executed, not as planned**: this checkpoint's only staged content beyond the mandatory checkpoint-22 SHA-backfill line is `ADOPT-16`'s own evidence; `ADOPT-16`'s `Allowed modifications` is "none by default" (its command's own output — `target/` — is git-ignored, never staged), so there is no independently stageable state to split into a second commit | `ADOPT-16`: PASS — `mvn test` (after the broken `./mvnw` fallback), 8/8 tests, 0 failures/errors/skipped, `openspec doctor` and `codegraph sync` both clean, `git status` empty (see run log evidence block above) | run log checkpoint-22 SHA-backfill line; run log `ADOPT-16` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted (both the SHA-backfill delta and the entirety of `ADOPT-16`'s evidence, since that step wrote no other tracked file) | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `58bd8c2` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `4ab1753..58bd8c2`, exit 0, non-force | none raised at this checkpoint |
+| 24 | (SHA-backfill delta) + `ADOPT-17` | grouped **as executed, not as planned**: `ADOPT-17` itself staged nothing (working tree and index were already empty when this step ran — see its own evidence block), so its only staged content is its own evidence text plus the mandatory checkpoint-23 SHA-backfill line; no independently stageable state exists to split from that backfill | `ADOPT-17`: PASS — `git status`/`diff`/`diff --stat` all empty; `HEAD` already equals `origin/experiment/specboot-ai-adoption-v5` before this checkpoint's own commit; every acceptance criterion this step names is either satisfied by a prior checkpoint or correctly recorded N/A given nothing to stage (see run log evidence block above) | run log checkpoint-23 SHA-backfill line; run log `ADOPT-17` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified. **This checkpoint's own commit is itself what closes `ADOPT-17`**: since the working tree was empty when `ADOPT-17`'s Action ran, there was no separate commit/push act for `ADOPT-17` to gate beyond this evidence-recording one, which follows the same standing-authorization path as every other run-log-only delta in this run | `.specboot/adoption/ADOPTION-RUN-LOG.md` | (filled at the next checkpoint's SHA-backfill delta) | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward, exit 0, non-force | none raised at this checkpoint |
 
 ---
 
@@ -1037,6 +1086,7 @@ and line citations are consistent with this repository's real structure.
 2026-08-20 — ADOPT-15 — first fresh-session attempt landed in this same continuing conversation instead of an isolated session (see Correction record); refused before fabricating evidence, no PASS claimed, no file modified — operator opened a genuinely separate window and reran the exact prompt there — observed by this session, no approval required
 2026-08-20 — ADOPT-15 — second attempt: a genuinely fresh, separate Claude Code session's transcript relayed back and cross-checked (primary risk matches this run's own ADOPT-06 citation, file set matches the real repository structure) — result PASS, both automatic-discovery conditions (1)/(4) satisfied — no approval required (observation, not a mutation)
 2026-08-20 — ADOPT-16 — ./mvnw test failed (broken .mvn/wrapper/, pre-existing repository defect, not fixed as out of scope); fell back to the already-validated system mvn 3.9.16 from ADOPT-01 — mvn test passed clean on first attempt with the fallback, 8 tests/0 failures/0 errors/0 skipped, openspec doctor and codegraph sync both clean, git status empty — no approval required (no build output removed or relocated)
+2026-08-20 — ADOPT-17 — git status/diff all empty; this run's own discipline of checkpointing every step individually throughout ADOPT-00-ADOPT-16 already satisfies this step's "clean, reviewable local checkpoint" purpose, distributed across 24 prior checkpoints rather than one final commit here — no commit or push act exists for this step to gate; result PASS, no approval required
 ```
 
 ## Correction record
