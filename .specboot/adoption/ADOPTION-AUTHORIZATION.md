@@ -16,10 +16,10 @@ Route (manual / autodiscovery): autodiscovery
 
 ```text
 Clients supported: Claude (this run selected Claude only; no claim is made about Kiro or Codex support)
-Stacks supported: not yet declared — reached at ADOPT-05B
-Shells supported: not yet declared — reached at ADOPT-05B
-Operating systems supported: not yet declared — reached at ADOPT-05B
-Evidence used to derive this matrix, if any (or "none — declared directly"): none yet — ADOPT-00 only
+Stacks supported: Java 11 + Maven (from pom.xml: spring-boot-starter-parent 2.4.5, java.version 11; mvnw/mvnw.cmd present)
+Shells supported: zsh, bash, PowerShell — default broad per this step's own rule ("default broad, narrow only on stated evidence"); no narrowing evidence exists for this project
+Operating systems supported: macOS, Linux, Windows — default broad per the same rule; no narrowing evidence exists for this project
+Evidence used to derive this matrix, if any (or "none — declared directly"): Stacks declared from ADOPT-01's repository-evidence inspection (pom.xml). Shells/OS declared directly at the documented default breadth, not narrowed by this single adopting machine's own platform (macOS/zsh) per the step's explicit anti-narrowing rule — this machine's evidence describes itself, not the team.
 ```
 
 ## OpenSpec version policy

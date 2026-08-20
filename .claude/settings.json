@@ -10,5 +10,31 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(openspec --version)",
+      "Bash(openspec --help)",
+      "Bash(openspec doctor:*)",
+      "Bash(openspec context:*)",
+      "Bash(openspec schemas:*)",
+      "Bash(openspec templates:*)",
+      "Bash(openspec status:*)",
+      "Bash(codegraph explore:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(readlink:*)",
+      "Bash(sed -n:*)",
+      "mcp__codegraph__codegraph_explore"
+    ]
   }
 }

@@ -83,7 +83,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-03` | `01-prerequisites-and-install.md` | PASS | 2026-08-20 |
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-20 |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-20 |
-| `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PENDING | |
+| `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS — fresh-session smoke test resolved via alternative criterion (Claude Code/macOS `NOT APPLICABLE ON THIS CLIENT`); Linux/Windows PENDING EVIDENCE (no machine available) | 2026-08-20 |
 | `ADOPT-06` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
@@ -287,6 +287,74 @@ retroactively erased, per the non-negotiable that an honest record beats a clean
 
 ---
 
+### `ADOPT-05B` — Configure Selected-Client Permissions (Early, One-Time)
+
+- Source baseline located: **none exists.** Searched the canonical source (`find ... -iname "*settings*.json"`, `grep -rn "reviewed starting allowlist\|generic permission baseline"`) — no organization-approved generic baseline file is present anywhere in the canonical source; `03-client-permissions.md` itself describes this as an external, separately-governed artifact it does not ship. Presented to the operator via `AskUserQuestion`: derive the allowlist directly from this step's own documented Rules section, or point to an existing baseline. Operator confirmed: **no baseline exists — derive from this step's Rules.**
+- Copy-or-merge decision and why: **merge**, not create — `.claude/settings.json` already existed from `ADOPT-05` (`codegraph install`'s generated `hooks` block). Added a new top-level `permissions.allow` array alongside the existing `hooks` key; the existing `hooks` content was left untouched, confirmed via `git diff` showing only additive lines.
+- Declared supported-environment matrix (recorded in `ADOPTION-AUTHORIZATION.md`, this step's own required destination):
+  - Clients: Claude only (this run's only selection)
+  - Stacks: Java 11 + Maven, from `ADOPT-01`'s own `pom.xml` inspection evidence
+  - Shells: zsh, bash, PowerShell — declared at the documented default breadth (this step's own rule: "default broad, narrow only on stated evidence — never the reverse"); no narrowing evidence exists for this project, so the adopting machine's own zsh/macOS was **not** used to narrow the declaration
+  - Operating systems: macOS, Linux, Windows — same default-breadth rule, same non-narrowing rationale
+- Entries removed as out-of-matrix: NONE — authored fresh from the Rules text (no baseline to strip from), so there was nothing pre-existing outside the matrix to remove
+- Entries added for the real project: 21 `Bash(...)` patterns plus one MCP pattern, translating this step's own documented "verified, project-scoped, read-only patterns" (repository file reading/listing, OpenSpec inspection, CodeGraph exploration, Git inspection) and the illustrative Kiro YAML's command list into Claude Code's `permissions.allow` syntax: `git status`, `git diff`, `git rev-parse`, `git check-ignore`; `openspec --version`, `--help`, `doctor`, `context`, `schemas`, `templates`, `status`; `codegraph explore`; `find`, `ls`, `grep`, `rg`, `head`, `tail`, `wc`, `readlink`, `sed -n`; `mcp__codegraph__codegraph_explore`. Every pattern is shell-agnostic (external executables, not shell built-in syntax), so no per-OS/per-shell variant was needed to satisfy "retain every variant any supported environment requires." **Deliberately not added:** `mvn`/`./mvnw` test or build commands — these were considered (the Rules permit "controlled local build/test commands... after team review") but deferred: a Maven test run can trigger network dependency resolution when the local repository cache is incomplete, which conflicts with this step's "do not... access external services" rule, and this run has no team review process to invoke. Recorded as a residual limitation, not a silent omission.
+- Safety check (Step 4): scanned the resulting file for credentials/secret-shaped text, personal absolute paths/home directories, machine-specific dependency locations, and unsafe broad patterns (generic shell loops, filesystem-wide globs/wildcards that would auto-allow mutation) — `grep -inE "landaeta|/Users/|password|secret|token|api[_-]?key" .claude/settings.json` → no matches. Every added pattern is read-only/inspection-only; none allows edit, execution of arbitrary commands, install/upgrade, delete, overwrite, stage, commit, push, PR, merge, or credential/network mutation.
+- Syntax validation: `python3 -c "import json; json.load(open('.claude/settings.json'))"` → `VALID JSON`, exit 0
+- Generic source baseline unchanged: N/A — none existed to protect; nothing in the canonical source was modified
+- **Smoke test — executed in a genuinely fresh session (this session), per the handoff prompt below, verbatim.**
+  - Negative control: `date` (absent from the allowlist) — executed immediately, **no permission prompt observed**. Per the canonical prompt's own routing rule, this means the client auto-approves outside the allowlist regardless of the file under test, so no further command can demonstrate anything about that file by the primary (prompt-observing) criterion. Stopped the primary path here, per the prompt's own instruction not to run the remaining commands as evidence of the file under test via that path.
+  - Falling through to `03-client-permissions.md`'s documented **alternative criterion for `NOT APPLICABLE ON THIS CLIENT`** (weaker evidence, labelled as such, never treated as equivalent to a PASS smoke test):
+    - Every command in the canonical prompt verified by inspection to be covered by an existing `.claude/settings.json` allowlist pattern: `openspec --version` → `Bash(openspec --version)`; `openspec doctor --json` → `Bash(openspec doctor:*)`; `openspec context --json` → `Bash(openspec context:*)`; `openspec schemas` → `Bash(openspec schemas:*)`; `openspec templates` → `Bash(openspec templates:*)`; `git status --short` → `Bash(git status:*)`; `git diff -- openspec/config.yaml` → `Bash(git diff:*)`; CodeGraph exploration query → `Bash(codegraph explore:*)` — all 7 covered, exact match.
+    - Every command in the canonical prompt executed successfully when run, this session: `openspec --version` → `1.7.0`, exit 0; `openspec doctor --json` → valid JSON, `healthy: true`, exit 0; `openspec context --json` → valid JSON, `role: openspec_root`, exit 0; `openspec schemas` → `spec-driven` listed, exit 0; `openspec templates` → 4 template paths listed, exit 0; `git status --short` → 3 pre-existing modified paths (unrelated to this test — see below), exit 0; `git diff -- openspec/config.yaml` → empty (no diff), exit 0; `codegraph explore "list entry points"` → `49 symbols across 3 files` with real blast-radius and verbatim source, exit 0.
+    - No file was modified during the smoke test: confirmed — `git status --short` before and after this test both show exactly the same 3 paths (`.claude/settings.json`, `.specboot/adoption/ADOPTION-AUTHORIZATION.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md`), all pre-existing uncommitted changes from the prior session's `ADOPT-05B` provisioning work, not from this test.
+  - Both alternative-criterion conditions satisfied. Recorded as `NOT APPLICABLE ON THIS CLIENT` in the table below, with the negative control's silent result as the reason — per the guide's own text, this is weaker evidence than a PASS smoke test, never treated as equivalent to one, but it is a positive, recorded outcome rather than an indefinitely open row.
+- **Result: PASS** — Claude Code / macOS resolved via the alternative criterion (the only available combination); Linux and Windows remain `PENDING EVIDENCE` (no machine available during this adoption), per the guide's own rule that an untested environment is recorded as pending, never silently omitted or inferred passing.
+
+**Handoff — run this exact prompt in a fresh Claude Code session** (a new session, not a continuation of this one — the permission file did not exist when this session's own permission state was established):
+
+```text
+Perform a read-only smoke test of this repository's project-local permissions.
+
+First, run one command deliberately absent from this project's permission allowlist — for
+example `date` — as a negative control. Evaluate it before any other command; its result routes
+the rest of this test:
+- If it requests permission: the test can measure the permission file. Continue below.
+- If it does not request permission: this client auto-approves outside the allowlist regardless
+  of the file under test, so no command below can demonstrate anything about that file. Stop
+  here and report `NOT APPLICABLE ON THIS CLIENT`, with this result as the reason. Do not run
+  the remaining commands as smoke-test evidence.
+
+Only if the negative control requested permission, run these commands separately, without
+combining them with shell operators:
+- `openspec --version`
+- `openspec doctor --json`
+- `openspec context --json`
+- `openspec schemas`
+- `openspec templates`
+- `git status --short`
+- `git diff -- openspec/config.yaml`
+- one read-only CodeGraph exploration query (CodeGraph was adopted at ADOPT-04/05)
+
+Do not modify files.
+
+For each command report:
+- whether it executed;
+- whether it requested permission;
+- PASS or FAIL.
+
+Treat an unexecuted or failed command as FAIL, never an inferred PASS from empty output.
+
+Stop after reporting the negative control's result and the permission behavior.
+```
+
+| Client / OS | Available? | Negative control | Result |
+|---|---|---|---|
+| Claude Code / macOS | yes | silent — no permission prompt on the negative control (`date`) | `NOT APPLICABLE ON THIS CLIENT` — resolved via the alternative criterion (allowlist coverage by inspection + successful execution of every canonical-prompt command); see evidence above |
+| Claude Code / Linux | no machine available during this adoption | — | PENDING EVIDENCE |
+| Claude Code / Windows | no machine available during this adoption | — | PENDING EVIDENCE |
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -297,6 +365,7 @@ retroactively erased, per the non-negotiable that an honest record beats a clean
 | 4 | `ADOPT-03` | not a group — single step | PASS — `find docs -maxdepth 2 -type f` (7 files), `find ai-specs -maxdepth 3 -type f` (matches the 23-file source count, recursive), `git status --short` show only the two mirrored trees and the 4 root symlinks added; `readlink` on all 4 root symlinks → `docs/base-standards.md`, every symlink resolves; `.cursor/` confirmed absent | run log `ADOPT-03` evidence block above, including the recorded near-miss and recovery | YES — staged set is exactly `{docs/* (7), ai-specs/* (23), AGENTS.md, CLAUDE.md, GEMINI.md, codex.md, .specboot/adoption/ADOPTION-RUN-LOG.md}` = 35 files, an exact match to `ADOPT-03`'s closed-rule allowlist plus the always-permitted run log; confirmed not `.gitignore`-excluded via `git check-ignore` (exit 1, not ignored) | YES — declared after independent review of `git diff --cached --stat` (35 files, matches expected count exactly) and confirming the 4 symlinks staged at git mode `120000` (real symlinks, not regular files) | auto: standing authorization, **plus** this step's own documented gate mechanism (mechanical post-copy comparison matched the closed-rule allowlist exactly, so this step's `[HUMAN APPROVAL REQUIRED]` gate auto-approved per `03-` `ADOPT-03`'s own text, independent of the checkpoint-level standing authorization) — both apply and agree | `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `codex.md`, `ai-specs/**` (23 files), `docs/**` (7 files), `.specboot/adoption/ADOPTION-RUN-LOG.md` | `89655a6` | Inspected read-only: no new CI/workflow files introduced (payload is documentation and AI-agent skill/instruction content only); no change to hooks, rulesets, or branch protection since checkpoint 3. Verdict: unchanged from baseline | pushed — fast-forward `2d3d69c..89655a6`, exit 0, non-force | none raised at this checkpoint |
 | 5 | `ADOPT-04` | not a group — single step | PASS — first `codegraph init` (sparse checkout) indexed 3/22 files, FAIL by this step's own no-waiver rule; resolved via operator-approved full checkout; second `codegraph init` indexed 22/22 files (295 nodes, 355 edges); `codegraph explore "list entry points"` returned real symbols, blast radius, and verbatim source, exit 0 | run log `ADOPT-04` evidence block above; Decision record entry 2026-08-20; Code-graph capability selection section | YES — staged set is exactly `{.codegraph/.gitignore, .specboot/adoption/ADOPTION-RUN-LOG.md}`, matching `ADOPT-04`'s closed allowlist (`.codegraph/`, only `.gitignore` ever trackable) plus the always-permitted run log; `codegraph.db` confirmed git-ignored via `git check-ignore` | YES — declared after independent review of `git diff --cached --stat` (2 files) | auto: standing authorization — staged set is a subset of `ADOPT-04`'s `Allowed modifications`, push to the authorized branch, fast-forward, remote-impact unchanged. **Separately**, the mid-step decision to disable this worktree's sparse-checkout was its own live `[HUMAN APPROVAL REQUIRED]`-equivalent gate (via `AskUserQuestion`, not the checkpoint's standing authorization — a working-tree-scope change, not a file write covered by `Allowed modifications`), approved by landaeta before being executed | `.codegraph/.gitignore`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `3c90981` | Inspected read-only: `.codegraph/.gitignore` is a generated ignore rule, not a CI/workflow file; no change to hooks, rulesets, or branch protection since checkpoint 4. The sparse-checkout change itself is local worktree state, invisible to `origin` until content is pushed, and this push carries no new tracked paths beyond the one `.codegraph/.gitignore` file. Verdict: unchanged from baseline | pushed — fast-forward `89655a6..3c90981`, exit 0, non-force | none raised at this checkpoint |
 | 6 | (run-log-only: `ADOPT-04` SHA backfill + `ADOPT-05` hand-off record) | not a group — the run log's own commit-SHA cell for checkpoint 5, plus this session's record of two failed `codegraph install` automation attempts and the resulting hand-off; no `ADOPT` step reached PASS in this checkpoint | n/a — `ADOPT-05` is `PENDING`, not validated; this checkpoint records the attempt and stop, not a step result | this row; `ADOPT-05` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `18c28ce` | unchanged from checkpoint 5 (no new writes to any CI/ruleset/webhook/branch-protection surface; no `.mcp.json` or client permission file was ever written by either failed attempt) | pushed — fast-forward `3c90981..18c28ce`, exit 0, non-force | none raised at this checkpoint |
+| 7 | `ADOPT-05` | not a group — single step | PASS — operator completed the interactive `codegraph install -t claude -l local --no-permissions` flow; `.mcp.json` and `.claude/settings.json` (no `permissions` key) generated; `.claude/CLAUDE.md`'s `CODEGRAPH_START/END` block appended; `git diff --name-only` and `git status --short` match the closed allowlist exactly; `codegraph explore "list public interfaces"` → 52 symbols across 4 files, exit 0 | run log `ADOPT-05` evidence block above; `ADOPTION-AUTHORIZATION.md` code-graph-privilege-scope section | YES — staged set is exactly `{.claude/CLAUDE.md, .claude/settings.json, .mcp.json, .specboot/adoption/ADOPTION-AUTHORIZATION.md, .specboot/adoption/ADOPTION-RUN-LOG.md}`, matching `ADOPT-05`'s closed allowlist plus the always-permitted run log; confirmed not `.gitignore`-excluded via `git check-ignore` (exit 1, not ignored) | YES — declared after independent review of `git diff --cached --stat` (5 files) | auto: standing authorization — staged set is a subset of `ADOPT-05`'s `Allowed modifications`; scope (`local`) and automatic-allow (`--no-permissions`) both match the least-privilege default named by this step's own auto-approve clause and by `ADOPTION-AUTHORIZATION.md`'s policy, so the gate auto-approves. Front-loading deviated from the reference default but was the operator's own live choice at the interactive prompt (not a scope/auto-allow escalation this agent made or reviewed as a gate) — recorded as such, not folded into the auto-approval's own criteria | `.claude/CLAUDE.md`, `.claude/settings.json`, `.mcp.json`, `.specboot/adoption/ADOPTION-AUTHORIZATION.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `08e1169` | Inspected read-only: `.mcp.json` and `.claude/settings.json` configure an MCP server and a `UserPromptSubmit` hook local to this repository's Claude Code session — neither is a CI/workflow trigger; no change to hooks, rulesets, or branch protection on `origin` since checkpoint 6. Verdict: unchanged from baseline | pushed — fast-forward `18c28ce..08e1169`, exit 0, non-force | none raised at this checkpoint |
 
 ---
 
