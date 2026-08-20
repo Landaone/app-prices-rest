@@ -94,7 +94,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PASS | 2026-08-20 |
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PASS | 2026-08-20 |
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PASS | 2026-08-20 |
-| `ADOPT-16` | `07-baseline-and-checkpoint.md` | PENDING | |
+| `ADOPT-16` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-20 |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-18` | `10-debootstrap.md` | PENDING | |
 | `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
@@ -915,6 +915,48 @@ and line citations are consistent with this repository's real structure.
 
 ---
 
+### `ADOPT-16` — Run the Project Baseline
+
+- Command determined from repository evidence: `pom.xml` (Java 11, Spring Boot 2.4.5, Maven —
+  confirmed at `ADOPT-01`) names Maven as the build tool. The repository's own `mvnw`/`mvnw.cmd`
+  wrapper exists but is **broken in this checkout**: `.mvn/wrapper/` is entirely absent (`find
+  .mvn -type f` → "No such file or directory"; not tracked in git either), so `./mvnw test`
+  failed attempting to download the wrapper jar over the network
+  (`org.apache.maven.wrapper.MavenWrapperMain` `ClassNotFoundException`) — a pre-existing
+  repository defect, not something this adoption introduced or is scoped to fix. Fell back to
+  the globally installed Maven already confirmed at `ADOPT-01` (`Apache Maven 3.9.16`), per this
+  step's own "do not assume a build system... determine from repository evidence" combined with
+  `ADOPT-01`'s prior finding that this exact Maven version is the reference-matching, already
+  validated toolchain
+- **Failed attempt 1**: `./mvnw -q test` — exit reported `0` from the wrapper's own curl/java
+  invocation chain but produced no test execution at all, only the wrapper-jar-download failure
+  above. Diagnosis: broken `.mvn/wrapper/` directory, unrelated to the "stale build output" this
+  step's own named guidance addresses — no `target/` reuse was involved, since this was a
+  complete tooling failure before any compilation began. Recovery: switched to the system `mvn`
+  binary rather than attempting to repair or download wrapper files (network access for a
+  wrapper-jar fetch is exactly the kind of unscoped mutation this adoption avoids without cause)
+- **Final command**: `mvn test`, exit `0`
+- Tests reported: `Tests run: 8, Failures: 0, Errors: 0, Skipped: 0` — `[INFO] BUILD SUCCESS`,
+  total time 9.980s (per-class breakdown: `PriceEntityModelConverterTest` 1, `PriceServiceImplTest`
+  1, `AppPricesRestApplicationTests` 1, `PriceControllerTest` 5)
+- Warnings: none observed in the build output beyond ordinary Spring Boot startup `INFO` logging
+- Stale-build-output check: `target/` did not exist before this run (confirmed by its own
+  directory timestamp matching this run's execution time) — this was a genuinely clean rebuild,
+  not a reused stale one; the reference run's `mvn -o clean test`/offline-cache complication
+  never arose here since `mvn test` (no `-o`, no prior `target/`) was used directly
+- `openspec doctor`: `OpenSpec root: ok`, `References: (none declared)`, no warnings, exit 0
+- `git status --short`: empty — clean working tree after the baseline run (`target/` is
+  git-ignored, confirmed by its absence from `git status` output)
+- `codegraph sync`: `Already up to date` — CodeGraph's index required no refresh after this
+  session's own prior work (last indexed at `ADOPT-04`, no source changes since that would
+  invalidate it)
+- **Approval gate**: not reached — no generated build output was removed or relocated; `target/`
+  was created fresh by this run's own build, never pre-existing, so the removal/relocation gate
+  never applied
+- **Result: PASS**
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -993,6 +1035,7 @@ and line citations are consistent with this repository's real structure.
 2026-08-20 — ADOPT-15 — stop-and-hand-off: this session provisioned the client adapters and cannot evidence their runtime discovery for itself; generated the exact fresh-session prompt and stopped, per this step's own explicit shape (same as ADOPT-00/ADOPT-05B) — no approval required (observation/hand-off, not a mutation)
 2026-08-20 — ADOPT-15 — first fresh-session attempt landed in this same continuing conversation instead of an isolated session (see Correction record); refused before fabricating evidence, no PASS claimed, no file modified — operator opened a genuinely separate window and reran the exact prompt there — observed by this session, no approval required
 2026-08-20 — ADOPT-15 — second attempt: a genuinely fresh, separate Claude Code session's transcript relayed back and cross-checked (primary risk matches this run's own ADOPT-06 citation, file set matches the real repository structure) — result PASS, both automatic-discovery conditions (1)/(4) satisfied — no approval required (observation, not a mutation)
+2026-08-20 — ADOPT-16 — ./mvnw test failed (broken .mvn/wrapper/, pre-existing repository defect, not fixed as out of scope); fell back to the already-validated system mvn 3.9.16 from ADOPT-01 — mvn test passed clean on first attempt with the fallback, 8 tests/0 failures/0 errors/0 skipped, openspec doctor and codegraph sync both clean, git status empty — no approval required (no build output removed or relocated)
 ```
 
 ## Correction record
