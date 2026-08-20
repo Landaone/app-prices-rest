@@ -91,7 +91,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-10` | `05-agents-and-skills.md` | PASS | 2026-08-20 |
 | `ADOPT-11` | `05-agents-and-skills.md` | PASS | 2026-08-20 |
 | `ADOPT-12` | `05-agents-and-skills.md` | PASS | 2026-08-20 |
-| `ADOPT-13` | `06-adapters-and-discovery.md` | PENDING | |
+| `ADOPT-13` | `06-adapters-and-discovery.md` | PASS | 2026-08-20 |
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PENDING | |
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING | |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PENDING | |
@@ -676,6 +676,84 @@ No failures found.
 
 ---
 
+### `ADOPT-13` — Create Selected-Client Adapters
+
+- Inspected before creating anything: OpenSpec-generated client configuration
+  (`.claude/commands/opsx/*`, `.claude/skills/openspec-*` — 6 real directories, confirmed at
+  `ADOPT-02`); CodeGraph client configuration (`.mcp.json`, `.claude/settings.json`'s hooks
+  block — confirmed at `ADOPT-05`); root instruction files (`AGENTS.md`/`CLAUDE.md`/`GEMINI.md`/
+  `codex.md`, symlinked to `docs/base-standards.md` — confirmed at `ADOPT-03`); `ai-specs/agents/`
+  (4 files, validated at `ADOPT-09`/`ADOPT-10`); `ai-specs/skills/` (10 directories, validated at
+  `ADOPT-11`/`ADOPT-12`); existing client agent/skill directories — `.claude/agents/` confirmed
+  absent, `.claude/skills/` confirmed to already hold 6 real OpenSpec-generated directories plus
+  one pre-existing, machine-local, absolute-path symlink (`specboot-adopt`, from `ADOPT-00`'s
+  bootstrap — untouched by this step, not a canonical `ai-specs/skills/` entry this step governs)
+- Selected clients detected: **Claude only** — `ADOPT-00`'s recorded selection, re-confirmed:
+  no `.kiro/` directory exists (`find . -maxdepth 1 -iname ".kiro"` → empty)
+- Canonical agents and skills determined for exposure: from `ADOPT-09`'s OpenSpec
+  agent-selection evidence (`java-backend-developer.md`, the only agent OpenSpec's
+  `openspec/config.yaml` context names for this repository's implementation work) **plus**
+  `product-strategy-analyst.md` on an actual-applicability basis — technology-agnostic,
+  applicable to any repository's ideation-phase/product work regardless of stack, and this
+  step's own text forbids skipping an agent "merely because it is not tied to a programming
+  stack." Since exposing `product-strategy-analyst.md` was not literally already recorded as
+  an OpenSpec "selection" in `ADOPT-09`'s evidence, this was treated as **not** meeting the
+  narrow auto-approve criterion ("no different selection, nothing not already in that
+  evidence") and was presented to the operator as a live gate rather than assumed
+- **Adapter plan presented via `AskUserQuestion`**, exact scope: create `.claude/agents/`
+  (new) with 2 relative symlinks (`java-backend-developer.md`, `product-strategy-analyst.md`,
+  both `-> ../../ai-specs/agents/...`); add 10 relative symlinks under the existing
+  `.claude/skills/` (`adversarial-review`, `code-auditing`, `commit`, `enrich-us`, `explain`,
+  `meta-prompt`, `specboot-verify`, `update-docs`, `using-git-worktrees`, `writing-skills`,
+  each `-> ../../ai-specs/skills/...`); explicitly **not** exposed: `backend-developer.md`
+  (TypeScript/Prisma/Express — wrong stack) and `frontend-developer.md` (React — no frontend
+  exists), both preserved in `ai-specs/agents/` untouched; no adapters for any unselected
+  client
+- **Approval**: landaeta, 2026-08-20, "Approve as-is" (option offered but not chosen: "Skip
+  product-strategy-analyst")
+- Pre-creation collision check: `comm -12 <(ls ai-specs/skills | sort) <(ls .claude/skills |
+  sort)` → empty — no canonical skill name collides with any of the 6 existing real
+  OpenSpec-generated directories; **zero collisions, zero symlinks skipped**
+- Symlinks created (12 total, all relative, all pointing into `ai-specs/`):
+  - `.claude/agents/java-backend-developer.md` → `../../ai-specs/agents/java-backend-developer.md`
+  - `.claude/agents/product-strategy-analyst.md` → `../../ai-specs/agents/product-strategy-analyst.md`
+  - `.claude/skills/{adversarial-review,code-auditing,commit,enrich-us,explain,meta-prompt,
+    specboot-verify,update-docs,using-git-worktrees,writing-skills}` → the matching
+    `../../ai-specs/skills/<name>` each
+- Real directories preserved, untouched: `.claude/skills/openspec-{apply-change,archive-change,
+  explore,propose,sync-specs,update-change}` (6, OpenSpec-generated); `.claude/skills/
+  specboot-adopt` (1, `ADOPT-00`'s pre-existing machine-local absolute symlink, not a target of
+  this step)
+- Existing files unchanged: confirmed via `git status --short` — every entry for this step's
+  work is `??` (new, untracked), nothing pre-existing shows as modified
+- Unselected clients checked: no `.kiro/` directory exists to create adapters under; none created
+- Files modified: `.claude/agents/` (2 new symlinks), `.claude/skills/` (10 new symlinks) — both
+  within this step's closed `Allowed modifications` (symlinks under the selected client's native
+  agent/skill directories, naming only already-validated agents/skills, never a real directory)
+- Per-client provisioning provenance: this session's own `ln -s` invocations, observed directly
+  — not inferred from file presence
+- Validation, per this step's own list, all PASS (re-run after creation, this session):
+  - agent symlinks and recorded targets: PASS — `find .claude/agents -type l -print -exec
+    readlink {} \;` → both symlinks, both targets as planned
+  - shared skill symlinks and recorded targets: PASS — `find .claude/skills -maxdepth 1 -type l
+    -print -exec readlink {} \;` → 10 new symlinks (plus the pre-existing `specboot-adopt`,
+    correctly untouched) with correct relative targets
+  - target existence under `ai-specs/`: PASS — `test -e` on all 12 new symlinks → all resolve
+  - real OpenSpec-generated skill directories: PASS — all 6 confirmed still real directories
+    (`find .claude/skills -mindepth 1 -maxdepth 1 -type d -print`)
+  - absence of broken symlinks: PASS — `find -L .claude/agents .claude/skills -type l -print` →
+    empty
+  - absence of malformed symlink names: PASS — `find .claude/agents .claude/skills -type l -name
+    "* *" -print` → empty
+  - absence of adapters for unselected clients: PASS — no `.kiro/` directory exists
+- **Approval gate**: presented and approved as documented above — the live gate, not the
+  auto-approve path, since the plan's `product-strategy-analyst.md` exposure was a genuinely
+  new decision beyond `ADOPT-09`'s literal OpenSpec-selection evidence
+- **Result: PASS** — filesystem validation only; runtime discovery has **not** been claimed and
+  requires `ADOPT-15`
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -696,7 +774,8 @@ No failures found.
 | 14 | `ADOPT-09` | not a group — single step | PASS — all 3 pre-existing agents failed strict YAML before repair, all 4 (3 repaired + 1 new) pass after; representation-only repair verified programmatically (recovered description equals original exactly); new agent verified client-neutral (`name`+`description` only) and domain-neutral (grep for repository terms → no matches); every validation in this step's own list PASS | run log `ADOPT-09` evidence block above | YES — staged set is exactly `{ai-specs/agents/backend-developer.md, ai-specs/agents/frontend-developer.md, ai-specs/agents/product-strategy-analyst.md, ai-specs/agents/java-backend-developer.md, openspec/config.yaml, .specboot/adoption/ADOPTION-RUN-LOG.md}`, matching `ADOPT-09`'s closed allowlist (`ai-specs/agents/` + agent-selection portion of `openspec/config.yaml`) plus the always-permitted run log; no client adapter directories touched | YES — declared after independent review of `git diff --cached --stat` (6 files) and confirming the 3 repaired agents' diffs are representation-only | this step's own `[HUMAN APPROVAL REQUIRED]` gate is scoped to removing or replacing an existing agent — not triggered, since no existing agent was removed or replaced (only a new agent added and a config reference corrected). The checkpoint's own commit/push gates auto-approve under standing authorization: staged set is a subset of `ADOPT-09`'s `Allowed modifications`, push conditions independently verified below | `ai-specs/agents/backend-developer.md`, `ai-specs/agents/frontend-developer.md`, `ai-specs/agents/product-strategy-analyst.md`, `ai-specs/agents/java-backend-developer.md`, `openspec/config.yaml`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `d763bbb` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `74abcda..d763bbb` (via the intervening SHA-backfill commit `6070f7a`), exit 0, non-force | none raised at this checkpoint |
 | 15 | (SHA-backfill delta) + `ADOPT-10` | grouped **as executed, not as planned**: `ADOPT-10` made zero repository-local writes of its own (read-only step), so its only staged content beyond the mandatory `ADOPT-09` SHA-backfill line is its own evidence — no independently stageable state to split into a second commit | `ADOPT-10`: PASS — 11/11 documented checks pass, no files modified (see run log evidence block above) | run log `ADOPT-09` SHA-backfill line; run log `ADOPT-10` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `0b36bfc` | unchanged from checkpoint 14 (no new writes to any CI/ruleset/webhook/branch-protection surface) | pushed — fast-forward `ded9224..0b36bfc`, exit 0, non-force | none raised at this checkpoint |
 | 16 | `ADOPT-11` | not a group — single step | PASS — `code-auditing/SKILL.md` and its `audit-methodology.md` reference adapted to detect Java/JVM alongside JS/TS/Python/Go; 9/10 skills confirmed already technology-agnostic or stack-detecting (grep-verified, `using-git-worktrees` and `writing-skills` individually reasoned through); mandatory-capability completeness check PASS for all 6 required capabilities | run log `ADOPT-11` evidence block above | YES — staged set is exactly `{ai-specs/skills/code-auditing/SKILL.md, ai-specs/skills/code-auditing/references/audit-methodology.md, .specboot/adoption/ADOPTION-RUN-LOG.md}`, matching `ADOPT-11`'s closed allowlist (`ai-specs/skills/` only) plus the always-permitted run log; no client-generated skill directory touched | YES — declared after independent review of `git diff --cached --stat` (3 files) | this step's own approval gate is **none beyond the edit being reviewable**; modifications limited to `ai-specs/skills/`, and no external research was performed so the authorization-first rule for that case was not triggered. The checkpoint's own commit/push gates auto-approve under standing authorization: staged set is a subset of `ADOPT-11`'s `Allowed modifications`, push conditions independently verified below | `ai-specs/skills/code-auditing/SKILL.md`, `ai-specs/skills/code-auditing/references/audit-methodology.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `cfedf57` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `0b36bfc..cfedf57`, exit 0, non-force | none raised at this checkpoint |
-| 17 | `ADOPT-12` | not a group — single step | PASS — all 12 documented checks pass, no files modified, no failures found (see run log evidence block above) | run log `ADOPT-12` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | (filled at the next checkpoint's SHA-backfill delta) | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward, exit 0, non-force | none raised at this checkpoint |
+| 17 | `ADOPT-12` | not a group — single step | PASS — all 12 documented checks pass, no files modified, no failures found (see run log evidence block above) | run log `ADOPT-12` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `cfb27c4` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `cfedf57..cfb27c4`, exit 0, non-force | none raised at this checkpoint |
+| 18 | `ADOPT-13` | not a group — single step | PASS — 12 relative symlinks created (2 agents, 10 skills), all resolve, zero broken links, zero malformed names, zero collisions with the 6 real OpenSpec-generated skill directories (all preserved untouched), no adapters for any unselected client | run log `ADOPT-13` evidence block above | YES — staged set is exactly `{.claude/agents/ (2 new symlinks), .claude/skills/ (10 new symlinks), .specboot/adoption/ADOPTION-RUN-LOG.md}`, matching `ADOPT-13`'s closed rule (symlinks under the selected client's native agent/skill directories, naming only already-validated agents/skills, never a real directory) plus the always-permitted run log; `.claude/skills/specboot-adopt` (pre-existing, machine-local) and the 6 real `openspec-*` directories confirmed untouched | YES — declared after independent review of `git status --short` (all new entries `??`, nothing pre-existing modified) | this step's own content-approval gate was **live** — `product-strategy-analyst.md`'s exposure was a new decision beyond `ADOPT-09`'s literal OpenSpec-selection evidence, not eligible for the narrow auto-approve criterion; presented via `AskUserQuestion`, approved by landaeta ("Approve as-is"). The checkpoint's own commit/push gates auto-approve separately under standing authorization: staged set is a subset of `ADOPT-13`'s `Allowed modifications`, push conditions independently verified below | `.claude/agents/java-backend-developer.md`, `.claude/agents/product-strategy-analyst.md`, `.claude/skills/{adversarial-review,code-auditing,commit,enrich-us,explain,meta-prompt,specboot-verify,update-docs,using-git-worktrees,writing-skills}`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | (filled at the next checkpoint's SHA-backfill delta) | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward, exit 0, non-force | none raised at this checkpoint |
 
 ---
 
@@ -744,6 +823,7 @@ No failures found.
 2026-08-20 — ADOPT-10 — read-only re-verification of the ADOPT-09 agent adaptation; all 11 documented checks PASS, no files modified — no approval gate applies per this step's own text; observed and executed by this session
 2026-08-20 — ADOPT-11 — adapted code-auditing/SKILL.md and its audit-methodology.md reference to detect Java/JVM alongside the Node/TS-first assumptions found (Phase 0 config-file check, Type Safety section, Dead Code tools list, baseline-check examples); 9 of 10 skills confirmed already technology-agnostic or already stack-detecting, preserved unchanged; mandatory-capability completeness check passed for all 6 required workflow capabilities (3 SpecBoot-owned skills present, 3 OpenSpec-CLI-generated capabilities confirmed actually generated); no external research performed; observed and executed by this session
 2026-08-20 — ADOPT-12 — read-only re-verification of the ADOPT-11 skill adaptation; all 12 documented checks PASS, no files modified — no approval gate applies per this step's own text; observed and executed by this session
+2026-08-20 — ADOPT-13 — adapter plan (2 agent symlinks, 10 skill symlinks, all relative, all into ai-specs/) presented via AskUserQuestion since exposing product-strategy-analyst.md was a new decision beyond ADOPT-09's literal OpenSpec-selection evidence, not eligible for this step's narrow auto-approve criterion — approved by landaeta: "Approve as-is"; zero collisions with the 6 existing real OpenSpec-generated skill directories, zero symlinks skipped
 ```
 
 ## Correction record
