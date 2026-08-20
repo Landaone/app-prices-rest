@@ -96,7 +96,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PASS | 2026-08-20 |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-20 |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-20 |
-| `ADOPT-18` | `10-debootstrap.md` | PENDING | |
+| `ADOPT-18` | `10-debootstrap.md` | PENDING — removals done, second ADOPT-15 fresh-session re-check required and not yet observed | 2026-08-20 |
 | `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 | `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 
@@ -1005,6 +1005,130 @@ and line citations are consistent with this repository's real structure.
 
 ---
 
+### `ADOPT-18` — De-bootstrap and Reconcile Client Artifacts
+
+- **Precondition check, before any removal**: `ADOPT-17` = PASS (above); mandatory-capability
+  completeness (`ADOPT-11`/`ADOPT-12`) re-confirmed PASS immediately before the first removal —
+  `test -d ai-specs/skills/{enrich-us,specboot-verify,adversarial-review}` → all present;
+  `find .claude/skills -maxdepth 1 -iname "openspec-*"` → all 6 present
+- Delivery mode read from the manifest: `source-linked`. Both `modeObligations` (`payload`,
+  `container`) already recorded `SKIPPED — source-linked mode` from `ADOPT-00` — re-confirmed
+  unchanged, never re-interpreted
+- Pre-cleanup entry count by `ownership`/`mode`: 3 entries total — 2 `bootstrap-created`
+  (`.claude/skills/specboot-adopt`, mode `symlink`; `.claude/CLAUDE.md`, mode `real-file`), 1
+  `pre-existing-modified` (`.gitignore`, mode `appended-block`)
+- Replacement verification (step 2): all 3 entries carry `intended-permanent-replacement: null` —
+  none require a replacement to exist before removal; verified this is correct for each (the
+  orchestration skill has no permanent equivalent by design; `.claude/CLAUDE.md`'s and
+  `.gitignore`'s bootstrap content is meant to disappear entirely, not be replaced by anything).
+  No "unresolved replacement" refusal condition was reached
+- **Disposition plan presented via `AskUserQuestion`** with the exact 4 actions (3 manifest
+  entries + the machine-local store), **approved by landaeta**, "Approve as-is", before any
+  removal — per this step's `[HUMAN APPROVAL REQUIRED]` gate
+- Actions taken, per entry, by `mode` (step 3):
+  - `.claude/skills/specboot-adopt` (`symlink`) → **unlinked**. Verified absent:
+    `ls .claude/skills/specboot-adopt` → "No such file or directory"
+  - `.claude/CLAUDE.md` (`real-file` at `ADOPT-00`, but no longer matching that shape) →
+    **its actual current content was read before acting**, per this step's own explicit
+    instruction for exactly this case: `ADOPT-05` had appended its own permanent, non-bootstrap
+    `CODEGRAPH_START`/`CODEGRAPH_END` block into this same file after `ADOPT-00` created it.
+    Treated as `appended-block` in practice despite the manifest's recorded `mode: real-file`:
+    removed **only** the `<!-- SPECBOOT-BOOTSTRAP:BEGIN -->`...`<!-- SPECBOOT-BOOTSTRAP:END -->`
+    block (5 lines plus its trailing blank line), leaving the CodeGraph block — and the file
+    itself — intact. `git diff .claude/CLAUDE.md` confirms exactly that 6-line removal, nothing
+    else touched
+  - `.gitignore` (`appended-block`) → removed **only** the `# SPECBOOT-BOOTSTRAP:BEGIN`...`#
+    SPECBOOT-BOOTSTRAP:END` block (4 lines: header, 2 ignore rules, footer). The durable
+    `.specboot/staging/` line — placed outside the block by `ADOPT-00` precisely so this removal
+    would never touch it — and every pre-existing Spring Boot boilerplate line are byte-unchanged.
+    `git diff .gitignore` confirms exactly that 4-line removal
+- Step 4 (convert bootstrap-created root instruction files to canonical symlinks): **N/A** —
+  none of the 4 root instruction files (`AGENTS.md`/`CLAUDE.md`/`GEMINI.md`/`codex.md`) are
+  manifest entries; they were created at `ADOPT-03` (the import step), already as the canonical
+  relative symlinks to `docs/base-standards.md`, and remain so — re-verified via `readlink` on
+  all 4, unchanged
+- Step 5 (transient payload container): **N/A, `SKIPPED — source-linked mode`** — `.specboot/bootstrap/`
+  was never created at any point in this run; re-confirmed absent (`ls .specboot/bootstrap/` →
+  "No such file or directory")
+- Step 5b (machine-local source-path store): `.specboot/local/` **removed** by name —
+  `rm -rf .specboot/local/`, re-confirmed absent via `ls .specboot/` (only `adoption/` remains).
+  The external canonical source it pointed at (`/Users/landaeta/repos/specboot`) was never
+  touched — removing a pointer never follows what it named
+- Step 6 (unselected-client artifact removal): **N/A** — `find . -maxdepth 1 -iname ".kiro" -o
+  -maxdepth 1 -iname ".agents"` → empty; no artifacts existed for Kiro or Codex to remove
+- Step 7 (re-validation): `ADOPT-14`'s filesystem checks re-run in full, PASS — agent symlinks
+  (2) and skill symlinks (10) all resolve correctly into `ai-specs/`; `.claude/skills/specboot-adopt`
+  correctly no longer present; the 6 real OpenSpec-generated directories unchanged; zero broken
+  symlinks (`find -L .claude/agents .claude/skills -type l -print` → empty); zero malformed
+  names; all 4 root symlinks still resolve to `docs/base-standards.md`; no unselected-client
+  adapters. **Second `ADOPT-15` fresh-session check determination**: disposition touched
+  `.gitignore`, whose `ownership` is `pre-existing-modified` — **outside** the manifest's exact
+  `bootstrap-created` set (`{.claude/skills/specboot-adopt, .claude/CLAUDE.md}`) — so per this
+  step's own rule, the `ADOPT-14` filesystem re-check alone is **not** a sufficient substitute
+  here; the full fresh-session check is **mandatory**. This is not a decision to present to the
+  operator, per this step's own explicit text — the exact fresh-session prompt is generated and
+  this step stops below, exactly as `ADOPT-15` and `ADOPT-05B` already did
+- Step 8 (write-back): `.specboot/adoption/BOOTSTRAP-MANIFEST.json` updated in place — all 3
+  entries now carry `cleanup-status: "removed"` and an explicit `final-disposition` string
+  documenting exactly what was done and why (including the appended-block-in-practice reasoning
+  for `.claude/CLAUDE.md`); a new `debootstrap` block records the machine-local store's removal,
+  the unselected-client-artifacts finding, the completeness-check-before-first-removal
+  confirmation, the `ADOPT-14` re-validation result, and the second-fresh-session-check
+  requirement and reason. Valid JSON confirmed (`python3 -c "import json; json.load(...)"`)
+- **Refusals reached**: none — no unresolved replacement, no unrecorded content found in scope
+  for removal (both refusal conditions this step names were never triggered)
+- **Broken-symlink scan**: `find -L .claude/agents .claude/skills -type l -print` → empty
+- **Approval**: landaeta, 2026-08-20, "Approve as-is" (the exact 4-item disposition plan above),
+  via `AskUserQuestion`
+- **Result: PENDING** — every removal/conversion is complete and terminal, the manifest is
+  written back, but this step's own acceptance criteria require the mandatory second
+  `ADOPT-15` fresh-session re-validation to PASS before this step itself can be marked PASS.
+  Handed off below, stop-and-hand-off, exactly as `ADOPT-15` and `ADOPT-05B` already used.
+
+**Handoff — run this exact prompt in a fresh Claude Code session** (a new session, not a
+continuation of this one, opened at this same repository path — same requirement `ADOPT-15`
+already established, including that this session cannot self-evidence it):
+
+```text
+Perform a read-only architecture review of this repository and identify the most important
+implementation risk.
+
+Use the repository's configured agents, skills, project instructions, documentation, and
+CodeGraph integration where appropriate.
+
+Do not modify files.
+Do not access the web or any external service.
+
+Before giving the architecture finding, report:
+- the client and active agent or mode;
+- root repository instruction files automatically loaded;
+- canonical or adapted agent definitions automatically discovered or used;
+- skills automatically discovered or used;
+- project documentation consumed;
+- CodeGraph tools or commands used;
+- resources that had to be opened manually because automatic discovery failed.
+
+Then report:
+- the primary implementation risk;
+- repository evidence supporting it;
+- files modified, which must be none;
+- PASS or FAIL for automatic runtime discovery.
+
+Do not claim automatic discovery for a resource that was manually supplied or explicitly loaded
+after the session started.
+```
+
+This re-check specifically confirms: `specboot-adopt` no longer appears in the discovered skill
+catalog (it was removed by this step); `.claude/CLAUDE.md`'s surviving `CodeGraph` guidance is
+still discovered automatically; nothing else regressed as a side effect of the `.gitignore` and
+`.claude/CLAUDE.md` edits.
+
+| Client | Status |
+|---|---|
+| Claude | PENDING EVIDENCE — awaiting the fresh-session run above |
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -1087,6 +1211,7 @@ and line citations are consistent with this repository's real structure.
 2026-08-20 — ADOPT-15 — second attempt: a genuinely fresh, separate Claude Code session's transcript relayed back and cross-checked (primary risk matches this run's own ADOPT-06 citation, file set matches the real repository structure) — result PASS, both automatic-discovery conditions (1)/(4) satisfied — no approval required (observation, not a mutation)
 2026-08-20 — ADOPT-16 — ./mvnw test failed (broken .mvn/wrapper/, pre-existing repository defect, not fixed as out of scope); fell back to the already-validated system mvn 3.9.16 from ADOPT-01 — mvn test passed clean on first attempt with the fallback, 8 tests/0 failures/0 errors/0 skipped, openspec doctor and codegraph sync both clean, git status empty — no approval required (no build output removed or relocated)
 2026-08-20 — ADOPT-17 — git status/diff all empty; this run's own discipline of checkpointing every step individually throughout ADOPT-00-ADOPT-16 already satisfies this step's "clean, reviewable local checkpoint" purpose, distributed across 24 prior checkpoints rather than one final commit here — no commit or push act exists for this step to gate; result PASS, no approval required
+2026-08-20 — ADOPT-18 — de-bootstrap disposition plan (unlink .claude/skills/specboot-adopt; remove only the SPECBOOT-BOOTSTRAP block from .claude/CLAUDE.md and .gitignore; remove .specboot/local/) presented via AskUserQuestion — approved by landaeta: "Approve as-is"; all 3 manifest entries reached terminal cleanup-status=removed with recorded final-disposition text; ADOPT-14 re-check PASS; second ADOPT-15 fresh-session re-check determined mandatory (disposition touched .gitignore, outside the exact bootstrap-created set) and handed off — step result PENDING until that evidence arrives
 ```
 
 ## Correction record

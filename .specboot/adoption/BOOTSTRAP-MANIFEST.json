@@ -43,7 +43,8 @@
       "ownership": "bootstrap-created",
       "mode": "symlink",
       "intended-permanent-replacement": null,
-      "cleanup-status": "pending",
+      "cleanup-status": "removed",
+      "final-disposition": "ADOPT-18: symlink unlinked (mode: symlink). No permanent replacement was intended — this orchestration skill is a bootstrap artifact only, per 09-bootstrap.md and 10-debootstrap.md's own closing note ('The orchestration skill is itself a bootstrap artifact... removed here'). Verified absent via `ls .claude/skills/specboot-adopt` (No such file or directory) after removal.",
       "machineLocal": true
     },
     {
@@ -56,7 +57,8 @@
       "ownership": "bootstrap-created",
       "mode": "real-file",
       "intended-permanent-replacement": null,
-      "cleanup-status": "pending",
+      "cleanup-status": "removed",
+      "final-disposition": "ADOPT-18: the file's current shape no longer matches its recorded mode (real-file) as of ADOPT-00 — ADOPT-05 later appended its own permanent, non-bootstrap CODEGRAPH_START/END block into the same path. Per 10-debootstrap.md's own explicit instruction for exactly this case, treated as appended-block in practice: removed ONLY the <!-- SPECBOOT-BOOTSTRAP:BEGIN/END --> delimited block (this entry's own content), leaving ADOPT-05's CodeGraph block untouched. The file itself was NOT deleted, since it now carries that later step's checkpointed, approved content. Verified via git diff: only the 5-line SPECBOOT-BOOTSTRAP block (plus its trailing blank line) removed, CODEGRAPH_START through CODEGRAPH_END unchanged.",
       "machineLocal": false
     },
     {
@@ -69,12 +71,26 @@
       "ownership": "pre-existing-modified",
       "mode": "appended-block",
       "intended-permanent-replacement": null,
-      "cleanup-status": "pending",
+      "cleanup-status": "removed",
+      "final-disposition": "ADOPT-18: removed ONLY the # SPECBOOT-BOOTSTRAP:BEGIN/END delimited block (4 lines: the header comment plus 2 ignore rules plus the footer comment). The pre-existing Spring Boot boilerplate content (HELP.md, target/, IDE excludes, etc.) and the durable `.specboot/staging/` line — which ADOPT-00 deliberately placed OUTSIDE the delimited block for exactly this reason — are both byte-unchanged. Verified via git diff: only the 4 delimited-block lines removed.",
       "machineLocal": false
     }
   ],
   "modeObligations": {
     "payload": "SKIPPED — source-linked mode",
     "container": "SKIPPED — source-linked mode"
+  },
+  "debootstrap": {
+    "performedAt": "2026-08-20",
+    "machineLocalStoreRemoved": {
+      "path": ".specboot/local/",
+      "disposition": "removed",
+      "note": "Project-local temporary state, git-ignored, held only the resolved canonical-source path and nothing else — no checksum, no commit, no delivery mode. Not a manifest entry (step 5b is a separate, by-name removal). The external canonical source it pointed at (/Users/landaeta/repos/specboot) was never touched by this removal."
+    },
+    "unselectedClientArtifactsRemoved": "none found — no .kiro/ or .agents/ directory existed to remove",
+    "mandatoryCapabilityCompletenessCheckedBeforeFirstRemoval": true,
+    "adopt14RevalidationResult": "PASS",
+    "adopt15SecondFreshSessionCheckRequired": true,
+    "adopt15SecondFreshSessionCheckReason": "disposition touched .gitignore, which is ownership: pre-existing-modified — outside the manifest's exact bootstrap-created set ({.claude/skills/specboot-adopt, .claude/CLAUDE.md}) — so the ADOPT-14 filesystem re-check alone is not a sufficient substitute per 10-debootstrap.md step 7; the full fresh-session check is mandatory and pending as of this write-back"
   }
 }
