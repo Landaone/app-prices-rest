@@ -93,7 +93,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-12` | `05-agents-and-skills.md` | PASS | 2026-08-20 |
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PASS | 2026-08-20 |
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PASS | 2026-08-20 |
-| `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING | |
+| `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING — fresh-session runtime-discovery probe not yet observed | 2026-08-20 |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-18` | `10-debootstrap.md` | PENDING | |
@@ -789,6 +789,62 @@ No failures found.
 
 ---
 
+### `ADOPT-15` — Validate Runtime Discovery in a Fresh Client Session
+
+**Stop-and-hand-off, per this step's own explicit shape** — the same one `ADOPT-00`'s
+discovery probe and `ADOPT-05B`'s permission smoke test already used. This session provisioned
+the client adapters at `ADOPT-13`/`ADOPT-14`; its own permission/discovery state was established
+before those adapters existed, so this session cannot evidence their runtime discovery. This is
+not a decision to present to the operator — there is no "continue in this session instead"
+option. Generating the exact fresh-session prompt below and stopping.
+
+**Handoff — run this exact prompt in a fresh Claude Code session** (a new session, not a
+continuation of this one):
+
+```text
+Perform a read-only architecture review of this repository and identify the most important
+implementation risk.
+
+Use the repository's configured agents, skills, project instructions, documentation, and
+CodeGraph integration where appropriate.
+
+Do not modify files.
+Do not access the web or any external service.
+
+Before giving the architecture finding, report:
+- the client and active agent or mode;
+- root repository instruction files automatically loaded;
+- canonical or adapted agent definitions automatically discovered or used;
+- skills automatically discovered or used;
+- project documentation consumed;
+- CodeGraph tools or commands used;
+- resources that had to be opened manually because automatic discovery failed.
+
+Then report:
+- the primary implementation risk;
+- repository evidence supporting it;
+- files modified, which must be none;
+- PASS or FAIL for automatic runtime discovery.
+
+Do not claim automatic discovery for a resource that was manually supplied or explicitly loaded
+after the session started.
+```
+
+Procedure for that fresh session: close this session, open a new one at the repository root,
+use Claude's default mode, submit the prompt above verbatim, and record automatic discovery (1)
+separately from explicit invocation (2), normal manual reading during task execution (3 — not a
+discovery failure), and prohibited manual injection (4 — the only thing that actually fails
+this step). Repeat once per selected client — Claude only, in this run.
+
+| Client | Status |
+|---|---|
+| Claude | PENDING EVIDENCE — awaiting the fresh-session run above |
+
+- **Approval gate: none** — read-only, and the prompt forbids file modification
+- **Result: PENDING — runtime-discovery probe requires a fresh session, handed off above.**
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -811,7 +867,7 @@ No failures found.
 | 16 | `ADOPT-11` | not a group — single step | PASS — `code-auditing/SKILL.md` and its `audit-methodology.md` reference adapted to detect Java/JVM alongside JS/TS/Python/Go; 9/10 skills confirmed already technology-agnostic or stack-detecting (grep-verified, `using-git-worktrees` and `writing-skills` individually reasoned through); mandatory-capability completeness check PASS for all 6 required capabilities | run log `ADOPT-11` evidence block above | YES — staged set is exactly `{ai-specs/skills/code-auditing/SKILL.md, ai-specs/skills/code-auditing/references/audit-methodology.md, .specboot/adoption/ADOPTION-RUN-LOG.md}`, matching `ADOPT-11`'s closed allowlist (`ai-specs/skills/` only) plus the always-permitted run log; no client-generated skill directory touched | YES — declared after independent review of `git diff --cached --stat` (3 files) | this step's own approval gate is **none beyond the edit being reviewable**; modifications limited to `ai-specs/skills/`, and no external research was performed so the authorization-first rule for that case was not triggered. The checkpoint's own commit/push gates auto-approve under standing authorization: staged set is a subset of `ADOPT-11`'s `Allowed modifications`, push conditions independently verified below | `ai-specs/skills/code-auditing/SKILL.md`, `ai-specs/skills/code-auditing/references/audit-methodology.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `cfedf57` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `0b36bfc..cfedf57`, exit 0, non-force | none raised at this checkpoint |
 | 17 | `ADOPT-12` | not a group — single step | PASS — all 12 documented checks pass, no files modified, no failures found (see run log evidence block above) | run log `ADOPT-12` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `cfb27c4` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `cfedf57..cfb27c4`, exit 0, non-force | none raised at this checkpoint |
 | 18 | `ADOPT-13` | not a group — single step | PASS — 12 relative symlinks created (2 agents, 10 skills), all resolve, zero broken links, zero malformed names, zero collisions with the 6 real OpenSpec-generated skill directories (all preserved untouched), no adapters for any unselected client | run log `ADOPT-13` evidence block above | YES — staged set is exactly `{.claude/agents/ (2 new symlinks), .claude/skills/ (10 new symlinks), .specboot/adoption/ADOPTION-RUN-LOG.md}`, matching `ADOPT-13`'s closed rule (symlinks under the selected client's native agent/skill directories, naming only already-validated agents/skills, never a real directory) plus the always-permitted run log; `.claude/skills/specboot-adopt` (pre-existing, machine-local) and the 6 real `openspec-*` directories confirmed untouched | YES — declared after independent review of `git status --short` (all new entries `??`, nothing pre-existing modified) | this step's own content-approval gate was **live** — `product-strategy-analyst.md`'s exposure was a new decision beyond `ADOPT-09`'s literal OpenSpec-selection evidence, not eligible for the narrow auto-approve criterion; presented via `AskUserQuestion`, approved by landaeta ("Approve as-is"). The checkpoint's own commit/push gates auto-approve separately under standing authorization: staged set is a subset of `ADOPT-13`'s `Allowed modifications`, push conditions independently verified below | `.claude/agents/java-backend-developer.md`, `.claude/agents/product-strategy-analyst.md`, `.claude/skills/{adversarial-review,code-auditing,commit,enrich-us,explain,meta-prompt,specboot-verify,update-docs,using-git-worktrees,writing-skills}`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `9d776e3` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `cfb27c4..9d776e3`, exit 0, non-force | none raised at this checkpoint |
-| 19 | `ADOPT-14` | not a group — single step | PASS — all 11 documented checks pass, no files modified, no failures found (see run log evidence block above) | run log `ADOPT-14` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | (filled at the next checkpoint's SHA-backfill delta) | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward, exit 0, non-force | none raised at this checkpoint |
+| 19 | `ADOPT-14` | not a group — single step | PASS — all 11 documented checks pass, no files modified, no failures found (see run log evidence block above) | run log `ADOPT-14` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `ffb5786` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `9d776e3..ffb5786`, exit 0, non-force | none raised at this checkpoint |
 
 ---
 
@@ -861,6 +917,7 @@ No failures found.
 2026-08-20 — ADOPT-12 — read-only re-verification of the ADOPT-11 skill adaptation; all 12 documented checks PASS, no files modified — no approval gate applies per this step's own text; observed and executed by this session
 2026-08-20 — ADOPT-13 — adapter plan (2 agent symlinks, 10 skill symlinks, all relative, all into ai-specs/) presented via AskUserQuestion since exposing product-strategy-analyst.md was a new decision beyond ADOPT-09's literal OpenSpec-selection evidence, not eligible for this step's narrow auto-approve criterion — approved by landaeta: "Approve as-is"; zero collisions with the 6 existing real OpenSpec-generated skill directories, zero symlinks skipped
 2026-08-20 — ADOPT-14 — read-only re-verification of the ADOPT-13 client adapters; all 11 documented checks PASS, no broken links, no malformed names, no files modified — no approval gate applies per this step's own text; observed and executed by this session
+2026-08-20 — ADOPT-15 — stop-and-hand-off: this session provisioned the client adapters and cannot evidence their runtime discovery for itself; generated the exact fresh-session prompt and stopped, per this step's own explicit shape (same as ADOPT-00/ADOPT-05B) — no approval required (observation/hand-off, not a mutation)
 ```
 
 ## Correction record
