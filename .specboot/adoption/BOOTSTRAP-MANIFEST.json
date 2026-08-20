@@ -1,0 +1,80 @@
+{
+  "manifestVersion": "1.0",
+  "createdAt": "2026-08-19T01:17:25Z",
+  "source": {
+    "delivery-mode": "source-linked",
+    "local-path-resolution": "The local canonical source path is resolved per machine and is not stored in the committed manifest.",
+    "guide-checksum": "sha256:2ee3e50945a987b07ef3fba2fa345621a47f0cfcaa42cd02843bd63be17d7ca0",
+    "skill-checksum": "sha256:2448934c76467fb9f33a597169138eea7585b0e5c1d0f567e18fbb87be4f7fd3",
+    "git": {
+      "status": "recorded",
+      "worktree": "clean",
+      "commit": "008647262e8ff4e4af38a8e948fe061e1c6bd51a"
+    },
+    "readOnly": true
+  },
+  "selectedClient": "Claude",
+  "clientSelection": {
+    "route": "autodiscovery",
+    "candidatesDisplayed": [],
+    "selected": [
+      "Claude"
+    ],
+    "notSelected": [
+      "Kiro",
+      "Codex"
+    ]
+  },
+  "environment": {
+    "os": "Darwin 22.6.0 (macOS)",
+    "shell": "zsh",
+    "symlinksSupported": true,
+    "symlinkDetermination": "capability-detected",
+    "isGitRepository": true
+  },
+  "entries": [
+    {
+      "path": ".claude/skills/specboot-adopt",
+      "source": {
+        "canonicalPath": "ai-specs/skills/specboot-adopt",
+        "channel": "source-linked"
+      },
+      "checksum": "sha256:2448934c76467fb9f33a597169138eea7585b0e5c1d0f567e18fbb87be4f7fd3",
+      "ownership": "bootstrap-created",
+      "mode": "symlink",
+      "intended-permanent-replacement": null,
+      "cleanup-status": "pending",
+      "machineLocal": true
+    },
+    {
+      "path": ".claude/CLAUDE.md",
+      "source": {
+        "canonicalPath": "specboot-adoption/bootstrap-kit/discovery/claude.md",
+        "channel": "source-linked"
+      },
+      "checksum": "sha256:b25e5f4b5398ecca0397ce4a61d43d4b0debaec69182c16f81138a008c289024",
+      "ownership": "bootstrap-created",
+      "mode": "real-file",
+      "intended-permanent-replacement": null,
+      "cleanup-status": "pending",
+      "machineLocal": false
+    },
+    {
+      "path": ".gitignore",
+      "source": {
+        "canonicalPath": "specboot-adoption/09-bootstrap.md (action 8, durable ignore-rule guidance)",
+        "channel": "source-linked"
+      },
+      "checksum": "sha256:9d4088f2d3d9642337a1d46561c93d79c62f585170074c4c2406703c12df8bad",
+      "ownership": "pre-existing-modified",
+      "mode": "appended-block",
+      "intended-permanent-replacement": null,
+      "cleanup-status": "pending",
+      "machineLocal": false
+    }
+  ],
+  "modeObligations": {
+    "payload": "SKIPPED — source-linked mode",
+    "container": "SKIPPED — source-linked mode"
+  }
+}

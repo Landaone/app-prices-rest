@@ -31,3 +31,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# SPECBOOT-BOOTSTRAP:BEGIN
+.specboot/bootstrap/
+.specboot/local/
+# SPECBOOT-BOOTSTRAP:END
+.specboot/staging/
