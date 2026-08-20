@@ -87,7 +87,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-06` | `04-context-and-openspec.md` | PASS | 2026-08-20 |
 | `ADOPT-07` | `04-context-and-openspec.md` | PASS | 2026-08-20 |
 | `ADOPT-08` | `04-context-and-openspec.md` | PASS | 2026-08-20 |
-| `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
+| `ADOPT-09` | `05-agents-and-skills.md` | PASS | 2026-08-20 |
 | `ADOPT-10` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-11` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-12` | `05-agents-and-skills.md` | PENDING | |
@@ -433,6 +433,106 @@ No failures found; no corrections made (this step's own text: "Do not correct fa
 
 ---
 
+### `ADOPT-09` — Inspect and Adapt Agents
+
+- Detected stacks and work types, from repository evidence (not filenames): Java 11 / Spring
+  Boot 2.4.5 / Maven backend (`pom.xml`, `docs/backend-standards.md` from `ADOPT-06`); no
+  frontend (`docs/frontend-standards.md`); no product/ideation work type evidenced by this
+  repository's code, though a technology-agnostic product-strategy agent is a valid work-type
+  match regardless of stack, per this step's own instruction not to reject an agent merely
+  because it is not a programming-stack agent
+- Agents inspected under `ai-specs/agents/` (3, pre-existing): `backend-developer.md`,
+  `frontend-developer.md`, `product-strategy-analyst.md`
+- **Strict frontmatter validation, run before any adaptation** — a Python script parsed only
+  the YAML between the two `---` delimiters of each file with `yaml.safe_load`: all 3 existing
+  agents **FAILED** strict parsing with an identical class of error (`mapping values are not
+  allowed here`, at the first unquoted `Context:` inside each file's single-line `description`
+  scalar — the same defect class the reference Java/Maven run recorded for this exact template
+  agent set, per `history/reference-run-java-maven.md`'s `ADOPT-09` entry, confirmed here
+  independently rather than assumed from that precedent)
+- **Representation-only frontmatter repairs**: for each of the 3 files, converted only the
+  `description: <one-line scalar>` field to a block scalar (`description: |` followed by the
+  identical text, re-indented, on the next line) — every other frontmatter field (`name`,
+  `tools`, `model`, `color`) and the entire body left byte-for-byte unchanged. Verified
+  programmatically: re-parsed each repaired file's frontmatter, asserted the recovered
+  `description` string equals the original scalar value exactly (assertion passed for all 3,
+  no `AssertionError` raised); `git diff --stat ai-specs/agents/` shows exactly 3 files changed,
+  each a small, symmetric insertion (the `description: |` line plus re-indentation) with no
+  other line touched
+- Agents preserved unchanged in substance: `backend-developer.md` (TypeScript/Prisma/Express —
+  a different language family, explicitly preserved per this step's "do not overwrite or
+  repurpose an unrelated agent" and "preserve all existing agents intended for other
+  languages/frameworks" rules, even though it does not apply to this repository's actual
+  stack), `frontend-developer.md` (React — preserved for the same reason, and because this
+  step forbids rejecting an agent merely because it is not applicable to the current repository
+  type), `product-strategy-analyst.md` (technology-agnostic work type, preserved unchanged in
+  substance — its frontmatter representation was still repaired for strict-YAML validity, which
+  is not the same as content adaptation)
+- Agent created, and why: **`ai-specs/agents/java-backend-developer.md`** — no existing agent
+  covers Java/Spring Boot/JVM backend work (`backend-developer.md` is TypeScript-specific
+  throughout its body: Prisma, Express, `.ts` file conventions, Jest); this is a genuinely
+  uncovered technology family, meeting this step's own bar for creation ("only when no existing
+  validated agent covers a detected technology family"), not a default action
+- Evidence that the new agent is client-neutral and domain-neutral:
+  - Frontmatter: `name` and `description` only — no `tools`, `model`, `color`, or other
+    client-only metadata; verified programmatically (`sorted(d.keys()) == {'name',
+    'description'}`)
+  - Domain-neutrality: `grep -niE "price|brand|llandaeta|prices|PriceEntity|PriceController"
+    ai-specs/agents/java-backend-developer.md` → no matches — the agent's body and examples
+    describe generic Java/Spring Boot layering (persistence/business-logic/REST), a generic
+    "items by category" example endpoint, and instructs reading the target repository's own
+    documentation and build file at task time rather than hard-coding this repository's actual
+    package names, entities, or endpoints
+  - Portability: the agent explicitly reads the target repository's build tool, ORM, migration
+    tool, and test stack from that repository at task time rather than assuming Maven/JPA/
+    Flyway/JUnit5 as fixed — reusable for other Java/Spring Boot repositories, not hard-coded to
+    this one
+- OpenSpec selection changes: `openspec/config.yaml`'s `context` field's "Agent selection" line
+  updated to name `ai-specs/agents/java-backend-developer.md` as the agent to use for this
+  repository's implementation work (replacing the incorrect `backend-developer.md` reference
+  `ADOPT-07` had provisionally written before this step's own agent-adaptation work ran), and
+  explicitly notes that `backend-developer.md` and `frontend-developer.md` are preserved but do
+  not apply to this repository — an explicit replacement of an obsolete selection, not an
+  appended contradiction, per this step's own instruction
+- Files modified: `ai-specs/agents/backend-developer.md`, `ai-specs/agents/frontend-developer.md`,
+  `ai-specs/agents/product-strategy-analyst.md` (frontmatter representation-only repairs);
+  `ai-specs/agents/java-backend-developer.md` (new file); `openspec/config.yaml` (agent-selection
+  text only) — all within this step's closed `Allowed modifications`
+- Validation, per this step's own list, all PASS:
+  - strict YAML parsing succeeds for every file under `ai-specs/agents/` (4/4, re-verified after
+    all edits: `python3 yaml.safe_load` on each file's frontmatter, all succeeded)
+  - every selected agent exists: PASS — `java-backend-developer.md` present
+  - frontmatter is valid: PASS — all 4 files
+  - description matches its technology family or work type: PASS — spot-checked each agent's
+    description against its actual body content
+  - unrelated agents remain unchanged: PASS — `backend-developer.md`/`frontend-developer.md`
+    diffs are representation-only, confirmed above
+  - a newly created agent is client-neutral, domain-neutral, and free of repository-specific
+    assumptions: PASS — see evidence above
+  - project-specific details are read from `docs/`: PASS — the new agent's own text instructs
+    reading the target repository's documentation and build file at task time
+  - every referenced documentation path exists: N/A for the new agent (it names no specific
+    repository-local doc path by design, to stay portable); the `openspec/config.yaml` context's
+    other doc references were already verified at `ADOPT-07`/`ADOPT-08` and are unchanged by this
+    step's edit
+  - OpenSpec selects an existing canonical agent: PASS — `java-backend-developer.md` exists
+    under `ai-specs/agents/`
+  - no client adapter is treated as canonical: PASS — no client adapter directories exist yet
+    (created at `ADOPT-13`, not this step); nothing in `.claude/` was read as a source of truth
+- Remaining risks: none identified beyond the pre-existing, unrelated-language agents' continued
+  presence (by design, per this step's preservation rule) — a future operator selecting Kiro or
+  another client for TypeScript/React work elsewhere in a different repository would still find
+  those agents intact
+- **Approval gate**: this step's gate text requires `[HUMAN APPROVAL REQUIRED]` **before removing
+  or replacing an existing agent** — no existing agent was removed or replaced (all 3 pre-existing
+  agents' substance is unchanged; only a new agent was added and one config reference was
+  corrected), so this gate was not triggered. Creating a new agent is explicitly conditional, not
+  a default step, and was justified above on the documented bar (no existing agent covers the
+  detected technology family)
+- **Result: PASS**
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -493,6 +593,7 @@ No failures found; no corrections made (this step's own text: "Do not correct fa
 2026-08-20 — ADOPT-06 — replaced the LTI-template docs/ content (Node.js/TypeScript/Prisma/React recruitment platform) with content derived from this repository's actual Java/Spring Boot Prices API, citation-verified against source; presented via AskUserQuestion with the exact scope and a diff-review option — approved by landaeta: "Approve as-is"
 2026-08-20 — ADOPT-07 — configured openspec/config.yaml's context/rules/operations from the adapted docs/ and ai-specs/agents/, ai-specs/skills/; validated the rules block with a falsifiable negative control (sentinel injected, confirmed reported, removed, confirmed absent) since openspec doctor does not read that block — no separate approval gate applies per this step's own text (edit reviewable, no live human-approval requirement); observed and executed by this session
 2026-08-20 — ADOPT-08 — read-only re-verification of the ADOPT-07 configuration; all 12 documented checks PASS, zero warnings, no files modified, no corrections made — no approval gate applies per this step's own text; observed and executed by this session
+2026-08-20 — ADOPT-09 — repaired representation-only frontmatter (strict-YAML block-scalar description) on all 3 pre-existing agents; created ai-specs/agents/java-backend-developer.md (client-neutral, domain-neutral) since no existing agent covers this repository's Java/Spring Boot stack; updated openspec/config.yaml's agent-selection text to the new agent — no existing agent removed or replaced, so this step's [HUMAN APPROVAL REQUIRED] gate (scoped to removal/replacement only) was not triggered; observed and executed by this session
 ```
 
 ## Correction record

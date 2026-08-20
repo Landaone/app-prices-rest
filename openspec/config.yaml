@@ -10,9 +10,12 @@ context: |
   Project rules: docs/base-standards.md (primary), docs/documentation-standards.md.
   English only for all technical artifacts (code, docs, commits, tests) - docs/base-standards.md
   section 2.
-  Agent selection: this repository is backend-only, so use the canonical
-  ai-specs/agents/backend-developer.md agent for implementation work; ai-specs/agents/frontend-developer.md
-  does not apply (no frontend exists).
+  Agent selection: this repository is backend-only Java/Spring Boot, so use the canonical
+  ai-specs/agents/java-backend-developer.md agent for implementation work.
+  ai-specs/agents/backend-developer.md is TypeScript/Prisma/Express-specific and does not apply
+  to this repository's stack; ai-specs/agents/frontend-developer.md does not apply either (no
+  frontend exists). Both are preserved unchanged in ai-specs/agents/ for other repositories or
+  future stacks - do not select or repurpose either for this repository's work.
   Treat ai-specs/skills/ as workflow guidance - load the matching skill (for example
   ai-specs/skills/commit, ai-specs/skills/update-docs) when a request matches it, per
   docs/base-standards.md section 4.
