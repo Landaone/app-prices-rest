@@ -19,11 +19,16 @@ Comprehensive methodology for systematic code quality audits.
 ## Audit Phases
 
 ### Phase 0: Pre-Analysis Setup
-1. Check for project configuration files (package.json, tsconfig.json, etc.)
-2. Identify tech stack and main libraries
-3. Check for linting/formatting configs
-4. Run existing linting/testing commands as baseline
-5. Load documentation for identified core libraries
+1. Check for project configuration files appropriate to the detected stack — for example
+   `package.json`/`tsconfig.json` (Node/TypeScript), `pom.xml`/`build.gradle` (Java/JVM),
+   `requirements.txt`/`pyproject.toml` (Python), `go.mod` (Go), `Cargo.toml` (Rust); detect from
+   files that actually exist in the repository rather than assuming any one ecosystem
+2. Identify tech stack and main libraries from that same evidence
+3. Check for linting/formatting configs already declared by the project (do not add a new one)
+4. Run only the project's own already-configured linting/testing commands as baseline — never
+   install or download an undeclared tool merely to perform this audit; resolving a dependency
+   the project already declares is fine, introducing a new one is not
+5. Load documentation for identified core libraries the project already depends on
 
 ### Phase 1: Discovery
 1. Find all code files by type
@@ -60,7 +65,8 @@ Look for recurring issues:
 ### Phase 5: Library Recommendations
 For custom implementations:
 1. Check if current libraries provide the functionality
-2. Search for mature ecosystem packages
+2. Search for mature ecosystem packages — external web, GitHub, or package-registry research
+   requires explicit user authorization before it is performed
 3. Verify library health (commits, issues, activity)
 4. Check compatibility with project setup
 
@@ -97,11 +103,15 @@ Generate detailed report with:
 - Missing caching opportunities
 - N+1 query patterns
 
-### TypeScript/Type Safety
-- Missing type annotations
-- Use of `any` type
-- Custom types duplicating official types
-- Missing @types packages
+### Type Safety
+Check the aspect that applies to the detected language:
+- **TypeScript**: missing type annotations, use of `any`, custom types duplicating official
+  types, missing `@types` packages
+- **Java/JVM**: raw types instead of generics, unchecked/unsafe casts, missing `@Nullable`/
+  `@NonNull` annotations where the project already uses them, overly broad `Object`/`Exception`
+  typing where a specific type is available
+- **Python**: missing type hints, use of `Any`, `# type: ignore` without justification
+- Other statically-typed languages: the equivalent compiler-enforced type-safety gaps
 
 ### Async/Promise Issues
 - Missing await keywords
@@ -116,9 +126,19 @@ Generate detailed report with:
 - Unused files (not imported anywhere)
 - Unused dependencies
 
-**Tools:**
-- JavaScript/TypeScript: `npx knip --reporter json`
+**Tools** (use only when already a declared dependency of the project, or already installed on
+the machine — never install one merely to run this audit; see `references/dead-code-methodology.md`
+for the full list):
+- JavaScript/TypeScript: `knip` (via `npx knip --reporter json`, only if the project already
+  depends on it or `npx` resolving it from the npm registry is acceptable in this environment)
 - Python: `deadcode . --dry`
+- Java/JVM: no bundled dead-code tool is listed here; rely on the build tool's own compiler
+  warnings (unused imports/variables) and, if the project already configures one, a static
+  analysis tool it already depends on (for example Checkstyle, PMD, or an IDE inspection
+  already part of the project setup) — do not add a new static-analysis dependency for this
+  audit alone
+- Other languages: use whatever dead-code/lint tool the project already declares; if none is
+  declared, note the gap in the report rather than introducing one
 
 **Important:** Always verify tool findings before reporting. Check for:
 - Dynamic imports (`import(variable)`)

@@ -89,7 +89,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-08` | `04-context-and-openspec.md` | PASS | 2026-08-20 |
 | `ADOPT-09` | `05-agents-and-skills.md` | PASS | 2026-08-20 |
 | `ADOPT-10` | `05-agents-and-skills.md` | PASS | 2026-08-20 |
-| `ADOPT-11` | `05-agents-and-skills.md` | PENDING | |
+| `ADOPT-11` | `05-agents-and-skills.md` | PASS | 2026-08-20 |
 | `ADOPT-12` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PENDING | |
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PENDING | |
@@ -560,6 +560,93 @@ No failures found.
 
 ---
 
+### `ADOPT-11` — Inspect and Adapt Skills
+
+- Skills inspected under `ai-specs/skills/` (10, pre-existing): `adversarial-review`,
+  `code-auditing`, `commit`, `enrich-us`, `explain`, `meta-prompt`, `specboot-verify`,
+  `update-docs`, `using-git-worktrees`, `writing-skills`
+- Assumptions found: `code-auditing/SKILL.md` (and its `references/audit-methodology.md`)
+  assumed a Node.js/TypeScript-first tech stack in 3 places — Phase 0's config-file check
+  named only `package.json`/`tsconfig.json`; the "Type Safety" analysis category was headed
+  and scoped as "TypeScript/Type Safety" only; the Dead Code detection tools list covered only
+  JavaScript/TypeScript (`knip`) and Python (`deadcode`), with no Java/JVM entry and no
+  explicit "don't install an undeclared tool" guard on the JS/TS entry. `references/
+  audit-methodology.md`'s baseline-checks example block showed JS/TS, Python, and Go commands
+  but no Java/Maven equivalent, despite already being otherwise stack-aware elsewhere in the
+  same file (package-file detection at line 10 and file-type identification at line 49 both
+  already listed Java/`pom.xml`)
+- Skills preserved unchanged (9 of 10): `adversarial-review`, `commit`, `enrich-us`, `explain`,
+  `meta-prompt`, `specboot-verify`, `update-docs` — grep for `npm|npx|jest|eslint|tsc|
+  typescript|node_modules|package\.json|prisma` (case-insensitive) across every `SKILL.md`
+  found zero matches in these 7, confirming they are already technology-agnostic;
+  `using-git-worktrees/SKILL.md` already detects the stack conditionally (`if [ -f
+  package.json ]; then npm install; fi`, and separately lists `npm test / cargo test / pytest
+  / go test ./...` as parallel alternatives, plus explicitly skips dependency install when no
+  manifest is found) — reviewed and confirmed it already correctly derives its dependency
+  step from files that actually exist rather than assuming Node.js, so left unchanged;
+  `writing-skills/SKILL.md`'s one "Testing techniques → TypeScript/JavaScript" line is
+  meta-guidance for choosing an illustrative example language when authoring a *new* skill, not
+  an assumption about this repository's own stack when running a skill against this
+  repository's code — confirmed by reading its surrounding context, left unchanged
+- Skills adapted, and why: `code-auditing/SKILL.md` — Phase 0 step 1 generalized to name
+  Java/JVM (`pom.xml`/`build.gradle`), Python, and Go alongside Node/TS config files, detected
+  from what actually exists; step 4 made explicit that only the project's own already-configured
+  commands run, never an installed-for-this-audit tool; the "TypeScript/Type Safety" section
+  renamed "Type Safety" with per-language subsections (TypeScript, Java/JVM, Python, other
+  statically-typed languages); the Dead Code Tools list gained an explicit Java/JVM entry
+  (compiler warnings and already-configured static analysis only, no new dependency) and an
+  explicit "use only when already a declared dependency" guard on the JS/TS `knip` entry;
+  Phase 5's library-search step gained an explicit external-research-requires-authorization
+  note, matching this step's own stated requirement. `references/audit-methodology.md` gained
+  one additional Java/Maven example command block (`./mvnw compile`/`./mvnw test`) alongside
+  the existing JS/TS/Python/Go examples in the baseline-checks section, plus an explicit
+  "run only commands the project's own build configuration already exposes" line — for
+  consistency with the file's own already-present Java awareness elsewhere (package-file and
+  file-type detection already listed Java before this step touched the file)
+- Detected tooling actually used to validate the above: none beyond direct file inspection and
+  `grep` — no new tool was installed, downloaded, or resolved; this step's own dependency-safety
+  rule was itself followed while executing this step
+- External web, GitHub, or package-registry research: **not performed** — not needed for this
+  adaptation (stack detection was possible entirely from repository evidence already gathered
+  at `ADOPT-06`), and no explicit user authorization was sought or required as a result
+- Mandatory-capability completeness check, per `ai-specs/specboot-instructions.md`'s "six
+  required workflow capabilities" list (`enrich-us`, `propose`, `apply`, `specboot-verify`,
+  `adversarial-review`, `archive`):
+  - SpecBoot-owned capabilities requiring a skill under `ai-specs/skills/` — `enrich-us`,
+    `specboot-verify`, `adversarial-review`: PASS — all 3 present as directories with a
+    `SKILL.md` entry file (`ai-specs/skills/enrich-us/SKILL.md`,
+    `ai-specs/skills/specboot-verify/SKILL.md`, `ai-specs/skills/adversarial-review/SKILL.md`)
+  - OpenSpec-CLI-generated capabilities — `propose`, `apply`, `archive`: PASS — confirmed
+    actually generated by the installed OpenSpec 1.7.0 CLI for the selected client (Claude) at
+    `ADOPT-02`, re-confirmed here: `find .claude/skills -maxdepth 1 -iname "openspec-*"` →
+    `openspec-propose`, `openspec-apply-change`, `openspec-archive-change` (plus
+    `openspec-explore`, `openspec-update-change`, `openspec-sync-specs`, not part of the
+    mandatory six but also generated) — checked at the right location for this capability's
+    own documented architecture (`.claude/skills/openspec-*`), not under `ai-specs/skills/`
+  - No SpecBoot-owned mandatory capability was found missing; no CLI-generated one was found
+    ungenerated — both would have been a step FAIL per this step's own text, neither occurred
+- Files modified: `ai-specs/skills/code-auditing/SKILL.md`,
+  `ai-specs/skills/code-auditing/references/audit-methodology.md` — both within this step's
+  closed `Allowed modifications` (`ai-specs/skills/` only)
+- Blockers versus optional improvements: none blocking; the Java dead-code-tool gap noted in
+  `code-auditing/SKILL.md`'s Tools list (no bundled Java equivalent to `knip`/`deadcode` is
+  listed) is recorded as a documented limitation, not a blocker — the skill still functions
+  correctly for this repository by falling through to compiler-warnings guidance
+- Validation, per this step's own list, all PASS: every canonical skill has its required entry
+  file; supporting resources (`code-auditing/references/*.md`) exist; referenced paths resolve;
+  stack-aware skills (`using-git-worktrees`, now also `code-auditing`) derive commands from
+  repository configuration; technology-specific checks are conditional; no undeclared tool or
+  dependency is required; no generated client directory (`.claude/skills/openspec-*`) is
+  confused with a canonical skill; shared skills remain suitable for the selected client
+  (Claude); the mandatory-capability completeness check (above) passed for every named
+  capability
+- **Approval gate: none beyond the edit being reviewable** — modifications limited to
+  `ai-specs/skills/`; no external research was performed, so the authorization-first rule for
+  that case was not triggered
+- **Result: PASS**
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -578,7 +665,8 @@ No failures found.
 | 12 | `ADOPT-07` | not a group — single step | PASS — `openspec/config.yaml` configured with `context`/`rules`/`operations`; YAML valid; `openspec doctor` zero warnings throughout; every referenced path (`docs/*`, `ai-specs/agents/backend-developer.md`, `ai-specs/skills/{commit,update-docs}`) confirmed to exist; rules block validated with a falsifiable negative-control sentinel (injected → confirmed reported → removed → confirmed absent) since `openspec doctor` does not read `rules`; two scratch changes used for validation deleted before this checkpoint, confirmed via `git status --short openspec/` showing only `config.yaml` modified | run log `ADOPT-07` evidence block above | YES — staged set is exactly `{openspec/config.yaml, .specboot/adoption/ADOPTION-RUN-LOG.md}`, matching `ADOPT-07`'s closed allowlist ("only the path that exists": `openspec/config.yaml`) plus the always-permitted run log; no scratch-change directories or other paths present in the diff | YES — declared after independent review of `git diff --cached --stat` (2 files) | this step's own approval gate is **none beyond the edit itself being reviewable** ("this step modifies only the OpenSpec configuration file") — no live `[HUMAN APPROVAL REQUIRED]` gate applies. The checkpoint's own commit/push gates auto-approve under standing authorization: staged set is a subset of `ADOPT-07`'s `Allowed modifications`, push conditions (fast-forward, remote-impact unchanged) independently verified below | `openspec/config.yaml`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `9fcb62a` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `2867d3e..9fcb62a`, exit 0, non-force | none raised at this checkpoint |
 | 13 | (SHA-backfill delta) + `ADOPT-08` | grouped **as executed, not as planned**: this checkpoint's only staged content beyond the mandatory `ADOPT-07` SHA-backfill line is `ADOPT-08`'s own evidence — and `ADOPT-08` itself made zero repository-local writes (its `Action` is explicitly "Do not modify files"), so there is no independently stageable state to split into a second commit; the run log is the only artifact either delta touches | `ADOPT-08`: PASS — 12/12 documented checks pass, zero warnings, no files modified, no corrections made (see run log evidence block above) | run log `ADOPT-07` SHA-backfill line; run log `ADOPT-08` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted (both the SHA-backfill delta and the entirety of `ADOPT-08`'s evidence, since that step wrote nothing else) | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `74abcda` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `9fcb62a..74abcda`, exit 0, non-force | none raised at this checkpoint |
 | 14 | `ADOPT-09` | not a group — single step | PASS — all 3 pre-existing agents failed strict YAML before repair, all 4 (3 repaired + 1 new) pass after; representation-only repair verified programmatically (recovered description equals original exactly); new agent verified client-neutral (`name`+`description` only) and domain-neutral (grep for repository terms → no matches); every validation in this step's own list PASS | run log `ADOPT-09` evidence block above | YES — staged set is exactly `{ai-specs/agents/backend-developer.md, ai-specs/agents/frontend-developer.md, ai-specs/agents/product-strategy-analyst.md, ai-specs/agents/java-backend-developer.md, openspec/config.yaml, .specboot/adoption/ADOPTION-RUN-LOG.md}`, matching `ADOPT-09`'s closed allowlist (`ai-specs/agents/` + agent-selection portion of `openspec/config.yaml`) plus the always-permitted run log; no client adapter directories touched | YES — declared after independent review of `git diff --cached --stat` (6 files) and confirming the 3 repaired agents' diffs are representation-only | this step's own `[HUMAN APPROVAL REQUIRED]` gate is scoped to removing or replacing an existing agent — not triggered, since no existing agent was removed or replaced (only a new agent added and a config reference corrected). The checkpoint's own commit/push gates auto-approve under standing authorization: staged set is a subset of `ADOPT-09`'s `Allowed modifications`, push conditions independently verified below | `ai-specs/agents/backend-developer.md`, `ai-specs/agents/frontend-developer.md`, `ai-specs/agents/product-strategy-analyst.md`, `ai-specs/agents/java-backend-developer.md`, `openspec/config.yaml`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | `d763bbb` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `74abcda..d763bbb` (via the intervening SHA-backfill commit `6070f7a`), exit 0, non-force | none raised at this checkpoint |
-| 15 | (SHA-backfill delta) + `ADOPT-10` | grouped **as executed, not as planned**: `ADOPT-10` made zero repository-local writes of its own (read-only step), so its only staged content beyond the mandatory `ADOPT-09` SHA-backfill line is its own evidence — no independently stageable state to split into a second commit | `ADOPT-10`: PASS — 11/11 documented checks pass, no files modified (see run log evidence block above) | run log `ADOPT-09` SHA-backfill line; run log `ADOPT-10` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | TBD — cannot be filled inside the commit it describes; filled at the next checkpoint's SHA-backfill delta per `00-conventions.md` | unchanged from checkpoint 14 (no new writes to any CI/ruleset/webhook/branch-protection surface) | pushed — fast-forward, exit 0, non-force | none raised at this checkpoint |
+| 15 | (SHA-backfill delta) + `ADOPT-10` | grouped **as executed, not as planned**: `ADOPT-10` made zero repository-local writes of its own (read-only step), so its only staged content beyond the mandatory `ADOPT-09` SHA-backfill line is its own evidence — no independently stageable state to split into a second commit | `ADOPT-10`: PASS — 11/11 documented checks pass, no files modified (see run log evidence block above) | run log `ADOPT-09` SHA-backfill line; run log `ADOPT-10` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `0b36bfc` | unchanged from checkpoint 14 (no new writes to any CI/ruleset/webhook/branch-protection surface) | pushed — fast-forward `ded9224..0b36bfc`, exit 0, non-force | none raised at this checkpoint |
+| 16 | `ADOPT-11` | not a group — single step | PASS — `code-auditing/SKILL.md` and its `audit-methodology.md` reference adapted to detect Java/JVM alongside JS/TS/Python/Go; 9/10 skills confirmed already technology-agnostic or stack-detecting (grep-verified, `using-git-worktrees` and `writing-skills` individually reasoned through); mandatory-capability completeness check PASS for all 6 required capabilities | run log `ADOPT-11` evidence block above | YES — staged set is exactly `{ai-specs/skills/code-auditing/SKILL.md, ai-specs/skills/code-auditing/references/audit-methodology.md, .specboot/adoption/ADOPTION-RUN-LOG.md}`, matching `ADOPT-11`'s closed allowlist (`ai-specs/skills/` only) plus the always-permitted run log; no client-generated skill directory touched | YES — declared after independent review of `git diff --cached --stat` (3 files) | this step's own approval gate is **none beyond the edit being reviewable**; modifications limited to `ai-specs/skills/`, and no external research was performed so the authorization-first rule for that case was not triggered. The checkpoint's own commit/push gates auto-approve under standing authorization: staged set is a subset of `ADOPT-11`'s `Allowed modifications`, push conditions independently verified below | `ai-specs/skills/code-auditing/SKILL.md`, `ai-specs/skills/code-auditing/references/audit-methodology.md`, `.specboot/adoption/ADOPTION-RUN-LOG.md` | (filled at the next checkpoint's SHA-backfill delta) | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward, exit 0, non-force | none raised at this checkpoint |
 
 ---
 
@@ -624,6 +712,7 @@ No failures found.
 2026-08-20 — ADOPT-08 — read-only re-verification of the ADOPT-07 configuration; all 12 documented checks PASS, zero warnings, no files modified, no corrections made — no approval gate applies per this step's own text; observed and executed by this session
 2026-08-20 — ADOPT-09 — repaired representation-only frontmatter (strict-YAML block-scalar description) on all 3 pre-existing agents; created ai-specs/agents/java-backend-developer.md (client-neutral, domain-neutral) since no existing agent covers this repository's Java/Spring Boot stack; updated openspec/config.yaml's agent-selection text to the new agent — no existing agent removed or replaced, so this step's [HUMAN APPROVAL REQUIRED] gate (scoped to removal/replacement only) was not triggered; observed and executed by this session
 2026-08-20 — ADOPT-10 — read-only re-verification of the ADOPT-09 agent adaptation; all 11 documented checks PASS, no files modified — no approval gate applies per this step's own text; observed and executed by this session
+2026-08-20 — ADOPT-11 — adapted code-auditing/SKILL.md and its audit-methodology.md reference to detect Java/JVM alongside the Node/TS-first assumptions found (Phase 0 config-file check, Type Safety section, Dead Code tools list, baseline-check examples); 9 of 10 skills confirmed already technology-agnostic or already stack-detecting, preserved unchanged; mandatory-capability completeness check passed for all 6 required workflow capabilities (3 SpecBoot-owned skills present, 3 OpenSpec-CLI-generated capabilities confirmed actually generated); no external research performed; observed and executed by this session
 ```
 
 ## Correction record

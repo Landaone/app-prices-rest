@@ -28,7 +28,14 @@ pytest
 # Go
 go vet ./...
 golint ./...
+
+# Java/Maven (only the checks the project already configures — e.g. via mvnw)
+./mvnw -q -o compile   # surfaces compiler warnings; add -o only if dependencies are cached
+./mvnw -q test
 ```
+
+Run only commands the project's own build configuration already exposes — do not add a new
+linter, formatter, or static-analysis plugin merely to establish this baseline.
 
 Document existing errors/warnings as baseline.
 
