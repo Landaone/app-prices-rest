@@ -36,7 +36,10 @@ Deviation from the default, if any: none
 ```text
 Policy: least-privilege default (project-local scope, automatic-allow disabled) unless the
 operator explicitly requests broader scope.
-Deviation from the default, if any: none
+Deviation from the default, if any: `ADOPT-05` — scope (local) and automatic-allow (disabled,
+via --no-permissions) both match the least-privilege default; front-loading was explicitly
+enabled by the operator (reference experiment used No) — not a scope or auto-allow escalation,
+recorded as the operator's own live choice at the interactive prompt.
 ```
 
 ## Standing commit-and-push authorization
