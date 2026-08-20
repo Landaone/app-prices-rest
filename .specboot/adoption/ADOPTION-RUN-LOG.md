@@ -85,7 +85,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-20 |
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS — fresh-session smoke test resolved via alternative criterion (Claude Code/macOS `NOT APPLICABLE ON THIS CLIENT`); Linux/Windows PENDING EVIDENCE (no machine available) | 2026-08-20 |
 | `ADOPT-06` | `04-context-and-openspec.md` | PASS | 2026-08-20 |
-| `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
+| `ADOPT-07` | `04-context-and-openspec.md` | PASS | 2026-08-20 |
 | `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
 | `ADOPT-10` | `05-agents-and-skills.md` | PENDING | |
@@ -378,6 +378,30 @@ Stop after reporting the negative control's result and the permission behavior.
 
 ---
 
+### `ADOPT-07` — Configure OpenSpec to Consume `docs/` and `ai-specs/`
+
+- Inspected before editing: installed OpenSpec version (`1.7.0`, already confirmed at `ADOPT-01`/`ADOPT-02`); the generated config file (`openspec/config.yaml`, previously all-commented-out template); the supported configuration keys read directly from the installed package's `ProjectConfigSchema` (`~/.nvm/versions/node/v24.18.0/lib/node_modules/@fission-ai/openspec/dist/core/project-config.js:22-48`, confirmed no dedicated "agents" key exists in this installed version — `schema`, `context`, `rules` (keyed by artifact id), `operations.{apply,archive}.guidance` are the only supported top-level fields); the installed `spec-driven` schema's own artifact list (`~/.nvm/.../schemas/spec-driven/schema.yaml` — `proposal`, `specs`, `design`, `tasks`, plus an `apply` operation; no schema-level `archive` operation, confirmed by direct inspection, though `operations.archive.guidance` is still a valid **config**-level (not schema-level) advisory field per `project-config.js`); the adapted `docs/` files from `ADOPT-06`; `ai-specs/agents/` (3 files: `backend-developer.md`, `frontend-developer.md`, `product-strategy-analyst.md`); `ai-specs/skills/` (10 skill directories)
+- Config path modified: `openspec/config.yaml` only (the only path that exists, matching this step's closed `Allowed modifications`)
+- Content added:
+  - `context`: tech stack (Java 11/Spring Boot 2.4.5/Maven/JPA/H2/Flyway/JUnit5), layered architecture pointer to `docs/backend-standards.md`, domain summary pointing to `docs/api-spec.yml`/`docs/data-model.md`, no-frontend note pointing to `docs/frontend-standards.md`, primary rules pointer to `docs/base-standards.md`/`docs/documentation-standards.md`, English-only reminder, and — since this installed version has no dedicated agent-selection config key — agent selection and skills-as-workflow-guidance folded into `context` itself, naming `ai-specs/agents/backend-developer.md` as the applicable canonical agent (backend-only repository; `frontend-developer.md` explicitly noted as not applicable) and pointing at `ai-specs/skills/` generally with two concrete examples (`commit`, `update-docs`)
+  - `rules.proposal`/`rules.specs`/`rules.design`/`rules.tasks`: repository-specific constraints derived from `docs/backend-standards.md`'s layered architecture, `docs/api-spec.yml` as the behavior contract, Flyway migration discipline, and `docs/base-standards.md` section 6's OpenSpec Tasks Mandatory Steps (feature branch, mandatory test review/run/curl/doc-update), with the E2E/Playwright step explicitly marked not applicable per `docs/frontend-standards.md`
+  - `operations.apply.guidance` / `operations.archive.guidance`: advisory only — run `./mvnw test` before marking tasks complete and restore H2 fixture state after mutating verification; confirm `docs/api-spec.yml`/`docs/data-model.md` are updated at archive time when the change touched the contract or persistence
+- Validation performed, all against the actually-installed OpenSpec version's own exposed commands:
+  - YAML syntax: PASS — `python3 -c "import yaml; yaml.safe_load(open('openspec/config.yaml'))"` → `VALID YAML`, exit 0
+  - Schema resolution: PASS — `openspec doctor` → `OpenSpec root: ok`, zero warnings, exit 0
+  - Every referenced path exists: PASS — all `docs/*.md`, `docs/api-spec.yml`, `ai-specs/agents/backend-developer.md`, `ai-specs/skills/commit`, `ai-specs/skills/update-docs` confirmed present via direct `ls`
+  - Proposal/specs/design/tasks rules parse correctly, **with a falsifiable negative control**: since `openspec doctor` does not read the `rules` block (confirmed by this step's own text), created a scratch change (`openspec new change adopt07-scratch-validation`) and ran `openspec instructions <artifact> --change <id>` for all four artifacts (`proposal`, `specs`, `design`, `tasks`) — each rendered its own `rules.<artifact>` list correctly inside a `<rules>` block. Injected a deliberately invalid sentinel rule (`"NEGATIVE-CONTROL-SENTINEL-DO-NOT-SHIP-8f2c1e"`) into `rules.proposal`, re-ran `openspec instructions proposal --change ...`, confirmed the sentinel **was** reported (`grep -c` → `1`) — proving the check can fail, not just pass — then removed the sentinel and re-confirmed absence (`grep -c` → `0`) and `openspec doctor` still zero-warnings. The scratch change directory was deleted before this checkpoint (`rm -rf openspec/changes/adopt07-scratch-validation`; a second scratch change created to verify the `context` update was also deleted — `openspec/changes/adopt07-scratch-validation2`); `git status --short openspec/` after cleanup shows only `openspec/config.yaml` modified, no residual scratch-change directories
+  - Apply/archive guidance parses correctly: PASS — `openspec instructions apply --change ...` and `openspec instructions archive --change ...` both rendered the `operations.apply.guidance`/`operations.archive.guidance` content correctly under an "Operation Guidance (advisory)" heading
+  - Selected agent existence: PASS — `ai-specs/agents/backend-developer.md` confirmed present
+  - Canonical skills path: PASS — `ai-specs/skills/` confirmed present with 10 skill directories, 2 spot-checked by path
+  - Absence of absolute machine-specific paths: PASS — `grep -n "/Users/\|/home/" openspec/config.yaml` → no matches
+  - `openspec doctor` zero warnings: PASS — confirmed at every validation pass above, both before and after the negative-control injection/removal
+- Corrections needed: none — first draft passed every check; the agent-selection and skills-as-workflow-guidance content was added as a deliberate completion of the step's own requirement (no dedicated config key exists for it in this installed version), not a correction of a failure
+- **Approval gate: none beyond the edit itself being reviewable** — per this step's own text ("this step modifies only the OpenSpec configuration file"), no separate `[HUMAN APPROVAL REQUIRED]` gate applies
+- **Result: PASS**
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -433,6 +457,7 @@ Stop after reporting the negative control's result and the permission behavior.
 2026-08-20 — ADOPT-04 — sparse-checkout blocked 19/22 files from CodeGraph indexing; three options presented via AskUserQuestion (widen sparse-checkout / disable sparse-checkout for a full checkout / stop and record FAIL) — approved by landaeta: full checkout (`git sparse-checkout disable`, this worktree only)
 2026-08-20 — ADOPT-05B — fresh-session smoke test's negative control (`date`) ran with no permission prompt; per the guide's own routing rule this made the primary (prompt-observing) criterion inapplicable — resolved via the documented alternative criterion (allowlist coverage by inspection + successful execution of every canonical-prompt command, no file modified) — observed by this session, no separate approval required (observation plus a documented fallback path, not a mutation decision)
 2026-08-20 — ADOPT-06 — replaced the LTI-template docs/ content (Node.js/TypeScript/Prisma/React recruitment platform) with content derived from this repository's actual Java/Spring Boot Prices API, citation-verified against source; presented via AskUserQuestion with the exact scope and a diff-review option — approved by landaeta: "Approve as-is"
+2026-08-20 — ADOPT-07 — configured openspec/config.yaml's context/rules/operations from the adapted docs/ and ai-specs/agents/, ai-specs/skills/; validated the rules block with a falsifiable negative control (sentinel injected, confirmed reported, removed, confirmed absent) since openspec doctor does not read that block — no separate approval gate applies per this step's own text (edit reviewable, no live human-approval requirement); observed and executed by this session
 ```
 
 ## Correction record

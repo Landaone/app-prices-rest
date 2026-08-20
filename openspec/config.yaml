@@ -1,32 +1,41 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Tech stack: Java 11, Spring Boot 2.4.5, Maven, Spring Data JPA, H2 (in-memory), Flyway
+  migrations, JUnit 5 + Spring Boot Test + Mockito.
+  Architecture: layered (rest/ -> core/ -> db/) - see docs/backend-standards.md.
+  Domain: single-endpoint price-resolution REST API (GET /api/price) - see docs/api-spec.yml
+  and docs/data-model.md.
+  This repository has no frontend - see docs/frontend-standards.md.
+  Project rules: docs/base-standards.md (primary), docs/documentation-standards.md.
+  English only for all technical artifacts (code, docs, commits, tests) - docs/base-standards.md
+  section 2.
+  Agent selection: this repository is backend-only, so use the canonical
+  ai-specs/agents/backend-developer.md agent for implementation work; ai-specs/agents/frontend-developer.md
+  does not apply (no frontend exists).
+  Treat ai-specs/skills/ as workflow guidance - load the matching skill (for example
+  ai-specs/skills/commit, ai-specs/skills/update-docs) when a request matches it, per
+  docs/base-standards.md section 4.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+rules:
+  proposal:
+    - "Identify the affected layer(s) per docs/backend-standards.md's layered architecture: rest/controllers, core/services, core/converters, core/model, db/entities, db/repositories, or rest/exception."
+    - "State whether the change affects the single existing capability (price resolution) or introduces a new one."
+  specs:
+    - "Express requirements as observable API behavior against docs/api-spec.yml (the current contract), not Java class or method names."
+    - "Cross-check docs/data-model.md before describing any behavior that affects persistence."
+  design:
+    - "Note any deviation from docs/backend-standards.md's layered architecture and why."
+    - "Schema changes require a new Flyway migration under src/main/resources/db/migration/ - never an edit to the existing V1_create_tables.sql."
+  tasks:
+    - "Follow docs/base-standards.md section 6 (OpenSpec Tasks Mandatory Steps) for backend changes: feature branch first, mandatory unit-test review, mandatory test run, mandatory curl verification (agent-executed), mandatory documentation update."
+    - "Mark any E2E/Playwright step not applicable - this repository has no frontend (docs/frontend-standards.md)."
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+operations:
+  apply:
+    guidance:
+      - "Run ./mvnw test before marking any task complete."
+      - "Restore Flyway-seeded fixture data state after any manual CREATE/UPDATE/DELETE verification against the H2 database."
+  archive:
+    guidance:
+      - "Confirm docs/api-spec.yml and docs/data-model.md were updated if this change touched the API contract or persistence, per docs/documentation-standards.md."
