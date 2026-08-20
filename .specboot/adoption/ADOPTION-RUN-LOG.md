@@ -982,6 +982,39 @@ Outcome: corrected in-session, before any further step, before any commit in eit
   destination and a pre-flight `pwd` check.
 ```
 
+```text
+Step: ADOPT-15, first attempt at obtaining the fresh-session runtime-discovery probe
+Attempt: 1
+Failure: the operator sent the exact `ADOPT-15` handoff prompt (with an added routing
+  instruction to relay the result back to "the original v5 window") into what turned out to be
+  the *same* continuing conversation as the one that ran `ADOPT-00` through `ADOPT-14` and wrote
+  this hand-off, not a genuinely new, isolated session. This was detected before any evidence was
+  fabricated: the responding turn had the entire `ADOPT-00`–`ADOPT-14` conversation directly in
+  its own context (including having itself created `.claude/agents/java-backend-developer.md`
+  and the other adapters `ADOPT-15` exists to test discovery of), and `pwd`/`git rev-parse HEAD`
+  confirmed it was running in this exact worktree at `a6f147c` — the precise commit this
+  hand-off left off at. `ListAgents` showed only sibling-experiment peer sessions
+  (`app-prices-rest-specboot-ai-adoption-v5-b5`, `-cf`, `-15`, and a `-v1` experiment) — different
+  worktrees entirely, none a bare "v5" peer session — so there was no separate "original v5
+  window" to relay a result to either; the responding turn concluded it was likely that window
+  itself, continuing.
+Diagnosis: violates this step's own explicit requirement ("a new session, not a continuation of
+  this one") and the skill's non-negotiable "A fresh session is a stop-and-hand-off. Never claim
+  one you didn't observe." A session that remembers building the adapters cannot honestly report
+  whether a client would discover them cold — any "PASS" produced here would be exactly the kind
+  of self-invalidating evidence `ADOPT-05B`'s own smoke-test rule already warned against
+  ("a same-session run of this smoke test is diagnostic data only, never smoke-test evidence").
+Recovery: the responding turn did not perform the review as claimable `ADOPT-15` evidence, did
+  not mark the step PASS, and did not modify any file. It surfaced the discrepancy to the
+  operator directly via `AskUserQuestion` rather than silently proceeding or asking a
+  rationalized "would they mind" question. Operator chose: open a genuinely new, separate Claude
+  Code window at this same repository path and run the exact hand-off prompt there, then bring
+  that transcript back for this session to register.
+Outcome: no evidence recorded for `ADOPT-15` from this attempt; the step remains `PENDING`,
+  awaiting a transcript from an actually-isolated session. Recorded here rather than silently
+  discarded, per the same non-negotiable as the correction above.
+```
+
 ---
 
 ## Command log for this step (supplementary, not part of the canonical template)
