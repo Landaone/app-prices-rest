@@ -84,7 +84,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-20 |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-20 |
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS — fresh-session smoke test resolved via alternative criterion (Claude Code/macOS `NOT APPLICABLE ON THIS CLIENT`); Linux/Windows PENDING EVIDENCE (no machine available) | 2026-08-20 |
-| `ADOPT-06` | `04-context-and-openspec.md` | PENDING | |
+| `ADOPT-06` | `04-context-and-openspec.md` | PASS | 2026-08-20 |
 | `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
@@ -355,6 +355,29 @@ Stop after reporting the negative control's result and the permission behavior.
 
 ---
 
+### `ADOPT-06` — Adapt the Repository Technical Context
+
+- Repository evidence inspected before editing: `pom.xml` (Java 11, Spring Boot 2.4.5 via `spring-boot-starter-parent`, dependencies `spring-boot-starter-data-jpa`, `spring-boot-starter-web`, `flyway-core`, `h2`, `lombok`, `spring-boot-devtools`, `spring-boot-configuration-processor`, `spring-boot-starter-test`); full `src/` tree (`find src -type f`, 18 files); every `src/main/java` file read directly (`AppPricesRestApplication`, `PriceController`, `PriceService`/`PriceServiceImpl`, `PriceEntity`, `PriceModel`, `PriceEntityModelConverter`, `PriceRepository`, `HttpException`/`NotFoundException`/`NoPriceFoundException`, `HttpErrorHandler`, `Error`); every `src/test/java` file read directly (`PriceControllerTest`, `PriceServiceImplTest`, `PriceEntityModelConverterTest`, `AppPricesRestApplicationTests`); `src/main/resources/application.yaml`; `src/main/resources/db/migration/V1_create_tables.sql`; `codegraph explore` run twice (entry points at `ADOPT-04`/`ADOPT-05B`, plus a targeted symbol query this step against the exception-handling classes) to obtain verbatim, line-numbered source and blast-radius/test-coverage flags as citation evidence
+- Files modified (all under `docs/`, matching this step's closed `Allowed modifications`): `api-spec.yml`, `data-model.md`, `development_guide.md`, `backend-standards.md`, `frontend-standards.md`, `base-standards.md` (one stale cross-reference line only — see below)
+- Template contamination found and removed: the entire prior `docs/` content described a Node.js/TypeScript/Prisma/React "LTI" recruitment-and-interview platform (candidates, positions, interview flows, companies, employees) with no relationship to this repository, which is a single-endpoint Java/Spring Boot price-resolution service; `grep -rniE "LTI|candidate|recruitment|interview|prisma|typescript|node\.js|react|cypress|postgres" docs/*.md docs/*.yml AGENTS.md CLAUDE.md GEMINI.md codex.md` after editing returns no remaining template terminology (the few remaining matches are this project's own unrelated English words — "multiple overlapping windows", "core/model/", generic AI-spec meta-rule text — confirmed by inspection, not template contamination)
+- Corrections needed: `docs/base-standards.md` line 31 (a cross-reference to Frontend Standards) described "React components, UI/UX guidelines, and frontend architecture" — inconsistent with the newly-accurate `frontend-standards.md`, which documents no frontend exists for this repository. Corrected to "Not applicable; this repository is backend-only" for internal consistency across `docs/`. Since `docs/base-standards.md` is the symlink target of the four root instruction files created at `ADOPT-03` (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `codex.md`), this one-line edit updates all four automatically without touching the symlinks themselves.
+- Validation, per this step's own checklist:
+  - documented stack against build files: PASS — Java 11 / Spring Boot 2.4.5 / Maven confirmed against `pom.xml` directly
+  - architecture against source structure: PASS — the documented `rest/`/`core/`/`db/` layering in `backend-standards.md` matches `find src/main/java -type f` exactly
+  - API documentation against controllers: PASS — `api-spec.yml`'s single `GET /api/price` path matches `PriceController`'s only `@GetMapping` exactly, including its three query parameters
+  - data model against entities and migrations: PASS — `data-model.md`'s single `PriceEntity`/`PRICES` table matches `V1_create_tables.sql`'s single `CREATE TABLE` and `PriceEntity.java`'s `@Column` mappings field-for-field
+  - build and test commands against repository configuration: PASS — `./mvnw clean install`/`./mvnw test`/`./mvnw spring-boot:run` confirmed against the committed `mvnw` wrapper and `pom.xml`'s `spring-boot-maven-plugin`
+  - absence of unrelated template terminology: PASS — see grep result above
+  - consistency across all changed documents: PASS — `frontend-standards.md`'s N/A status is now consistently referenced from `base-standards.md`; `api-spec.yml`'s known-risks-and-defects section and `data-model.md`'s and `backend-standards.md`'s references to the same two defects use identical citations
+  - every factual claim resolves to a code-graph citation: PASS — every non-obvious claim in the four substantially-rewritten files (`api-spec.yml`, `data-model.md`, `development_guide.md`, `backend-standards.md`) carries an inline `file:line` citation, spot-verified in this session by re-reading the cited line ranges directly (`PriceController.java:20-32`, `PriceRepository.java:10-14`, `PriceServiceImpl.java:24-27`, `HttpErrorHandler.java:11-33`, `PriceEntityModelConverter.java:11-25`, `application.yaml:1-28`, `V1_create_tables.sql:1-3`) against what was written — all matched exactly
+- Citation for each factual claim needing one: see the inline `file:line` citations embedded directly in `api-spec.yml` (including its `x-known-risks-and-defects` block), `data-model.md`, and `backend-standards.md` — not restated separately here, per this step's own note that a second copy of an evolving citation list drifts
+- Unresolved contradictions or risks: none beyond the two deliberately documented defects (exception-handler parameter-type mismatch in `HttpErrorHandler`; no direct database-level test of `PriceRepository`'s derived query beyond the four Flyway fixture rows) — both are pre-existing in the code, not introduced by this step, and are documented as risks per this step's own instruction to preserve known defects rather than silently normalize them
+- Prompt changes required: none
+- **Approval gate: [HUMAN APPROVAL REQUIRED]** — presented via `AskUserQuestion` with the exact scope (6 files, ~376 insertions / 3160 deletions net, template-to-real-repo content replacement, two documented defects) and an option to review the full diff first; **approved by landaeta**, "Approve as-is"
+- **Result: PASS**
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -407,6 +430,7 @@ Stop after reporting the negative control's result and the permission behavior.
 2026-08-19 — ADOPT-00 — fresh-session discovery-and-execution probe — observed by this (new, fresh) session — native `specboot-adopt` skill discovery succeeded via the bootstrap symlink, no operator-supplied path — result PASS — no separate approval required (observation, not a mutation)
 2026-08-20 — ADOPT-04 — sparse-checkout blocked 19/22 files from CodeGraph indexing; three options presented via AskUserQuestion (widen sparse-checkout / disable sparse-checkout for a full checkout / stop and record FAIL) — approved by landaeta: full checkout (`git sparse-checkout disable`, this worktree only)
 2026-08-20 — ADOPT-05B — fresh-session smoke test's negative control (`date`) ran with no permission prompt; per the guide's own routing rule this made the primary (prompt-observing) criterion inapplicable — resolved via the documented alternative criterion (allowlist coverage by inspection + successful execution of every canonical-prompt command, no file modified) — observed by this session, no separate approval required (observation plus a documented fallback path, not a mutation decision)
+2026-08-20 — ADOPT-06 — replaced the LTI-template docs/ content (Node.js/TypeScript/Prisma/React recruitment platform) with content derived from this repository's actual Java/Spring Boot Prices API, citation-verified against source; presented via AskUserQuestion with the exact scope and a diff-review option — approved by landaeta: "Approve as-is"
 ```
 
 ## Correction record

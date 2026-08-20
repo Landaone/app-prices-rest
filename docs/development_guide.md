@@ -1,153 +1,88 @@
 # Development Guide
 
-This guide provides step-by-step instructions for setting up the development environment and running tests for the LTI ATS system.
+This guide provides step-by-step instructions for setting up the development environment and
+running tests for the Prices REST API — a Spring Boot / Java service with no frontend and no
+external database dependency (H2 runs in-memory, embedded in the application process).
 
 ## 🚀 Setup Instructions
 
 ### Prerequisites
 
 Ensure you have the following installed:
-- **Node.js** (v16 or higher)
-- **npm** (v8 or higher)
-- **Docker** and **Docker Compose**
+- **Java 11** (matches `<java.version>11</java.version>` in `pom.xml`)
+- **Maven** — or use the bundled wrapper (`./mvnw` / `mvnw.cmd`), which requires no separate
+  Maven install
 - **Git**
 
 ### 1. Clone the Repository
 
 ```bash
-git clone git@github.com:LIDR-academy/AI4Devs-LTI-extended.git
-cd AI4Devs-LTI-extended
+git clone <repository-url>
+cd app-prices-rest
 ```
 
 ### 2. Environment Configuration
 
-Create environment files for both backend and frontend:
-
-**Backend Environment** (`backend/.env`):
-```env
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=LTIdbUser
-DB_PASSWORD=<DB_PASSWORD>
-DB_NAME=LTIdb
-
-# Application Configuration
-PORT=3000
-NODE_ENV=development
-
-# Prisma Database URL
-DATABASE_URL="postgresql://LTIdbUser:<DB_PASSWORD>@localhost:5432/LTIdb"
-```
-
-**Frontend Environment** (`frontend/.env`):
-```env
-REACT_APP_API_URL=http://localhost:3000
-```
-
-### 3. Database Setup (PostgreSQL with Docker)
-
-Start the PostgreSQL database using Docker Compose:
+No `.env` file or external configuration is required to run locally. The application defaults
+to an in-memory H2 database (src/main/resources/application.yaml:12-16); override via
+environment variables only if pointing at a different database:
 
 ```bash
-# Start PostgreSQL container
-docker-compose up -d
-
-# Verify the database is running
-docker-compose ps
+export DATABASE_URL=jdbc:h2:mem:testdb   # default
+export DATABASE_USER=sa                  # default
+export DATABASE_PASS=                    # default (empty)
 ```
 
-The PostgreSQL database will be available at:
-- **Host**: `localhost`
-- **Port**: `5432`
-- **Database**: `LTIdb`
-- **Username**: `LTIdbUser`
-- **Password**: `<DB_PASSWORD>`
-
-### 4. Backend Setup
+### 3. Build and Run
 
 ```bash
-# Navigate to backend directory
-cd backend
+# Build (first run resolves dependencies from Maven Central; add -o once cached, as a speed-up only)
+./mvnw clean install
 
-# Install dependencies
-npm install
-
-# Generate Prisma client
-npm run prisma:generate
-
-# Run database migrations
-npx prisma migrate deploy
-
-# (Optional) Seed the database with sample data
-npx prisma db seed
-
-# Start the development server
-npm run dev
+# Run the application
+./mvnw spring-boot:run
 ```
 
-The backend API will be available at `http://localhost:3000`
+The API will be available at `http://localhost:8080` (default Spring Boot port — no
+`server.port` override is configured).
 
-### 5. Frontend Setup
+Database migrations (Flyway) run automatically on startup and seed the `PRICES` table with 4
+fixture rows (src/main/resources/db/migration/V1_create_tables.sql).
+
+### 4. Verify
 
 ```bash
-# Navigate to frontend directory (from project root)
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start the development server
-npm start
+curl "http://localhost:8080/api/price?brandId=1&productId=35455&applicationDate=2020-06-14%2010:00:00"
 ```
 
-The frontend application will be available at `http://localhost:3001`
+Expected response (200):
 
-### 6. Cypress Testing Suite Setup
-
-```bash
-# From the frontend directory
-cd frontend
-
-# Install Cypress (if not already installed)
-npm install
-
-# Open Cypress Test Runner (Interactive)
-npm run cypress:open
-
-# Or run tests headlessly
-npm run cypress:run
+```json
+{
+  "brandId": 1,
+  "startDate": "2020-06-14T00:00:00",
+  "endDate": "2020-12-31T23:59:59",
+  "productId": 35455,
+  "priceList": 1,
+  "priority": 0,
+  "price": 35.5,
+  "curr": "EUR"
+}
 ```
 
 ## 🧪 Testing
 
-### Backend Testing
-
 ```bash
-cd backend
-
 # Run all tests
-npm test
+./mvnw test
 
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
+# Run a single test class
+./mvnw test -Dtest=PriceControllerTest
 ```
 
-### Frontend Testing
+The test suite (src/test/java/com/llandaeta/prices/) uses JUnit 5 (Jupiter), Spring Boot Test,
+`MockMvc` for controller-level integration tests, and Mockito's `@MockBean` for service-level
+unit tests. There is no separate frontend or E2E test suite — this repository is backend-only.
 
-```bash
-cd frontend
-
-# Run unit tests
-npm test
-
-# Run E2E tests with Cypress
-npm run cypress:run
-
-# Open Cypress Test Runner
-npm run cypress:open
-```
-
+No coverage tool (e.g. JaCoCo) is configured in `pom.xml`; there is no enforced coverage
+threshold.
