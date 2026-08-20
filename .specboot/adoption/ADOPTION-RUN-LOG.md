@@ -93,7 +93,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-12` | `05-agents-and-skills.md` | PASS | 2026-08-20 |
 | `ADOPT-13` | `06-adapters-and-discovery.md` | PASS | 2026-08-20 |
 | `ADOPT-14` | `06-adapters-and-discovery.md` | PASS | 2026-08-20 |
-| `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PENDING — fresh-session runtime-discovery probe not yet observed | 2026-08-20 |
+| `ADOPT-15` | `06-adapters-and-discovery.md` (once per client) | PASS | 2026-08-20 |
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PENDING | |
 | `ADOPT-18` | `10-debootstrap.md` | PENDING | |
@@ -838,10 +838,80 @@ this step). Repeat once per selected client — Claude only, in this run.
 
 | Client | Status |
 |---|---|
-| Claude | PENDING EVIDENCE — awaiting the fresh-session run above |
+| Claude | PASS — see evidence below |
 
-- **Approval gate: none** — read-only, and the prompt forbids file modification
-- **Result: PENDING — runtime-discovery probe requires a fresh session, handed off above.**
+**Fresh-session evidence obtained**, second attempt (the first, same-session attempt was
+correctly refused and is recorded in the Correction record below). The operator opened a
+genuinely separate Claude Code window (VSCode extension) at this same repository path and ran
+the exact handoff prompt verbatim; its full report was relayed back to this session verbatim.
+Authenticity cross-checks performed on the relayed transcript before trusting it: the reported
+primary risk (the `HttpErrorHandler.unhandledExceptions` parameter-type mismatch) matches this
+repository's own already-documented, citation-backed defect from `ADOPT-06`
+(`docs/api-spec.yml`'s `x-known-risks-and-defects`), confirming the fresh session actually
+inspected this repository rather than producing a generic answer; the reported file set
+(`PriceController.java`, `PriceEntity.java`, `V1_create_tables.sql`, `HttpErrorHandler.java`)
+and line citations are consistent with this repository's real structure.
+
+- **Client and active agent/mode**: Claude Code (VSCode extension); no subagent or slash-command
+  mode active — the review ran in the main session
+- **Root repository instruction files automatically loaded** (1 — automatic discovery):
+  `/Users/landaeta/.claude/CLAUDE.md` (user-global), project-root `CLAUDE.md` (the `ADOPT-03`
+  symlink to `docs/base-standards.md`), `.claude/CLAUDE.md` (the `.claude`-scoped bootstrap
+  instruction file)
+- **Canonical/adapted agent definitions automatically discovered** (1): the full agent-type
+  listing surfaced automatically and included `java-backend-developer` and
+  `product-strategy-analyst` — the exact two agents `ADOPT-13` exposed, and only those two (no
+  `backend-developer`/`frontend-developer`/`backend-implementer`, matching `ADOPT-09`'s decision
+  not to expose them). **Invocation (2)**: neither was invoked — correctly reported separately,
+  not a discovery failure, since this was read-only analysis
+- **Skills automatically discovered** (1): the full skill catalog surfaced automatically,
+  including `specboot-adopt` and the 10 canonical skills exposed at `ADOPT-13`. **Invocation
+  (2)**: none invoked. Notably, the fresh session caught a real tension and reported it rather
+  than silently resolving it either way: `.claude/CLAUDE.md`'s bootstrap instruction block
+  (`ADOPT-00`'s own provisioning, "Run the `specboot-adopt` skill... This block is temporary and
+  is removed at `ADOPT-18`") unconditionally directs running an adoption/bootstrap workflow that
+  can write files, which conflicts with this step's own explicit read-only/no-modification
+  constraint. The session correctly did **not** run it, and flagged the conflict instead of
+  choosing silently — the right call, and exactly the kind of prohibited-manual-injection
+  temptation interpretation rule (4) exists to catch, avoided here in the direction of *not*
+  running something, not toward fabricating discovery
+- **Project documentation consumed**: `docs/base-standards.md`, `docs/backend-standards.md`,
+  `openspec/config.yaml`, `.specboot/adoption/*` (listing only) — manual reading (3), normal task
+  execution, not a discovery failure
+- **CodeGraph tools or commands used**: the `UserPromptSubmit` hook (`codegraph prompt-hook`,
+  `.claude/settings.json`) fired automatically (1) before any action was taken, returning
+  verbatim source for `PriceService`/`PriceRepository`/`PriceServiceImpl`/`PriceModel`; no manual
+  `codegraph_explore` call was made — the rest of the review used direct `Read`/`Bash` because
+  the actual risk lived in files (`PriceController`, `HttpErrorHandler`) outside what the hook
+  happened to auto-match on the prompt text
+- **Resources opened manually because automatic discovery didn't reach them**:
+  `PriceController.java`, `PriceEntity.java`, `V1_create_tables.sql`, `HttpErrorHandler.java`,
+  `docs/base-standards.md`, `openspec/config.yaml`, `.claude/settings.json` — reported explicitly
+  as manual (3), not claimed as automatic
+- **Primary implementation risk reported**: the global fallback exception handler
+  (`HttpErrorHandler.unhandledExceptions`) cannot actually run for the one input-validation gap
+  the controller already has — `PriceController.java:28`'s fixed-pattern `LocalDateTime.parse`
+  throws a plain `DateTimeParseException` (not `HttpException`) on malformed input, and
+  `HttpErrorHandler.java:24-25`'s `@ExceptionHandler(Exception.class)` method declares its
+  parameter as `HttpException`, so Spring MVC cannot bind the actual thrown type and falls
+  through to its own default error resolution instead of this handler's structured body — the
+  intended "anything unhandled" safety net is unreachable for the most likely unhandled case on
+  this service's only endpoint. This is the same defect this run already documented at `ADOPT-06`
+  (`docs/api-spec.yml`'s `x-known-risks-and-defects`, `unhandled-exception-handler-parameter-type-mismatch`),
+  independently rediscovered here rather than fed to the session
+- **Files modified**: none — confirmed both by the fresh session's own report and by this
+  session's own `git status --short` after relay, showing no working-tree change attributable to
+  that session
+- **PASS/FAIL for automatic runtime discovery, per this step's own interpretation rules**: PASS
+  — (1) automatic instruction/catalog/CodeGraph discovery genuinely happened (root instructions,
+  agent roster, skill catalog, CodeGraph hook, all before any agent action); (4) prohibited
+  manual injection did not occur (the session explicitly refused to front-load or force-run
+  anything to manufacture a pass, including declining the bootstrap skill instruction it was
+  handed). Neither of this step's two actual failure conditions ("(1) did not happen or the
+  operator had to perform (4)") occurred
+- **Approval gate: none** — read-only, and the prompt forbade file modification; confirmed
+  followed
+- **Result: PASS**
 
 ---
 
@@ -875,7 +945,7 @@ this step). Repeat once per selected client — Claude only, in this run.
 
 | # | Checkpoint | Target file | Proposal | Status (`proposed` / `accepted` / `rejected` / `applied-in-change-<id>`) |
 |---|---|---|---|---|
-| | | | | |
+| 1 | `ADOPT-15` (fresh-session probe) | `09-bootstrap.md` (the `.claude/CLAUDE.md` bootstrap-instruction content it generates) | The bootstrap instruction block unconditionally directs every fresh session to "Run the `specboot-adopt` skill," with no carve-out for a session whose actual task is explicitly read-only (for example `ADOPT-15`'s own runtime-discovery probe, or any other read-only request an operator might send to a fresh session before `ADOPT-18` removes the block). The `ADOPT-15` fresh session correctly caught this and refused to run it rather than silently picking a side, but a less careful session might not. Consider having the generated block name an explicit exception for read-only/no-modification requests, or note that a conflicting explicit instruction from the operator takes precedence. | proposed |
 
 ---
 
@@ -918,6 +988,8 @@ this step). Repeat once per selected client — Claude only, in this run.
 2026-08-20 — ADOPT-13 — adapter plan (2 agent symlinks, 10 skill symlinks, all relative, all into ai-specs/) presented via AskUserQuestion since exposing product-strategy-analyst.md was a new decision beyond ADOPT-09's literal OpenSpec-selection evidence, not eligible for this step's narrow auto-approve criterion — approved by landaeta: "Approve as-is"; zero collisions with the 6 existing real OpenSpec-generated skill directories, zero symlinks skipped
 2026-08-20 — ADOPT-14 — read-only re-verification of the ADOPT-13 client adapters; all 11 documented checks PASS, no broken links, no malformed names, no files modified — no approval gate applies per this step's own text; observed and executed by this session
 2026-08-20 — ADOPT-15 — stop-and-hand-off: this session provisioned the client adapters and cannot evidence their runtime discovery for itself; generated the exact fresh-session prompt and stopped, per this step's own explicit shape (same as ADOPT-00/ADOPT-05B) — no approval required (observation/hand-off, not a mutation)
+2026-08-20 — ADOPT-15 — first fresh-session attempt landed in this same continuing conversation instead of an isolated session (see Correction record); refused before fabricating evidence, no PASS claimed, no file modified — operator opened a genuinely separate window and reran the exact prompt there — observed by this session, no approval required
+2026-08-20 — ADOPT-15 — second attempt: a genuinely fresh, separate Claude Code session's transcript relayed back and cross-checked (primary risk matches this run's own ADOPT-06 citation, file set matches the real repository structure) — result PASS, both automatic-discovery conditions (1)/(4) satisfied — no approval required (observation, not a mutation)
 ```
 
 ## Correction record
