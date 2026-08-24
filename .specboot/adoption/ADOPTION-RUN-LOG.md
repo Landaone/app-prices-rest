@@ -98,7 +98,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-20 |
 | `ADOPT-18` | `10-debootstrap.md` | PASS | 2026-08-20 |
 | `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PASS | 2026-08-25 |
-| `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
+| `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PASS — READY, PR creation approval pending | 2026-08-25 |
 
 ---
 
@@ -1267,6 +1267,47 @@ already-documented, citation-backed risk from `ADOPT-06`
 
 ---
 
+### `ADOPT-20` — Pull-Request Readiness Gate
+
+**Verification only — this step creates nothing and modifies nothing.** Confirmed from recorded
+evidence, step by step, individually — not inferred from "looks done."
+
+| Step | Recorded status | Evidence pointer |
+|---|---|---|
+| `ADOPT-00` | PASS — fresh-session discovery-and-execution gate observed | run log line 107 |
+| `ADOPT-01` | PASS | run log line 194 |
+| `ADOPT-02` | PASS | run log line 212 |
+| `ADOPT-03` | PASS | run log line 230 |
+| `ADOPT-04` | PASS (mandatory) | run log line 248 |
+| `ADOPT-05` | PASS (mandatory) | run log line 261 |
+| `ADOPT-05B` | PASS — resolved via the alternative criterion for the one available client/OS (Claude/macOS); Linux/Windows legitimately `PENDING EVIDENCE` (no machine available, permanent residual per this step's own "every unavailable supported combination is recorded as PENDING EVIDENCE" PASS criterion — not a blocker) | run log line 290 |
+| `ADOPT-06` | PASS | run log line 358 |
+| `ADOPT-07` | PASS | run log line 381 |
+| `ADOPT-08` | PASS | run log line 405 |
+| `ADOPT-09` | PASS | run log line 436 |
+| `ADOPT-10` | PASS | run log line 536 |
+| `ADOPT-11` | PASS | run log line 563 |
+| `ADOPT-12` | PASS | run log line 650 |
+| `ADOPT-13` | PASS | run log line 679 |
+| `ADOPT-14` | PASS | run log line 757 |
+| `ADOPT-15` | PASS — second-attempt evidence; first attempt correctly refused, recorded in the Correction record, never counted as PASS | run log line 792 |
+| `ADOPT-16` | PASS | run log line 918 |
+| `ADOPT-17` | PASS | run log line 960 |
+| `ADOPT-18` | PASS — second-pass evidence; disposition complete, second fresh-session re-check PASS | run log line 1008 |
+| `ADOPT-19` | PASS | run log line 1187; Daily workflow pilot block |
+
+- **Any row at FAIL, PENDING, or blank (must be NONE)**: **NONE** — every one of the 20 rows above
+  reads a recorded `PASS`. (`ADOPT-05B`'s internal per-client-OS sub-table carries two `PENDING
+  EVIDENCE` rows for unavailable machines, which is that step's own documented, non-blocking PASS
+  path — not the step-level status this gate checks.)
+- **Readiness verdict: READY**
+- **Approval**: presented below via `AskUserQuestion`, before any pull request is created — per
+  this step's own `[HUMAN APPROVAL REQUIRED]` gate, separate from any prior approval
+- **Pull request created (identifier), if any**: none yet — awaiting the approval above
+- **Result: PASS** (readiness confirmed; PR creation itself is gated separately, immediately below)
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -1298,7 +1339,8 @@ already-documented, citation-backed risk from `ADOPT-06`
 | 25 | `ADOPT-18` | not a group — single step | PENDING — all 4 removals/conversions complete and terminal, manifest written back, `ADOPT-14` re-check PASS, but this step's own acceptance criteria require the mandatory second `ADOPT-15` fresh-session re-check to PASS before the step itself is PASS (see run log evidence block above) | run log `ADOPT-18` evidence block above; updated `BOOTSTRAP-MANIFEST.json` | YES — staged set is exactly `{.claude/CLAUDE.md, .gitignore, .specboot/adoption/ADOPTION-RUN-LOG.md, .specboot/adoption/BOOTSTRAP-MANIFEST.json}`, matching `ADOPT-18`'s closed rule (only manifest-recorded entries, plus the manifest and run log themselves) exactly; `.claude/skills/specboot-adopt`'s removal produces no git diff since it was never tracked (machine-local, git-ignored) — correctly not appearing in the staged set | YES — declared after independent review of `git diff --cached --stat` (4 files) and confirming each diff matches exactly the approved disposition (6-line and 4-line block removals only, nothing else touched) | this step's own content gate was **live**: the exact 4-item disposition plan presented via `AskUserQuestion`, approved by landaeta ("Approve as-is") before any removal. The checkpoint's own commit/push gates auto-approve separately under standing authorization: staged set is a subset of `ADOPT-18`'s `Allowed modifications`, push conditions independently verified below | `.claude/CLAUDE.md`, `.gitignore`, `.specboot/adoption/ADOPTION-RUN-LOG.md`, `.specboot/adoption/BOOTSTRAP-MANIFEST.json` | `00c6270` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `3978872..00c6270`, exit 0, non-force | none raised at this checkpoint |
 | 26 | (SHA-backfill delta) + `ADOPT-18` closing | grouped **as executed, not as planned**: this checkpoint's only staged content beyond the mandatory checkpoint-24 SHA-backfill line is `ADOPT-18`'s own closing evidence and manifest update — no independently stageable state exists to split from that backfill | `ADOPT-18`: PASS — second fresh-session re-check confirmed (agent roster matches `ADOPT-13`, `specboot-adopt` correctly absent, risk matches `ADOPT-06`'s own citation), zero files modified by that session (see run log evidence block above) | run log checkpoint-24 SHA-backfill line; run log `ADOPT-18` closing evidence; updated `BOOTSTRAP-MANIFEST.json` `debootstrap` block | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md, .specboot/adoption/BOOTSTRAP-MANIFEST.json}`, both always-permitted adoption-tracking artifacts | YES — declared after independent review of `git diff --cached --stat` (2 files) | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md`, `.specboot/adoption/BOOTSTRAP-MANIFEST.json` | `32aba70` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `a20510c..32aba70`, exit 0, non-force | none raised at this checkpoint |
 | 27 | (SHA-backfill delta only) | not a group — the run log's own commit-SHA cell for checkpoint 26, filled after that commit existed | n/a — no `ADOPT` step's own validation; the run log carrying its one-line delta forward | this row | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `7730282` | unchanged from checkpoint 26 (no new writes to any CI/ruleset/webhook/branch-protection surface) | pushed — fast-forward `32aba70..7730282`, exit 0, non-force | none raised at this checkpoint |
-| 28 | `ADOPT-19` | not a group — single step | PASS — human-named pilot task run through the full six-capability daily workflow (enrich-us → propose → apply → tests → specboot-verify → independent adversarial-review → archive), all reaching their required outcome; independent adversarial review found and the pilot fixed a real Major (silent lenient date parsing), proving the two-gate design works, not merely that its steps execute (see run log `ADOPT-19` evidence block and Daily workflow pilot block above) | run log `ADOPT-19` evidence block; Daily workflow pilot block; pilot implementation on branch `feature/validate-application-date-parameter-backend` (commits `d01f3a5`, `2dc636e`, not on this branch) | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}` on this branch (`experiment/specboot-ai-adoption-v5`); `ADOPT-19` itself carries no separate write scope beyond orchestration and evidence recording per its own text — the pilot's actual code/doc/artifact changes live on the pilot's own feature branch, reviewed and approved through that change's own OpenSpec/checkpoint machinery, not this adoption branch's | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | (filled at the next checkpoint's SHA-backfill delta) | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline — note this row covers only the adoption run log's own delta; the pilot's separate feature-branch commits were never pushed to `origin` (no remote mutation attempted, per the Daily workflow pilot block) | pushed — fast-forward, exit 0, non-force | none raised at this checkpoint |
+| 28 | `ADOPT-19` | not a group — single step | PASS — human-named pilot task run through the full six-capability daily workflow (enrich-us → propose → apply → tests → specboot-verify → independent adversarial-review → archive), all reaching their required outcome; independent adversarial review found and the pilot fixed a real Major (silent lenient date parsing), proving the two-gate design works, not merely that its steps execute (see run log `ADOPT-19` evidence block and Daily workflow pilot block above) | run log `ADOPT-19` evidence block; Daily workflow pilot block; pilot implementation on branch `feature/validate-application-date-parameter-backend` (commits `d01f3a5`, `2dc636e`, not on this branch) | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}` on this branch (`experiment/specboot-ai-adoption-v5`); `ADOPT-19` itself carries no separate write scope beyond orchestration and evidence recording per its own text — the pilot's actual code/doc/artifact changes live on the pilot's own feature branch, reviewed and approved through that change's own OpenSpec/checkpoint machinery, not this adoption branch's | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `cf02737` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline — note this row covers only the adoption run log's own delta; the pilot's separate feature-branch commits were never pushed to `origin` (no remote mutation attempted, per the Daily workflow pilot block) | pushed — fast-forward `7730282..cf02737`, exit 0, non-force | none raised at this checkpoint |
+| 29 | `ADOPT-20` | not a group — single step | PASS — verification only, no files created or modified; every `ADOPT-00`–`ADOPT-19` row confirmed PASS from recorded evidence, readiness verdict READY (see run log `ADOPT-20` evidence block above) | run log `ADOPT-20` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted (`ADOPT-20`'s own `Allowed modifications` is "none — verification only," so the run log is the only content this checkpoint could ever carry) | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified. This checkpoint covers the readiness verification only, not PR creation — that carries its own separate `[HUMAN APPROVAL REQUIRED]` gate, presented after this commit | `.specboot/adoption/ADOPTION-RUN-LOG.md` | (filled at the next checkpoint's SHA-backfill delta) | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward, exit 0, non-force | none raised at this checkpoint |
 
 ---
 
@@ -1430,6 +1472,7 @@ Reason: implementing and verifying the human-named pilot task through the standa
 2026-08-20 — ADOPT-18 — de-bootstrap disposition plan (unlink .claude/skills/specboot-adopt; remove only the SPECBOOT-BOOTSTRAP block from .claude/CLAUDE.md and .gitignore; remove .specboot/local/) presented via AskUserQuestion — approved by landaeta: "Approve as-is"; all 3 manifest entries reached terminal cleanup-status=removed with recorded final-disposition text; ADOPT-14 re-check PASS; second ADOPT-15 fresh-session re-check determined mandatory (disposition touched .gitignore, outside the exact bootstrap-created set) and handed off — step result PENDING until that evidence arrives
 2026-08-20 — ADOPT-18 — second fresh-session re-check evidence relayed and cross-checked (agent roster matches ADOPT-13 exactly, specboot-adopt correctly absent from discovered skills, primary risk matches this run's own ADOPT-06 citation) — result PASS; ADOPT-18 marked PASS; manifest's debootstrap block updated with the result — observed by this session, no approval required
 2026-08-25 — ADOPT-19 — human named the pilot task (fix malformed applicationDate → 400, not 500); ran enrich-us → propose → apply → specboot-verify (PASS) → independent adversarial-review (genuinely isolated worktree agent, PASS WITH GAPS — found a real Major, invalid calendar dates silently corrected via ResolverStyle.SMART) → fixed (STRICT + uuuu pattern) → re-reviewed (same-session fallback, named explicitly) PASS → archive plan presented via AskUserQuestion, approved by landaeta ("Approve archive") → archived with spec sync verified byte-identical before the move — result PASS
+2026-08-25 — ADOPT-20 — verified every ADOPT-00 through ADOPT-19 evidence block individually, all recorded PASS, no FAIL/PENDING/blank rows — readiness verdict READY; PR-creation approval gate presented separately below, not yet exercised at the time this line was recorded — observed by this session, no approval required for the readiness verification itself
 ```
 
 ## Correction record
