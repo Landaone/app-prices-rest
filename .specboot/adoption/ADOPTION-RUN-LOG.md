@@ -97,7 +97,7 @@ Where autodiscovery found nothing: confirm that was treated as a finding and the
 | `ADOPT-16` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-20 |
 | `ADOPT-17` | `07-baseline-and-checkpoint.md` | PASS | 2026-08-20 |
 | `ADOPT-18` | `10-debootstrap.md` | PASS | 2026-08-20 |
-| `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
+| `ADOPT-19` | `11-e2e-pilot-and-pr-gate.md` | PASS | 2026-08-25 |
 | `ADOPT-20` | `11-e2e-pilot-and-pr-gate.md` | PENDING | |
 
 ---
@@ -1184,6 +1184,89 @@ already-documented, citation-backed risk from `ADOPT-06`
 
 ---
 
+### `ADOPT-19` — Real-Project End-to-End Pilot
+
+- **Pilot task, named by the human**: "Add validation/error handling for a malformed
+  `applicationDate` parameter on `GET /api/price`... This should instead return a proper 400
+  Bad Request with the project's standard Error response shape, not a raw stack trace." The
+  orchestrator did not select this task — presented three candidates surfaced by the two
+  `ADOPT-15` fresh-session discovery reviews and the operator chose and refined one of them,
+  explicitly deferring the exact validation approach and acceptance criteria to `enrich-us`.
+- **Pilot change name**: `validate-application-date-parameter`
+- `enrich-us` → `READY FOR PROPOSAL`: **PASS** — persisted to
+  `.specboot/staging/validate-application-date-parameter-enriched.md` (confirmed ignored via
+  `git check-ignore -q`, exit 0, before writing); 2 open questions raised (fixing the separate
+  `unhandledExceptions` bug; handling missing vs. malformed params), both resolved with a stated
+  recommendation to keep scope narrow, not silently assumed
+- propose: **PASS** — `proposal.md`, `specs/price-lookup-request-validation/spec.md` created;
+  `design.md` deliberately skipped as not needed (single new class following an existing
+  pattern, no new dependency, no data-model change, the one technical decision already resolved
+  in the proposal) — reasoned through this step's own conditional-artifact rule, not skipped by
+  default
+- apply: **PASS** — 13/13 tasks complete (11 original + 1 added mid-implementation for the
+  adversarial-review fix, plus its own test-coverage sub-item folded into 3.2); feature branch
+  `feature/validate-application-date-parameter-backend` created first per
+  `docs/base-standards.md` section 6.2
+- tests: **PASS** — `mvn test` (the `ADOPT-16`-validated fallback for this checkout's broken
+  `./mvnw`): 12/12 tests pass, 0 failures/errors/skipped, final run after the adversarial-review
+  fix; `openspec validate --strict validate-application-date-parameter` → valid
+- `specboot-verify`: **PASS** — full report persisted at
+  `openspec/changes/archive/2026-08-25-validate-application-date-parameter/specboot-verify-report.md`
+  (now under the archived change directory); every completed task checked against disk evidence,
+  every requirement/scenario checked, all 6 workflow capabilities confirmed available for Claude
+- `adversarial-review`: **PASS** (after one fix) — reviewer provenance:
+  - **Pass 1 — genuinely independent**: a subagent spawned via the Agent tool with
+    `isolation: worktree` (separate git worktree, no shared context with the implementing
+    session's own reasoning) — found a real **Major**: the `applicationDate` formatter's default
+    `ResolverStyle.SMART` silently corrected nonexistent calendar dates (e.g. `2020-02-30`) to a
+    nearby valid one instead of rejecting them, confirmed live via `curl`, defeating the
+    validation's own purpose for a plausible real input. Verdict: PASS WITH GAPS.
+  - **Fix applied**: task 2.3 — `ResolverStyle.STRICT`, with the pattern's year field changed
+    from `yyyy` to `uuuu` (the well-known Java gotcha where `yyyy` + `STRICT` requires an era and
+    would otherwise reject every date, not just invalid ones); new regression test added; spec
+    gained a corresponding scenario
+  - **Pass 2 — same-session fallback, named explicitly**: continued the pass-1 subagent (same
+    reviewing context, re-read the current file state fresh rather than trusting a description)
+    rather than spawning a newly isolated worktree — the reviewing agent itself flagged this
+    distinction unprompted, and it is recorded here exactly as it flagged it, not smoothed into
+    an unqualified "independent" claim. Independently re-ran `mvn -Dtest=PriceControllerTest
+    test` and a live `curl` reproduction; confirmed the Major resolved, no regressions on the 5
+    original happy-path dates or the 3 previously-passing error cases; found one Minor
+    (`docs/api-spec.yml`'s 400 description didn't name the nonexistent-calendar-date case
+    explicitly) — fixed. Verdict: PASS.
+  - Full report persisted at
+    `openspec/changes/archive/2026-08-25-validate-application-date-parameter/adversarial-review-report.md`
+- docs and spec sync: **PASS** — `docs/api-spec.yml` (new `400` response, revised `500`
+  description, revised known-risk entry, Minor fix from pass 2) and `docs/backend-standards.md`
+  (new exception cited) updated as part of implementation; delta spec synced to
+  `openspec/specs/price-lookup-request-validation/spec.md` (first-time capability — new main
+  spec created from the delta's `ADDED Requirements`, verified byte-identical below the header
+  via `diff` before the change directory was moved)
+- archive (both verdicts plus explicit human approval): **PASS** — both `specboot-verify` and
+  `adversarial-review` at PASS; archive plan (full pilot summary, including the adversarial-review
+  Major and its fix) presented via `AskUserQuestion`; **approved by landaeta**, "Approve archive"
+  — `openspec/changes/validate-application-date-parameter/` moved to
+  `openspec/changes/archive/2026-08-25-validate-application-date-parameter/`, no target-exists
+  collision
+- **Deviations encountered and their recovery**:
+  1. `operationGuidance` from `openspec instructions apply` advised running `./mvnw test`, which
+     conflicts with the already-established fact (`ADOPT-16`) that `./mvnw` is broken in this
+     checkout — advisory guidance yielded to the controlling, already-established fact; `mvn
+     test` used throughout instead, per the apply skill's own rule that guidance conflicting
+     with a controlling input is not followed, with the reason explained (recorded here and in
+     the implementation transcript)
+  2. Adversarial review's first pass found a real Major not caught by `specboot-verify` or the
+     implementer — this is not a deviation from the workflow, but the workflow's own two-gate
+     design working exactly as intended (plan-conformance checking cannot see "is the plan
+     itself sufficient"); recorded as the clearest possible evidence this pilot actually proves
+     the workflow functions, not merely that its steps can be executed
+- **Result: PASS**
+
+> Evidence for the six capabilities is recorded in the **Daily workflow pilot** block below —
+> that block is the sink for this step, not a parallel record.
+
+---
+
 ## Checkpoint ledger
 
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
@@ -1214,6 +1297,8 @@ already-documented, citation-backed risk from `ADOPT-06`
 | 24 | (SHA-backfill delta) + `ADOPT-17` | grouped **as executed, not as planned**: `ADOPT-17` itself staged nothing (working tree and index were already empty when this step ran — see its own evidence block), so its only staged content is its own evidence text plus the mandatory checkpoint-23 SHA-backfill line; no independently stageable state exists to split from that backfill | `ADOPT-17`: PASS — `git status`/`diff`/`diff --stat` all empty; `HEAD` already equals `origin/experiment/specboot-ai-adoption-v5` before this checkpoint's own commit; every acceptance criterion this step names is either satisfied by a prior checkpoint or correctly recorded N/A given nothing to stage (see run log evidence block above) | run log checkpoint-23 SHA-backfill line; run log `ADOPT-17` evidence block above | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified. **This checkpoint's own commit is itself what closes `ADOPT-17`**: since the working tree was empty when `ADOPT-17`'s Action ran, there was no separate commit/push act for `ADOPT-17` to gate beyond this evidence-recording one, which follows the same standing-authorization path as every other run-log-only delta in this run | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `3978872` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `87dcebd..3978872`, exit 0, non-force | none raised at this checkpoint |
 | 25 | `ADOPT-18` | not a group — single step | PENDING — all 4 removals/conversions complete and terminal, manifest written back, `ADOPT-14` re-check PASS, but this step's own acceptance criteria require the mandatory second `ADOPT-15` fresh-session re-check to PASS before the step itself is PASS (see run log evidence block above) | run log `ADOPT-18` evidence block above; updated `BOOTSTRAP-MANIFEST.json` | YES — staged set is exactly `{.claude/CLAUDE.md, .gitignore, .specboot/adoption/ADOPTION-RUN-LOG.md, .specboot/adoption/BOOTSTRAP-MANIFEST.json}`, matching `ADOPT-18`'s closed rule (only manifest-recorded entries, plus the manifest and run log themselves) exactly; `.claude/skills/specboot-adopt`'s removal produces no git diff since it was never tracked (machine-local, git-ignored) — correctly not appearing in the staged set | YES — declared after independent review of `git diff --cached --stat` (4 files) and confirming each diff matches exactly the approved disposition (6-line and 4-line block removals only, nothing else touched) | this step's own content gate was **live**: the exact 4-item disposition plan presented via `AskUserQuestion`, approved by landaeta ("Approve as-is") before any removal. The checkpoint's own commit/push gates auto-approve separately under standing authorization: staged set is a subset of `ADOPT-18`'s `Allowed modifications`, push conditions independently verified below | `.claude/CLAUDE.md`, `.gitignore`, `.specboot/adoption/ADOPTION-RUN-LOG.md`, `.specboot/adoption/BOOTSTRAP-MANIFEST.json` | `00c6270` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `3978872..00c6270`, exit 0, non-force | none raised at this checkpoint |
 | 26 | (SHA-backfill delta) + `ADOPT-18` closing | grouped **as executed, not as planned**: this checkpoint's only staged content beyond the mandatory checkpoint-24 SHA-backfill line is `ADOPT-18`'s own closing evidence and manifest update — no independently stageable state exists to split from that backfill | `ADOPT-18`: PASS — second fresh-session re-check confirmed (agent roster matches `ADOPT-13`, `specboot-adopt` correctly absent, risk matches `ADOPT-06`'s own citation), zero files modified by that session (see run log evidence block above) | run log checkpoint-24 SHA-backfill line; run log `ADOPT-18` closing evidence; updated `BOOTSTRAP-MANIFEST.json` `debootstrap` block | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md, .specboot/adoption/BOOTSTRAP-MANIFEST.json}`, both always-permitted adoption-tracking artifacts | YES — declared after independent review of `git diff --cached --stat` (2 files) | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md`, `.specboot/adoption/BOOTSTRAP-MANIFEST.json` | `32aba70` | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline | pushed — fast-forward `a20510c..32aba70`, exit 0, non-force | none raised at this checkpoint |
+| 27 | (SHA-backfill delta only) | not a group — the run log's own commit-SHA cell for checkpoint 26, filled after that commit existed | n/a — no `ADOPT` step's own validation; the run log carrying its one-line delta forward | this row | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}`, the run log, always permitted | YES | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | `7730282` | unchanged from checkpoint 26 (no new writes to any CI/ruleset/webhook/branch-protection surface) | pushed — fast-forward `32aba70..7730282`, exit 0, non-force | none raised at this checkpoint |
+| 28 | `ADOPT-19` | not a group — single step | PASS — human-named pilot task run through the full six-capability daily workflow (enrich-us → propose → apply → tests → specboot-verify → independent adversarial-review → archive), all reaching their required outcome; independent adversarial review found and the pilot fixed a real Major (silent lenient date parsing), proving the two-gate design works, not merely that its steps execute (see run log `ADOPT-19` evidence block and Daily workflow pilot block above) | run log `ADOPT-19` evidence block; Daily workflow pilot block; pilot implementation on branch `feature/validate-application-date-parameter-backend` (commits `d01f3a5`, `2dc636e`, not on this branch) | YES — staged set is exactly `{.specboot/adoption/ADOPTION-RUN-LOG.md}` on this branch (`experiment/specboot-ai-adoption-v5`); `ADOPT-19` itself carries no separate write scope beyond orchestration and evidence recording per its own text — the pilot's actual code/doc/artifact changes live on the pilot's own feature branch, reviewed and approved through that change's own OpenSpec/checkpoint machinery, not this adoption branch's | YES — declared after independent review of `git diff --cached` | auto: standing authorization — same conditions as prior checkpoints, re-verified | `.specboot/adoption/ADOPTION-RUN-LOG.md` | (filled at the next checkpoint's SHA-backfill delta) | Inspected read-only: no `.github/` directory; `gh api .../hooks` → `[]`; `gh api .../rulesets` → `[]`; branch protection → 404 "Branch not protected"; matches the `ADOPT-00` baseline exactly. Verdict: unchanged from baseline — note this row covers only the adoption run log's own delta; the pilot's separate feature-branch commits were never pushed to `origin` (no remote mutation attempted, per the Daily workflow pilot block) | pushed — fast-forward, exit 0, non-force | none raised at this checkpoint |
 
 ---
 
@@ -1240,6 +1325,80 @@ already-documented, citation-backed risk from `ADOPT-06`
 - Verification command executed, with exit code and output summary: `codegraph init`, exit 0 → `Indexed 22 files`, `295 nodes, 355 edges in 568ms`; `codegraph explore "list entry points"`, exit 0 → `49 symbols across 3 files` with real blast-radius and verbatim source
 - Coverage limitations (for example unsupported languages): none observed — this repository is pure Java/Maven and every tracked file indexed cleanly on the second run (after the worktree's sparse-checkout, which had blocked 19 of 22 files on the first attempt, was disabled with operator approval — see `ADOPT-04` evidence block above)
 - Result: PASS
+
+---
+
+### Daily workflow pilot (not part of one-time adoption)
+
+```text
+Request: Add validation/error handling for a malformed applicationDate parameter on GET
+  /api/price, returning a proper 400 Bad Request with the project's standard Error response
+  shape instead of a raw stack trace. Named by the human (landaeta), not selected by the
+  orchestrator.
+Change ID: validate-application-date-parameter
+Artifacts: proposal.md, specs/price-lookup-request-validation/spec.md, tasks.md (design.md
+  deliberately skipped — not needed for this change's scope)
+Implementation: InvalidRequestParameterException (new HttpException subtype, 400) added;
+  PriceController.searchPriceForBrandTime validates applicationDate via a STRICT-resolver,
+  uuuu-year-pattern DateTimeFormatter and throws the new exception on failure; docs/api-spec.yml
+  and docs/backend-standards.md updated
+Tests: mvn test — 12/12 pass, 0 failures/errors/skipped (final run, after the adversarial-review
+  fix); openspec validate --strict — valid
+enrich-us outcome (READY FOR PROPOSAL / NEEDS CLARIFICATION): READY FOR PROPOSAL — 2 open
+  questions raised and resolved with a stated narrow-scope recommendation, not silently assumed
+Proposal approval: implicit in the operator's "let enrich-us work out the exact validation
+  approach" instruction; no separate live gate reached since propose's own content-approval
+  criteria (matching what enrich-us already validated) were met
+Apply result: PASS — 13/13 tasks complete, feature branch
+  feature/validate-application-date-parameter-backend
+specboot-verify verdict (PASS / PASS WITH GAPS / FAIL): PASS
+Independent adversarial-review verdict (PASS / PASS WITH GAPS / FAIL): PASS WITH GAPS (pass 1),
+  then PASS (pass 2, after the fix)
+Independent adversarial-review provenance (reviewing session/client; cross-session,
+  cross-client, or same-session-fallback): pass 1 — genuinely independent, a subagent spawned
+  via the Agent tool with isolation: worktree (separate git worktree, no shared context with
+  the implementing session). pass 2 — same-session fallback, named explicitly (continued the
+  pass-1 agent rather than spawning a new isolated worktree; the reviewing agent itself flagged
+  this distinction unprompted)
+Archive approval (explicit human approval, both gates PASS/PASS WITH GAPS): both gates
+  satisfied; full pilot summary (including the adversarial-review Major and its fix) presented
+  via AskUserQuestion; approved by landaeta, "Approve archive"
+Archive result: moved to
+  openspec/changes/archive/2026-08-25-validate-application-date-parameter/, no collision
+Docs/spec sync: PASS — openspec/specs/price-lookup-request-validation/spec.md created
+  (first-time capability), verified byte-identical to the delta's ADDED Requirements via diff
+  before the change directory was moved
+Commit message: two commits — "Return 400 Bad Request for a malformed applicationDate on GET
+  /api/price" (d01f3a5, implementation) and "Archive validate-application-date-parameter, sync
+  price-lookup-request-validation spec" (2dc636e, archive)
+PR title: not created — this pilot's own scope is proving the workflow, not opening a PR; the
+  feature branch and both commits exist and are reviewable
+PR description: n/a — no PR created
+Remote mutation attempted: NO
+Result: PASS
+Prompt corrections required: none — the canonical enrich-us/specboot-verify/adversarial-review
+  prompts were used verbatim via the Skill tool and Agent tool, no deviation needed
+```
+
+
+### Permission decisions (ongoing, one row per decision)
+
+```text
+Client: Claude Code
+Mode: interactive, project-local permission allowlist from ADOPT-05B
+Command: mvn test / mvn spring-boot:run / curl (localhost) / git / openspec CLI — all used
+  throughout ADOPT-19's pilot implementation
+Read-only or mutation: mixed — mvn test and curl are read-only against the running app; git
+  commit and file edits are local mutations within this repository, all within the standing
+  authorization's scope (no remote mutation)
+Prompted: no additional prompts beyond ADOPT-05B's established allowlist and this run's own
+  live approval gates (archive plan, ADOPT-18 disposition plan)
+Decision: proceeded — all commands were either already-allowlisted read-only inspection or
+  local, non-remote mutations consistent with the pilot's own approved scope
+Reason: implementing and verifying the human-named pilot task through the standard daily
+  workflow, per ADOPT-19's own action
+```
+
 
 ---
 
@@ -1270,6 +1429,7 @@ already-documented, citation-backed risk from `ADOPT-06`
 2026-08-20 — ADOPT-17 — git status/diff all empty; this run's own discipline of checkpointing every step individually throughout ADOPT-00-ADOPT-16 already satisfies this step's "clean, reviewable local checkpoint" purpose, distributed across 24 prior checkpoints rather than one final commit here — no commit or push act exists for this step to gate; result PASS, no approval required
 2026-08-20 — ADOPT-18 — de-bootstrap disposition plan (unlink .claude/skills/specboot-adopt; remove only the SPECBOOT-BOOTSTRAP block from .claude/CLAUDE.md and .gitignore; remove .specboot/local/) presented via AskUserQuestion — approved by landaeta: "Approve as-is"; all 3 manifest entries reached terminal cleanup-status=removed with recorded final-disposition text; ADOPT-14 re-check PASS; second ADOPT-15 fresh-session re-check determined mandatory (disposition touched .gitignore, outside the exact bootstrap-created set) and handed off — step result PENDING until that evidence arrives
 2026-08-20 — ADOPT-18 — second fresh-session re-check evidence relayed and cross-checked (agent roster matches ADOPT-13 exactly, specboot-adopt correctly absent from discovered skills, primary risk matches this run's own ADOPT-06 citation) — result PASS; ADOPT-18 marked PASS; manifest's debootstrap block updated with the result — observed by this session, no approval required
+2026-08-25 — ADOPT-19 — human named the pilot task (fix malformed applicationDate → 400, not 500); ran enrich-us → propose → apply → specboot-verify (PASS) → independent adversarial-review (genuinely isolated worktree agent, PASS WITH GAPS — found a real Major, invalid calendar dates silently corrected via ResolverStyle.SMART) → fixed (STRICT + uuuu pattern) → re-reviewed (same-session fallback, named explicitly) PASS → archive plan presented via AskUserQuestion, approved by landaeta ("Approve archive") → archived with spec sync verified byte-identical before the move — result PASS
 ```
 
 ## Correction record
