@@ -1,0 +1,87 @@
+{
+  "manifestVersion": "1.0.0",
+  "createdAt": "2026-08-25T18:11:45Z",
+  "source": {
+    "delivery-mode": "source-linked",
+    "local-path-resolution": "The local canonical source path is resolved per machine and is not stored in the committed manifest.",
+    "guide-checksum": "sha256:2ee3e50945a987b07ef3fba2fa345621a47f0cfcaa42cd02843bd63be17d7ca0",
+    "skill-checksum": "sha256:2448934c76467fb9f33a597169138eea7585b0e5c1d0f567e18fbb87be4f7fd3",
+    "git": {
+      "status": "recorded",
+      "worktree": "clean",
+      "commit": "b457914c168de2548e10c02411462e8d1ad52d6d"
+    },
+    "readOnly": true
+  },
+  "clientSelection": {
+    "route": "autodiscovery",
+    "candidatesDisplayed": [],
+    "selected": ["claude"],
+    "notSelected": ["kiro", "codex"]
+  },
+  "deliveryChannel": "source-copy",
+  "selectedClient": "claude",
+  "environment": {
+    "os": "macOS 13.7.8 (Darwin 22.6.0 x86_64)",
+    "shell": "zsh",
+    "symlinksSupported": true,
+    "symlinkDetermination": "capability-detected",
+    "isGitRepository": true
+  },
+  "entries": [
+    {
+      "path": ".claude/skills/specboot-adopt",
+      "source": { "canonicalPath": "ai-specs/skills/specboot-adopt", "channel": "source-linked" },
+      "checksum": "sha256:2448934c76467fb9f33a597169138eea7585b0e5c1d0f567e18fbb87be4f7fd3",
+      "ownership": "bootstrap-created",
+      "mode": "symlink",
+      "intended-permanent-replacement": null,
+      "cleanup-status": "pending",
+      "machineLocal": true
+    },
+    {
+      "path": ".claude/CLAUDE.md",
+      "source": { "canonicalPath": "specboot-adoption/bootstrap-kit/discovery/claude.md", "channel": "source-linked" },
+      "checksum": "sha256:090074b0a7be79d02c6cdfd7ab4271e98c97f645d100186cb9d5a6606e9dbf57",
+      "ownership": "bootstrap-created",
+      "mode": "real-file",
+      "intended-permanent-replacement": null,
+      "cleanup-status": "pending",
+      "machineLocal": false
+    },
+    {
+      "path": ".gitignore",
+      "source": { "canonicalPath": "specboot-adoption/09-bootstrap.md", "channel": "source-linked" },
+      "checksum": "sha256:6ec73c407de42c90cfd99f4b6efa4519b2e06a52729eefb40146aa8767e131cd",
+      "ownership": "pre-existing-modified",
+      "mode": "appended-block",
+      "intended-permanent-replacement": null,
+      "cleanup-status": "pending",
+      "machineLocal": false
+    },
+    {
+      "path": ".git/info/exclude",
+      "source": { "canonicalPath": "specboot-adoption/09-bootstrap.md", "channel": "source-linked" },
+      "checksum": "sha256:b4ea03c1841f6d0d4720dc0a9ee09187e473ec1f6ec7d2364fd06f9b2792bb9b",
+      "ownership": "pre-existing-modified",
+      "mode": "appended-block",
+      "intended-permanent-replacement": null,
+      "cleanup-status": "pending",
+      "machineLocal": true
+    },
+    {
+      "path": ".specboot/local/canonical-source-path",
+      "source": { "canonicalPath": "specboot-adoption/bootstrap-kit/source-resolution.md", "channel": "source-linked" },
+      "checksum": "sha256:6f11432aa5f26cc8ffc59711a5b74d16467d3ffc28b64a67560322d10053db37",
+      "ownership": "bootstrap-created",
+      "mode": "real-file",
+      "intended-permanent-replacement": null,
+      "cleanup-status": "pending",
+      "machineLocal": true
+    }
+  ],
+  "modeObligations": {
+    "payload": "SKIPPED — source-linked mode",
+    "container": "SKIPPED — source-linked mode"
+  }
+}

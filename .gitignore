@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+### SpecBoot staging — durable, NOT removed by ADOPT-18 (required by ai-specs/skills/enrich-us)
+.specboot/staging/
+
+### SPECBOOT-BOOTSTRAP:BEGIN — temporary, removed at ADOPT-18
+.specboot/bootstrap/
+.specboot/local/
+### SPECBOOT-BOOTSTRAP:END
