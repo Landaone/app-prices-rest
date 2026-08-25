@@ -44,6 +44,13 @@ Policy: reuse an installed version that already meets the documented minimum; do
 upgrade a globally installed tool. Ask again only when the installed version is below the
 documented minimum, or when the operator explicitly requests staying current.
 Deviation from the default, if any: none
+Outcome of the ADOPT-02 check (recorded 2026-08-25T18:31:59Z): `openspec --version` → `1.7.0`, exit 0.
+  That already meets ADOPT-01's documented requirement ("installed version must support the
+  documented keys") and equals the reference experiment's version, so
+  `npm install -g @fission-ai/openspec@latest` was **NOT run** and the install/upgrade approval
+  gate was **never presented** — nothing was being installed or upgraded (09-bootstrap/01 phase
+  file, design D-Z part 6). The default policy above applied unchanged; this run required no
+  deviation, and no question was owed to the operator.
 ```
 
 ## Code-graph capability default privilege scope

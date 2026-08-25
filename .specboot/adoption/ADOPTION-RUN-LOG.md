@@ -169,7 +169,7 @@ when its evidence block below is filled.
 |---|---|---|---|
 | `ADOPT-00` | `09-bootstrap.md` | PASS | 2026-08-25 — provisioned; fresh-session discovery probe observed PASS |
 | `ADOPT-01` | `01-prerequisites-and-install.md` | PASS | 2026-08-25 — all prerequisites already present; no install, gate not reached |
-| `ADOPT-02` | `01-prerequisites-and-install.md` | PENDING | |
+| `ADOPT-02` | `01-prerequisites-and-install.md` | PASS | 2026-08-25 — OpenSpec 1.7.0 reused (no install); `init --tools claude` |
 | `ADOPT-03` | `01-prerequisites-and-install.md` | PENDING | |
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PENDING | |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PENDING | |
@@ -396,13 +396,13 @@ directory; do not cd to the main checkout.
 Date:                2026-08-25T18:29:41Z
 Machine:             macOS 13.7.8 (Darwin 22.6.0 x86_64), shell zsh
 Node:                v24.18.0   (requirement >= 20.19.0 — MET; equals the reference experiment)
-                     `/Users/landaeta/.nvm/versions/node/v24.18.0/bin/node --version`, exit 0
+                     `<node-prefix>/bin/node --version`, exit 0  (node prefix per `npm prefix -g`)
 npm:                 11.16.0    (bundled with Node — MET; equals the reference experiment)
                      `<node-prefix>/bin/npm --version`, exit 0
 OpenSpec:            1.7.0      (equals the reference experiment; supports the documented keys)
                      `<node-prefix>/bin/openspec --version`, exit 0
 CodeGraph:           1.5.0      (equals the reference experiment)
-                     `/Users/landaeta/.local/bin/codegraph --version`, exit 0
+                     `<user-local-bin>/codegraph --version`, exit 0
                      Recorded here as availability only. Whether CodeGraph is *adopted* is decided
                      at ADOPT-04/ADOPT-05, not here.
 Git:                 2.39.2 (Apple Git-143)  `/usr/bin/git --version`, exit 0
@@ -439,22 +439,94 @@ Notes:
   - `Allowed modifications: none` — honoured. This step made no repository-local write; `git
     status --porcelain` before and after shows only the two carried-forward run-log/authorization
     edits from checkpoint 1.
+  - **Correction applied at checkpoint 3.** As first written (and committed in `bad06cc`), this
+    block spelled two tool locations as absolute paths under the operator's home directory. That is
+    not the leak the guide forbids — the prohibition is on recording the resolved **canonical
+    source path**, and a scan confirms that path appears nowhere in this log — but it is
+    unnecessary machine-specific detail in a file that is committed to a **public** repository, and
+    it was inconsistent with the `<node-prefix>` form already used for npm on the line above. Both
+    were normalized to placeholders. The evidentiary claim is unchanged and still true: each
+    version command was invoked through its resolved absolute executable path, so no zsh alias or
+    function could shadow a real tool. Only the written rendering changed, not what was run.
 ```
 
 
 ### `ADOPT-02` — Install and Initialize OpenSpec with Explicitly Selected Clients
 
 ```text
-OpenSpec version:
-Command:
-Clients offered:
-Clients selected:
-Generated config path:
-Generated client resources:
+OpenSpec version:    1.7.0 — `openspec --version`, exit 0, run by absolute path.
+Install/upgrade:     **SKIPPED — an already-installed version already met the documented
+                     requirement.** `npm install -g @fission-ai/openspec@latest` was NOT run, so
+                     ADOPT-02's `[HUMAN APPROVAL REQUIRED]` gate was **never presented**: it guards
+                     global installation or upgrade, and neither occurred (design D-Z, part 6).
+                     Outcome also written back to ADOPTION-AUTHORIZATION.md's OpenSpec-version-
+                     policy section, as this step's Action requires — updated in place, never a
+                     second file (design D-Z, part 2a).
+Command:             `openspec init --tools claude --no-animation`, exit 0.
+                     Run non-interactively **because the client selection was already made and is
+                     binding** (ADOPTION-AUTHORIZATION.md: `claude`; kiro and codex NOT SELECTED).
+                     `--tools` is the installed version's documented non-interactive equivalent of
+                     the interactive client prompt, so the selection was declared, not defaulted —
+                     no default was accepted without review, and no prompt was answered on the
+                     operator's behalf.
+Clients offered:     the installed version's `openspec init --help` enumerates 34 selectable
+                     tools, recorded verbatim from its output: amazon-q, antigravity, auggie, bob,
+                     claude, cline, codeartsagent, codex, devin, forgecode, codebuddy, continue,
+                     costrict, crush, cursor, factory, gemini, github-copilot, hermes, iflow,
+                     junie, kilocode, kimi, kiro, lingma, vibe, oh-my-pi, opencode, pi, qoder,
+                     qwen, roocode, trae, zcode (plus `windsurf`, accepted as an alias of `devin`),
+                     and the aggregate values `all` and `none`. `claude`, `kiro` and `codex` — the
+                     three clients this adoption tracks — are all offered by this version.
+Clients selected:    **claude only.** `all` was deliberately not used. Every other offered tool,
+                     including kiro and codex, is NOT SELECTED and received nothing.
+Generated config path: `openspec/config.yaml` (the `.yaml` extension is what this version actually
+                     generated; the guide's `.yml` alternative does not apply here). Contents:
+                     `schema: spec-driven` plus commented-out optional blocks (context, per-artifact
+                     rules, per-operation guidance) — no repository context filled in yet, which is
+                     ADOPT-06's work, not this step's.
+Generated client resources: the installer reported "6 skills and 6 commands in .claude/". Verified
+                     on the filesystem rather than trusted from that message —
+                     `.claude/commands/opsx/{apply,archive,explore,propose,sync,update}.md` (6) and
+                     `.claude/skills/openspec-{apply-change,archive-change,explore,propose,
+                     sync-specs,update-change}/SKILL.md` (6). Directories `openspec/changes/`,
+                     `openspec/changes/archive/` and `openspec/specs/` were also created and are
+                     **empty**, so Git tracks none of them; `git add -n openspec` confirms exactly
+                     one path would stage: `openspec/config.yaml`.
 Per-client provisioning provenance (installer-provisioned vs. separately configured):
-openspec doctor result:
-Git changes:
-Result: PASS / FAIL
+                     Recorded as observed in THIS run, not inferred from files being present
+                     (00-conventions.md, "Capability availability is not installer provenance").
+                     - claude — OpenSpec resources (`.claude/commands/opsx/`,
+                       `.claude/skills/openspec-*/`): provisioned by **`openspec init --tools
+                       claude`** in this step, in this run.
+                     - claude — `.claude/CLAUDE.md` and `.claude/skills/specboot-adopt`:
+                       provisioned by the **ADOPT-00 bootstrap**, not by OpenSpec. `openspec init`
+                       left both untouched — `git diff --quiet .claude/CLAUDE.md` reports
+                       UNCHANGED, so the bootstrap block survives intact, and the
+                       `specboot-adopt` symlink is unmodified.
+                     - The SpecBoot npm installer has NOT run at this point (that is ADOPT-03), so
+                       nothing here is attributable to it.
+                     - kiro, codex: NOT SELECTED — nothing provisioned by any process.
+openspec doctor result: exit 0. Output: `Root — Location:
+                     <repo>; OpenSpec root: ok` / `References — (none declared)`. "No references
+                     declared" is the expected state before ADOPT-07 wires docs/ and ai-specs/; it
+                     is recorded as an observed finding, not read as a failure.
+Git changes:         `git status --short` → `?? .claude/commands/`, `?? .claude/skills/`,
+                     `?? openspec/`, plus the two carried-forward `.specboot/adoption/` edits.
+                     `.claude/skills/specboot-adopt` does not appear: it stays git-excluded, as
+                     source-linked mode requires.
+Result: PASS
+Notes:
+  - PASS criteria checked one by one: `openspec/` exists — YES; a configuration file exists —
+    YES (`openspec/config.yaml`); client-specific resources exist for the selected client — YES
+    (12 files verified on disk); no resources added for unselected clients — YES, verified by an
+    explicit repository-wide scan for `.kiro/`, `.agents/`, `AGENTS.md`, `codex.md`, `.cursor/`,
+    `.gemini/`, `.windsurf/`, `.continue/`, `.roo/`, `.github/copilot-instructions.md`, `.qoder/`
+    and `.trae/`, **all absent**. That scan is the evidence; the absence of complaints is not.
+  - Independent runtime corroboration, observed in this session immediately after the command: the
+    client surfaced the 6 new `openspec-*` skills and the 6 `opsx:*` commands as available. That is
+    a genuine discovery signal, distinct from the filesystem check above — but it is recorded as
+    corroboration only. The canonical runtime-discovery gate is ADOPT-15, in a fresh session, and
+    this does not pre-satisfy it.
 ```
 
 
@@ -810,7 +882,8 @@ group requires a **written structural justification** — "fewer commits" is not
 | # | Step or group | Grouping justification (required if a group) | Validation | Evidence pointers | Allowlist match (YES / NO + anomalies) | Ready declared | Approval (who / when / what — or "auto: standing authorization") | Exact staged file list | Commit SHA | Remote-impact assessment + verdict | Push status | Improvement proposals raised |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | `ADOPT-00` (single step, not a group) | n/a — not a group | `ADOPT-00` = **PASS**. Fresh-session native skill discovery by name succeeded (`Skill(skill="specboot-adopt")` → `Launching skill: specboot-adopt`, external canonical `SKILL.md` rendered via the bootstrap symlink). Source identity re-verified: both checksums MATCH, commit `b457914c168de2548e10c02411462e8d1ad52d6d` MATCH, source worktree clean. `.specboot/bootstrap/` ABSENT; no copied canonical content; payload + container obligations `SKIPPED — source-linked mode`; `check-ignore` verdicts correct. | Run log §`ADOPT-00` evidence block; §Drift check at each resume row 1; `BOOTSTRAP-MANIFEST.json` | **YES** — staged set is 5 paths, every one covered by `ADOPT-00`'s `Allowed modifications` (the `claude` recipe `## Entries` table: `.claude/CLAUDE.md`; plus the fixed durable set: `.specboot/adoption/{BOOTSTRAP-MANIFEST.json,ADOPTION-RUN-LOG.md,ADOPTION-AUTHORIZATION.md}` and `.gitignore`). No anomalies; no unexpected path. `.claude/skills/specboot-adopt` (absolute external symlink, `machineLocal: true`) is git-excluded and was **not** staged, as source-linked mode requires. | YES — declared to the operator with the exact staged file list before the gate | **auto: standing authorization** — `ADOPTION-AUTHORIZATION.md` §Standing commit-and-push authorization, granted by Landaone 2026-08-25T18:12:48Z, scope "every checkpoint whose staged file list is a subset of its step's declared `Allowed modifications`, on branch `experiment/specboot-ai-adoption-v7`"; subset test = YES; current branch matches. Commit gate only — the push gate did **not** auto-approve (see next column). | `.claude/CLAUDE.md` (A); `.gitignore` (M); `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (A); `.specboot/adoption/ADOPTION-RUN-LOG.md` (A); `.specboot/adoption/BOOTSTRAP-MANIFEST.json` (A) | `fb4d2f09579c4c75a08bbc3de9cf84fc507c5326` — filled after the commit (the run log is inside the commit's own staged set, so the SHA cannot exist before it); this one-line delta is carried into the next checkpoint's staged set, per `00-conventions.md` (design D-Z, part 21) | **DETERMINED — this is the `ADOPT-00` remote-impact baseline.** Operator (Landaone) explicitly authorized read-only GitHub inspection at the push gate on 2026-08-25, per `00-conventions.md` ("External web, GitHub, or package-registry research requires explicit user authorization"). Inspected read-only via `gh` 2.95.0 (authenticated as `Landaone`), no write call issued: working tree — no `.github/` directory, the only YAML is `src/main/resources/application.yaml` (Spring config, not a pipeline). Remote `Landaone/app-prices-rest` (**public**, not archived, default branch `master`): `actions/workflows` total_count **0**; `hooks` **0**; `rulesets` **0**; `rules/branches/experiment%2Fspecboot-ai-adoption-v7` **`[]`** (no branch protection or ruleset applies to the target branch); `keys` (deploy keys) **0**; `environments` total_count **0**; `pages` **404 Not Found**. Actions is enabled at the repo level (`{"enabled":true,"allowed_actions":"all"}`) but **has zero workflows**, so nothing can trigger. Not determinable with a user token: the repo's GitHub App installations (`repos/{}/installation` → HTTP 401, "A JSON web token could not be decoded" — that endpoint requires a GitHub App JWT, not a coverage gap this run can close). **Verdict: no CI, no deployment, no security scan, no webhook, no required check, and no notification automation is triggered by this push.** Two facts recorded as findings, not automation: (1) the branch does not exist on the remote (`gh api .../branches/experiment%2Fspecboot-ai-adoption-v7` → "Branch not found"; `git ls-remote --heads origin experiment/specboot-ai-adoption-v7` → empty, exit 0), so the push **creates a new remote ref** rather than fast-forwarding an existing one — no history is discarded, but the standing authorization's literal "fast-forward push only" condition has no existing ref to fast-forward; (2) the repository is **public**, so pushing publishes the adoption record. | **PUSHED.** Live operator approval, not an auto-approval: Landaone approved at the checkpoint-1 push gate on 2026-08-25T18:28:22Z, after being shown the determined assessment and both of its findings (the remote ref did not exist, so this creates a branch; the repository is public, so the record becomes public). The gate did **not** auto-approve — the standing authorization requires a fast-forward push *and* an assessment unchanged from the `ADOPT-00` baseline, and neither is satisfiable at the first checkpoint, since there was no remote ref to fast-forward and this assessment *is* the baseline. Reading them as met in spirit is the `references/rationalizations.md` red flag "The gate protects a purpose, and that purpose is met here", so the gate was presented live. Command: `git push -u origin experiment/specboot-ai-adoption-v7`, **exit 0**, output `* [new branch] experiment/specboot-ai-adoption-v7 -> experiment/specboot-ai-adoption-v7`. Verified: `git ls-remote --heads origin experiment/specboot-ai-adoption-v7` → `fb4d2f09579c4c75a08bbc3de9cf84fc507c5326`. No force, no other branch, **no pull request** — GitHub's `pull/new/...` hint in the push output is a server-side suggestion, not an action taken, and no PR may exist before `ADOPT-19` (`00-conventions.md` non-negotiable 6). In the same answer the operator **extended** the standing push authorization to later checkpoints on this branch against this baseline; recorded in `ADOPTION-AUTHORIZATION.md` §Amendment 1, which also requires the baseline to be **re-probed** at each later checkpoint — a changed probe lapses the auto-approval and returns the gate to the operator. | 3 raised at `ADOPT-00` — see §Improvement proposals rows 1–3 |
-| 2 | `ADOPT-01` (single step, not a group) | n/a — not a group | `ADOPT-01` = **PASS**. Every required tool already present at or above its documented minimum, each queried by **absolute executable path** so no zsh alias could shadow it, each exit 0: Node `v24.18.0` (min `>= 20.19.0`), npm `11.16.0`, OpenSpec `1.7.0`, CodeGraph `1.5.0`, Git `2.39.2`. Project toolchain derived from repository evidence rather than assumed: `pom.xml` declares `<java.version>11</java.version>` under `spring-boot-starter-parent` 2.4.5, `java -version` confirms OpenJDK 11.0.31 (Corretto), `mvn -v` confirms Apache Maven 3.9.16. | Run log §`ADOPT-01` evidence block | **YES** — `ADOPT-01`'s `Allowed modifications` is **`none`**, and the only staged path is `.specboot/adoption/ADOPTION-RUN-LOG.md`, which `00-conventions.md` makes an implicit permitted write for **every** step ("the run log is always a permitted write and never counts against any step's `Allowed modifications`", design D-Z part 22) — a literal `none` does not exclude it. Subset test therefore holds exactly, not by concession. `ADOPTION-AUTHORIZATION.md` was **deliberately kept out of this staged set**: it is checkpoint-1 residue and is not in `ADOPT-01`'s allowlist, so it was committed separately as `47fc5fe` against `ADOPT-00`'s allowlist, which does cover it. Folding it in here would have been a staged path outside the covered step's allowlist — `FAIL_CLOSED`, not a rounding error. | YES — declared with the exact staged file list before the gate | **auto: standing authorization** — `ADOPTION-AUTHORIZATION.md` §Standing commit-and-push authorization (Landaone, 2026-08-25T18:12:48Z); subset test YES; branch `experiment/specboot-ai-adoption-v7` matches. | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) — one path only | PENDING-FILL — recorded immediately after the commit, per `00-conventions.md` (design D-Z, part 21) | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T18:31:03Z, as `ADOPTION-AUTHORIZATION.md` §Amendment 1 requires ("reuse is not trust"), not carried over on the strength of the earlier check: `actions/workflows` total_count **0**, `hooks` **0**, `rulesets` **0**, `rules/branches/experiment%2Fspecboot-ai-adoption-v7` **`[]`**, `keys` **0**, `environments` **0**, `pages` **404**. Every value identical to row 1's baseline. Fast-forward confirmed by `git fetch origin` then `git rev-list --left-right --count @{u}...HEAD` → `0	1` (zero behind), so unlike checkpoint 1 the fast-forward condition is now a real, satisfied test rather than a vacuous one. | **PUSHED — auto-approved**, both conditions of §Amendment 1 met (fast-forward YES, baseline unchanged YES). Pushes commit `47fc5fe` (checkpoint-1 residue) alongside this checkpoint's commit; no force, no other branch, **no pull request** (`00-conventions.md` non-negotiable 6). | none — no new proposal arose at `ADOPT-01`; the three raised at `ADOPT-00` remain `proposed` |
+| 2 | `ADOPT-01` (single step, not a group) | n/a — not a group | `ADOPT-01` = **PASS**. Every required tool already present at or above its documented minimum, each queried by **absolute executable path** so no zsh alias could shadow it, each exit 0: Node `v24.18.0` (min `>= 20.19.0`), npm `11.16.0`, OpenSpec `1.7.0`, CodeGraph `1.5.0`, Git `2.39.2`. Project toolchain derived from repository evidence rather than assumed: `pom.xml` declares `<java.version>11</java.version>` under `spring-boot-starter-parent` 2.4.5, `java -version` confirms OpenJDK 11.0.31 (Corretto), `mvn -v` confirms Apache Maven 3.9.16. | Run log §`ADOPT-01` evidence block | **YES** — `ADOPT-01`'s `Allowed modifications` is **`none`**, and the only staged path is `.specboot/adoption/ADOPTION-RUN-LOG.md`, which `00-conventions.md` makes an implicit permitted write for **every** step ("the run log is always a permitted write and never counts against any step's `Allowed modifications`", design D-Z part 22) — a literal `none` does not exclude it. Subset test therefore holds exactly, not by concession. `ADOPTION-AUTHORIZATION.md` was **deliberately kept out of this staged set**: it is checkpoint-1 residue and is not in `ADOPT-01`'s allowlist, so it was committed separately as `47fc5fe` against `ADOPT-00`'s allowlist, which does cover it. Folding it in here would have been a staged path outside the covered step's allowlist — `FAIL_CLOSED`, not a rounding error. | YES — declared with the exact staged file list before the gate | **auto: standing authorization** — `ADOPTION-AUTHORIZATION.md` §Standing commit-and-push authorization (Landaone, 2026-08-25T18:12:48Z); subset test YES; branch `experiment/specboot-ai-adoption-v7` matches. | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) — one path only | `bad06ccd88d0984ab6424b2428573063a8c42440` — filled after the commit; this one-line delta carries into checkpoint 3's staged set, per `00-conventions.md` (design D-Z, part 21) | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T18:31:03Z, as `ADOPTION-AUTHORIZATION.md` §Amendment 1 requires ("reuse is not trust"), not carried over on the strength of the earlier check: `actions/workflows` total_count **0**, `hooks` **0**, `rulesets` **0**, `rules/branches/experiment%2Fspecboot-ai-adoption-v7` **`[]`**, `keys` **0**, `environments` **0**, `pages` **404**. Every value identical to row 1's baseline. Fast-forward confirmed by `git fetch origin` then `git rev-list --left-right --count @{u}...HEAD` → `0	1` (zero behind), so unlike checkpoint 1 the fast-forward condition is now a real, satisfied test rather than a vacuous one. | **PUSHED — auto-approved**, both conditions of §Amendment 1 met (fast-forward YES, baseline unchanged YES). Pushes commit `47fc5fe` (checkpoint-1 residue) alongside this checkpoint's commit; no force, no other branch, **no pull request** (`00-conventions.md` non-negotiable 6). | none — no new proposal arose at `ADOPT-01`; the three raised at `ADOPT-00` remain `proposed` |
+| 3 | `ADOPT-02` (single step, not a group) | n/a — not a group | `ADOPT-02` = **PASS**, each criterion checked individually rather than as a batch: `openspec/` exists; a config file exists (`openspec/config.yaml` — the extension this version actually generated, not the guide's `.yml` alternative); the selected client's resources exist — **12 files verified on the filesystem**, not trusted from the installer's own "6 skills and 6 commands" message; and **no resources exist for any unselected client**, verified by an explicit repository-wide scan for `.kiro/`, `.agents/`, `AGENTS.md`, `codex.md`, `.cursor/`, `.gemini/`, `.windsurf/`, `.continue/`, `.roo/`, `.github/copilot-instructions.md`, `.qoder/`, `.trae/` — all absent. `openspec doctor` exit 0, root ok. No install or upgrade ran (1.7.0 already met the requirement), so that gate was never reached. | Run log §`ADOPT-02` evidence block; `ADOPTION-AUTHORIZATION.md` §OpenSpec version policy | **YES** — 15 staged paths, every one inside `ADOPT-02`'s closed exact list: `openspec/config.yaml`; the selected client's generated resources exactly as `openspec init --tools claude` reported them (`.claude/commands/opsx/*.md` ×6, `.claude/skills/openspec-*/SKILL.md` ×6); `ADOPTION-AUTHORIZATION.md` (**update only**, never a second file); plus the always-permitted run log. No unexpected path. Three generated directories (`openspec/changes/`, `openspec/changes/archive/`, `openspec/specs/`) are empty and therefore untracked — `git add -n openspec` confirmed exactly one path would stage. `.claude/CLAUDE.md` is **not** staged: `openspec init` left it byte-identical (`git diff --quiet` → UNCHANGED), and it belongs to `ADOPT-00`, not here. | YES — declared with the exact 15-path staged list before the gate | **auto: standing authorization** (Landaone, 2026-08-25T18:12:48Z); subset test YES; branch matches. | `.claude/commands/opsx/{apply,archive,explore,propose,sync,update}.md` (A ×6); `.claude/skills/openspec-{apply-change,archive-change,explore,propose,sync-specs,update-change}/SKILL.md` (A ×6); `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (M); `.specboot/adoption/ADOPTION-RUN-LOG.md` (M); `openspec/config.yaml` (A) — 15 paths | PENDING-FILL — recorded immediately after the commit | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T18:34:15Z per §Amendment 1: `workflows=0 hooks=0 rulesets=0 branch-rules=[] keys=0 envs=0`. Identical to row 1's baseline. Fast-forward confirmed: `git rev-list --left-right --count @{u}...HEAD` → `0/0` (behind/ahead), zero behind. | **PUSHED — auto-approved** under §Amendment 1 (fast-forward YES, baseline unchanged YES). No force, no other branch, **no pull request**. | none new. **One correction recorded**, not a proposal: the `ADOPT-01` evidence block committed in `bad06cc` spelled two tool locations as absolute paths under the operator's home directory. Not the prohibited leak — a scan confirms the resolved **canonical source path** appears nowhere in this log — but unnecessary machine detail in a file committed to a **public** repository, and inconsistent with the `<node-prefix>` form already used on the adjacent npm line. Both were normalized to placeholders in this checkpoint; the evidentiary claim (each version command invoked through its resolved absolute path, so no alias could shadow a tool) is unchanged and still true. |
 
 > The commit approval and the push approval are **two distinct gates**. Neither carries forward to
 > the next checkpoint. Unknown or unapproved remote impact **blocks** the push; "no CI
