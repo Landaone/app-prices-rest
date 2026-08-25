@@ -922,13 +922,44 @@ Allowlist coverage of the canonical smoke-test commands, verified by pattern mat
 
 -- Smoke tests (one row per supported client/OS combination) --
 Client / OS | Available? | Negative control | Result (PASS / FAIL / PENDING EVIDENCE) | Reason
-Claude Code / macOS  | yes | not yet observed | **PENDING EVIDENCE** | Requires a fresh session.
-  The smoke test terminates in a stop-and-hand-off by design, and this session cannot supply it:
-  its permission state was established **before** `.claude/settings.json` existed, so an absence
-  of prompts here measures the old session, not the new file. A same-session run is diagnostic
-  data only and is never smoke-test evidence. The exact fresh-session prompt has been generated
-  and handed off (see the handoff block below). There is no "continue in this session instead"
-  option to offer.
+Claude Code / macOS  | yes | **ran, did NOT request permission** | **PENDING EVIDENCE** |
+  **Attempt 1 (2026-08-25T19:25:36Z) — fresh session, handoff prompt executed verbatim. Outcome:
+  `NOT APPLICABLE ON THIS CLIENT`.** Reported verbatim by that session: "date is not in this
+  project's permission allowlist, yet it ran with no permission request. That means this client
+  auto-approves commands outside the allowlist, so no command in the smoke-test list could
+  demonstrate anything about the permission file under test — a silent execution would be
+  indistinguishable from an allowlist hit." The session **routed correctly**: it stopped at the
+  negative control and did **not** run the remaining eight commands, so none of them were
+  recorded as smoke-test evidence. No files were modified. That session ran under an
+  auto-approving permission mode.
+  **This is not a FAIL of the permission file** — the client auto-approves regardless of the
+  file's contents, so the test cannot measure it either way, exactly as this step anticipates.
+  **The row is deliberately left open.** The operator was offered this step's documented
+  alternative criterion and **declined to close on it**, electing instead to re-run the smoke
+  test in a session whose permission mode actually enforces the project allowlist (default/ask
+  rather than auto-approve or bypass) in order to obtain a true PASS. Recorded as the operator's
+  ruling at 2026-08-25T19:25:36Z: condition 3 of the alternative criterion — its
+  `[HUMAN APPROVAL REQUIRED]` — was **NOT granted**, and the row therefore stays
+  `PENDING EVIDENCE` rather than being closed on weaker evidence.
+  **Alternative-criterion conditions 1 and 2 are nevertheless satisfied and recorded**, so that a
+  later decision to close on it would not need to re-derive them:
+    - Condition 1 (every canonical command covered by an existing allowlist pattern, verified by
+      inspection): **satisfied** — all 8 matched, see the coverage check under Step 4 above.
+    - Condition 2 (every canonical command still executes successfully when run, whether or not
+      it prompts): **satisfied** — all 8 executed at 2026-08-25T19:25:36Z, every one exit 0:
+      `openspec --version` (1.7.0), `openspec doctor --json` (218 B),
+      `openspec context --json` (188 B), `openspec schemas` (162 B, lists `spec-driven`),
+      `openspec templates` (587 B), `git status --short` (0 B), `git diff -- openspec/config.yaml`
+      (0 B), `codegraph explore "PriceService"` (6953 B, 35 symbols across 4 files).
+      The two 0-byte results are **meaningful results, not unexecuted commands**: both returned
+      exit 0, the working tree was genuinely clean at that moment, and `openspec/config.yaml` had
+      no unstaged changes — so empty output is the correct answer, and it is recorded as such
+      rather than inferred into a PASS.
+      `git status --porcelain` confirmed **no file was modified** by this verification.
+    - Condition 3 (`[HUMAN APPROVAL REQUIRED]` to close on this criterion): **NOT GRANTED** — see
+      the operator's ruling above.
+  **Attempt 2 is pending**: a fresh session under a permission-enforcing mode, running the same
+  handoff prompt below.
 Claude Code / Linux  | no  | — | **PENDING EVIDENCE** | No Linux machine available during this
   adoption. Declared supported, untested — not passing, not failing, not omitted.
 Claude Code / Windows| no  | — | **PENDING EVIDENCE** | No Windows machine available during this
@@ -970,8 +1001,12 @@ Remaining limitations:
      a Maven distribution as the repository currently stands. The `mvn`-on-PATH entries are the
      ones that work today; the wrapper entries are retained for portability once that gap is
      fixed. ADOPT-16's baseline must use `mvn`.
-  3. The negative control's diagnostic result suggests the macOS row may close on the weaker
-     alternative criterion rather than a true PASS smoke test.
+  3. The macOS smoke-test row is still open after one attempt. The diagnostic forewarning in
+     this session was borne out: the fresh session's negative control ran without prompting, so
+     the test could not measure the file. The operator declined the weaker alternative criterion
+     and elected to retry under a permission-enforcing mode. Until that attempt reports, **no**
+     supported client/OS combination has a PASS smoke test, and `ADOPT-05B` cannot reach PASS —
+     which in turn blocks `ADOPT-06`, whose precondition it is.
 Result: **PENDING** — Steps 1 through 5 are complete and the file is authored, safety-checked and
         syntax-validated, but this step cannot reach PASS until the fresh-session smoke test is
         observed. Not FAIL: nothing failed. Not SKIPPED: this step is unconditionally mandatory.
