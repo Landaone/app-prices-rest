@@ -59,6 +59,21 @@ Outcome of the ADOPT-02 check (recorded 2026-08-25T18:31:59Z): `openspec --versi
 Policy: least-privilege default (project-local scope, automatic-allow disabled) unless the
 operator explicitly requests broader scope.
 Deviation from the default, if any: none
+Actual choices made at ADOPT-05 (recorded 2026-08-25T19:06:23Z, updated in place — never a second file):
+  Command:              `codegraph install -t claude -l local --no-permissions` (never `-y`,
+                        which would have forced global scope, auto target and auto-allow on)
+  Clients:              claude only          — matches the binding selection
+  Scope:                project / local      — MATCHES the least-privilege default
+  Automatic allow:      No                   — MATCHES the least-privilege default
+  CLI on PATH:          No                   — declined; codegraph was already on PATH per this
+                                               run's ADOPT-01/ADOPT-04 evidence, so accepting
+                                               would have been a machine-level mutation outside
+                                               the step's repository-local allowlist
+  Prompt front-loading: No
+  CodeGraph Pro:        No
+  **No deviation toward broader scope or automatic allow occurred**, so ADOPT-05's approval gate
+  auto-approved under its own documented clause rather than being presented as a live question.
+  The generated files remain fully diff-reviewable evidence.
 ```
 
 ## Standing commit-and-push authorization

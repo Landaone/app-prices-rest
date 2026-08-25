@@ -172,7 +172,7 @@ when its evidence block below is filled.
 | `ADOPT-02` | `01-prerequisites-and-install.md` | PASS | 2026-08-25 — OpenSpec 1.7.0 reused (no install); `init --tools claude` |
 | `ADOPT-03` | `01-prerequisites-and-install.md` | PASS | 2026-08-25 — 30 files mirrored + CLAUDE.md symlink; live gate |
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-25 — CodeGraph 1.5.0 reused; 22 files / 295 nodes / 355 edges |
-| `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PENDING | BLOCKED — `codegraph install` needs an interactive pty; execution refused by the session's permission classifier |
+| `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-25 — operator ran `install -t claude -l local --no-permissions`; block resolved |
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PENDING | |
 | `ADOPT-06` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
@@ -692,93 +692,117 @@ Notes:
 ### `ADOPT-05` — Configure CodeGraph for the Selected Clients
 
 ```text
-Status: **PENDING — BLOCKED on an external environment restriction. Not FAIL, and not a skip.**
-`codegraph install` has NOT been run in any form. Nothing was configured, nothing was written,
-and no sub-question was answered. Every field below that describes an outcome is therefore
-recorded as not-yet-observed rather than filled with an intended value — an intended answer is
-not evidence of an answer given.
+Resolution of the earlier block: the previous PENDING record for this step (committed as
+`9b01bfa`) stands as the honest account of the period when `codegraph install` had not run.
+It is superseded here, not deleted: the blocker was real, and the way it was resolved is part
+of the evidence. The pty driver was never permitted to execute, so **this session never drove
+the interactive flow**. The operator ran the command directly at their own keyboard — which
+this phase file explicitly names as a legitimate response when automation cannot complete the
+flow — and reported completion at 2026-08-25T19:05:50Z.
 
-Check before configuring (performed 2026-08-25T18:54:18Z, the step's own first action):
-  `.mcp.json`               ABSENT
-  `.claude/settings.json`   ABSENT
-  `CODEGRAPH_START/END` provenance block in `.claude/CLAUDE.md`  ABSENT
-  → No existing configuration to reuse, so the configuration procedure is required. The
-    "skip because it already exists and already covers this client selection" branch does
-    not apply.
-
-Command:             **NOT RUN.** The canonical invocation was determined and is
-                     `codegraph install -t claude -l local --no-permissions`, driven through an
-                     allocated pty for the two sub-questions that have no flag equivalent.
-                     `-y` was **rejected**, not merely avoided: `codegraph install --help`
-                     confirms verbatim that `-y` means "--location=global --target=auto,
-                     auto-allow on", which inverts three of this step's own rules at once
-                     (project scope, only-selected clients, no automatic allow before review).
-                     The same `--help` output confirms the CLI exposes only `--target`,
-                     `--location`, `--no-permissions`, `--print-config` and `--refresh` — there
-                     is **no flag** for the CLI-on-PATH or front-loading sub-questions, so this
-                     step genuinely has no non-interactive path that preserves its own rules.
-Blocker (verbatim):  A pty driver was written to answer both sub-questions No and to capture the
-                     full transcript as evidence. Executing it was refused twice by this
-                     session's own permission layer: "Permission for this action was denied by
-                     the Claude Code auto mode classifier. Reason: Blocked by classifier." The
-                     refusal is a **policy restriction of the execution environment**, not the
-                     pty flakiness this phase file separately warns about (two prior runs seeing
-                     the flow stall) — the process was never allowed to start, so no attempt at
-                     the interactive flow has actually been made. The operator was asked how to
-                     proceed and selected "approve my pty driver"; the classifier denied the
-                     identical call again afterwards, because that approval is answered inside
-                     the session and does not lift a classifier rule. Resolving it requires an
-                     action outside this session: a Bash permission rule in the operator's
-                     settings, a different permission mode, or the operator running the command
-                     at their own keyboard (which this phase file explicitly names as a
-                     legitimate response).
-Clients selected:    NOT YET OBSERVED. Intended and binding: **claude only** (`-t claude`);
-                     kiro and codex remain NOT SELECTED and must receive nothing.
-Scope:               NOT YET OBSERVED. Intended: **project/local** (`-l local`), the
-                     least-privilege default recorded in `ADOPTION-AUTHORIZATION.md`.
-PATH:                NOT YET OBSERVED. Intended answer: **No.** This is a reasoned answer from
-                     this run's own evidence, exactly as the step requires — `ADOPT-01` and
-                     `ADOPT-04` both resolved `codegraph` on PATH (1.5.0, exit 0), so the
-                     sub-question's precondition is already satisfied and accepting would
-                     perform a machine-level mutation outside this step's repository-local
-                     `Allowed modifications` to re-establish something already true. Declining
-                     prints a generic warning about agents being unable to launch the MCP
-                     server; that warning does not account for an already-resolvable PATH entry
-                     and is to be recorded as a residual risk deferred to `ADOPT-15`'s
-                     fresh-session runtime-discovery validation, with `ADOPT-15`'s own recovery
-                     (re-run accepting the PATH install) if the client cannot launch it.
-Automatic allow:     NOT YET OBSERVED. Intended: **No** (`--no-permissions`), per the rule "do
-                     not enable automatic allow until exact command patterns are reviewed" and
-                     the least-privilege policy in `ADOPTION-AUTHORIZATION.md`.
-Prompt front-loading: NOT YET OBSERVED. Intended: **No** (treated as optional).
-Pro:                 NOT YET OBSERVED. Intended: **No**.
-Generated files:     **NONE.** Verified, not assumed: `git status --short` shows no `.mcp.json`
-                     and no `.claude/settings.json`, and `.claude/CLAUDE.md` carries no
-                     `CODEGRAPH_START/END` block. The repository is exactly as checkpoint 5 left
-                     it.
-                     Read-only preview obtained instead, with no file writes:
-                     `codegraph install --print-config claude` (exit 0) printed an
-                     `mcpServers.codegraph` stdio entry invoking `codegraph serve --mcp`. Note
-                     it was headed "Add to <home>/.claude.json" because no `--location` was
-                     passed to that preview — the actual install is to be run with `-l local`,
-                     which targets the project-local `.mcp.json` instead. The preview is
-                     recorded as a preview; it is **not** evidence of a performed install.
+Command:             `codegraph install -t claude -l local --no-permissions`, run by the
+                     operator (Landaone) in their own terminal at the repository root.
+                     **Executed by the operator, not by this session** — recorded that way
+                     deliberately: `00-conventions.md` forbids claiming automatic discovery or
+                     execution for something manually supplied. `-y` was NOT used.
+Clients selected:    **claude only.** OBSERVED from artifacts, not taken on trust: the only
+                     client configuration produced is `.mcp.json` plus the `CODEGRAPH_START/END`
+                     block in `.claude/CLAUDE.md`. A repository-wide scan found no `.kiro/`,
+                     `.agents/`, `AGENTS.md`, `codex.md`, `.cursor/`, `.opencode/` or
+                     `.hermes/`. The machine-global `~/.codex/config.toml` **does** exist but is
+                     pre-existing (mtime 2026-08-20, five days before this run) and contains
+                     **zero** occurrences of "codegraph" — so Codex, recorded NOT SELECTED, was
+                     not configured by this command. Checked rather than assumed, because a file
+                     merely existing proves nothing about which process wrote it.
+Scope:               **project / local.** OBSERVED: `.mcp.json` was written inside the
+                     repository, and the machine-global `~/.claude.json` contains **zero**
+                     occurrences of "codegraph" despite existing (61 KB). Had the install gone
+                     to global scope, that file — the destination `--print-config claude` named
+                     in its preview — is where the server entry would have landed. Least-privilege
+                     default honoured.
+PATH:                **No.** OBSERVED by mtime, not merely reported: `codegraph` resolves to
+                     `~/.local/bin/codegraph`, a symlink into `~/.codegraph/versions/v1.5.0/`
+                     dated **2026-07-25**, one month before this adoption. The install created
+                     nothing there and nothing under `~/.codegraph/` was newly written by it
+                     beyond telemetry and an update check. This is the answer this run's own
+                     ADOPT-01/ADOPT-04 evidence required: `codegraph` was already resolvable on
+                     PATH, so answering Yes would have performed a machine-level mutation
+                     outside this step's repository-local `Allowed modifications` to
+                     re-establish something already true.
+                     **Residual risk, recorded rather than dismissed:** declining prints a
+                     generic warning that agents will not be able to launch the MCP server
+                     without a PATH install. That warning does not account for an
+                     already-resolvable PATH entry, so it is deferred to `ADOPT-15`'s
+                     fresh-session runtime-discovery validation — not treated as a blocking
+                     failure here, and not treated as resolved either. If `ADOPT-15` shows the
+                     client cannot launch the server, its documented recovery is to re-run
+                     `codegraph install` accepting the PATH install.
+Automatic allow:     **No.** OBSERVED: `--no-permissions` was passed, and `.claude/settings.json`
+                     is **absent** — the file this flag suppresses. Nothing auto-allows any
+                     command pattern, honouring the rule "do not enable automatic allow until
+                     exact command patterns are reviewed" and the least-privilege policy in
+                     `ADOPTION-AUTHORIZATION.md`.
+Prompt front-loading: **No.** Confirmed by the operator at 2026-08-25T19:05:50Z when asked directly.
+                     **Not independently observable from artifacts** — this sub-question leaves
+                     no trace in the repository or in `~/.codegraph/` — so it is recorded as an
+                     operator-confirmed answer, explicitly distinguished from the mtime- and
+                     content-verified findings above. Indirect corroboration only: the
+                     `CODEGRAPH_START/END` block is the tool's standard guidance text, with no
+                     front-loaded prompt content.
+Pro:                 **No.** Confirmed by the operator at the same time. Same evidential status
+                     as front-loading: operator-confirmed, not artifact-observable. Indirect
+                     corroboration: `~/.codegraph/beta-signup.json` is untouched, dated
+                     2026-07-30, and nothing under `~/.codegraph/` was written today except
+                     `telemetry-queue.jsonl` and `update-check.json`.
+Generated files:     **3**, each inspected, and all three inside this step's closed allowlist:
+                     1. `.mcp.json` (new) — a single `mcpServers.codegraph` stdio entry invoking
+                        `codegraph serve --mcp`. No credentials, no absolute paths, no
+                        machine-specific content; portable and safe to commit.
+                     2. `.claude/CLAUDE.md` (modified) — **purely additive**. `git diff` shows
+                        only insertions: a blank line plus an 11-line
+                        `<!-- CODEGRAPH_START -->` … `<!-- CODEGRAPH_END -->` block. The
+                        ADOPT-00 `SPECBOOT-BOOTSTRAP` block above it is byte-identical, so
+                        nothing was rewritten or reordered. The delimiters also supply the
+                        provenance marker this step's own "check before configuring" branch
+                        reads on a later run.
+                     3. `.claude/settings.json` — **deliberately NOT generated** (see Automatic
+                        allow). Its absence is the evidence, not an omission.
+                     The canonical root `CLAUDE.md` symlink was **not** touched — `ls -l`
+                     confirms it still points at `docs/base-standards.md` and `git diff` for it
+                     is empty. This matters: the allowlist names `.claude/CLAUDE.md` and
+                     explicitly says "never the canonical root symlink itself", and writing
+                     through the symlink would have silently rewritten `docs/base-standards.md`,
+                     a file mirrored byte-for-byte from the canonical payload at ADOPT-03.
 Per-client provisioning provenance (installer-provisioned vs. separately configured):
-                     - claude — CodeGraph MCP configuration: **not provisioned by anything
-                       yet.** No process has created `.mcp.json` or `.claude/settings.json`.
-                     - Everything else is unchanged from ADOPT-03's record: `.claude/commands/
-                       opsx/` and `.claude/skills/openspec-*/` from OpenSpec's `init`
-                       (ADOPT-02); `.claude/CLAUDE.md` and `.claude/skills/specboot-adopt` from
-                       the ADOPT-00 bootstrap; `docs/`, `ai-specs/` and the root `CLAUDE.md`
-                       symlink from ADOPT-03.
-                     - kiro, codex: NOT SELECTED — nothing provisioned.
-Result: **PENDING** — blocked, awaiting an operator action outside this session. It is not FAIL:
-        no command ran and no validation failed. It is not SKIPPED: a code-graph capability is
-        mandatory and `ADOPT-05` is not a skippable step. The adoption stops here rather than
-        continuing, because `ADOPT-05B` requires `ADOPT-05` = PASS whenever CodeGraph is being
-        adopted, and `ADOPT-06` in turn requires `ADOPT-05B` — so no later step is reachable.
+                     - claude — `.mcp.json` and the `CODEGRAPH_START/END` block: provisioned by
+                       **`codegraph install`** in this step, in this run, run by the operator.
+                     - claude — `.claude/commands/opsx/`, `.claude/skills/openspec-*/`:
+                       **OpenSpec `init`** (ADOPT-02). Untouched here.
+                     - claude — the `SPECBOOT-BOOTSTRAP` block in `.claude/CLAUDE.md` and
+                       `.claude/skills/specboot-adopt`: **ADOPT-00 bootstrap**. Untouched here;
+                       the CodeGraph block was appended below, not merged into it.
+                     - `docs/`, `ai-specs/`, root `CLAUDE.md` symlink: **ADOPT-03**. Untouched.
+                     - `.codegraph/`: **`codegraph init`** (ADOPT-04). Untouched.
+                     - The SpecBoot npm installer has still not run in this adoption.
+                     - kiro, codex, cursor, opencode, hermes: NOT SELECTED — nothing
+                       provisioned, verified by scan.
+Validation:          `git status --short` → `M .claude/CLAUDE.md`, `?? .mcp.json` (plus the
+                     carried-forward run-log edit). `git diff --name-only` → `.claude/CLAUDE.md`
+                     only. `codegraph explore "list public interfaces"` → **exit 0**, non-empty
+                     structured result: "Found 52 symbols across 4 files", with blast radius
+                     naming real symbols at real locations, including `PriceService`
+                     (`src/main/java/com/llandaeta/prices/core/services/PriceService.java:8`) with
+                     5 callers and its covering test identified.
+Result: PASS
+Notes:
+  - Runtime discovery is NOT established by this step and is not claimed. Filesystem
+    configuration passing here says nothing about whether a fresh client session can actually
+    launch the MCP server; that is `ADOPT-15`'s gate, in a fresh session, and the PATH residual
+    risk above rides on it.
+  - `ADOPTION-AUTHORIZATION.md`'s code-graph privilege-scope section was updated in place with
+    these actual choices, as this step's Action requires — never a second file (design D-Z
+    part 2a).
 ```
-
 
 ### `ADOPT-05B` — Selected-Client Permissions
 
@@ -1091,6 +1115,7 @@ group requires a **written structural justification** — "fewer commits" is not
 | 3 | `ADOPT-02` (single step, not a group) | n/a — not a group | `ADOPT-02` = **PASS**, each criterion checked individually rather than as a batch: `openspec/` exists; a config file exists (`openspec/config.yaml` — the extension this version actually generated, not the guide's `.yml` alternative); the selected client's resources exist — **12 files verified on the filesystem**, not trusted from the installer's own "6 skills and 6 commands" message; and **no resources exist for any unselected client**, verified by an explicit repository-wide scan for `.kiro/`, `.agents/`, `AGENTS.md`, `codex.md`, `.cursor/`, `.gemini/`, `.windsurf/`, `.continue/`, `.roo/`, `.github/copilot-instructions.md`, `.qoder/`, `.trae/` — all absent. `openspec doctor` exit 0, root ok. No install or upgrade ran (1.7.0 already met the requirement), so that gate was never reached. | Run log §`ADOPT-02` evidence block; `ADOPTION-AUTHORIZATION.md` §OpenSpec version policy | **YES** — 15 staged paths, every one inside `ADOPT-02`'s closed exact list: `openspec/config.yaml`; the selected client's generated resources exactly as `openspec init --tools claude` reported them (`.claude/commands/opsx/*.md` ×6, `.claude/skills/openspec-*/SKILL.md` ×6); `ADOPTION-AUTHORIZATION.md` (**update only**, never a second file); plus the always-permitted run log. No unexpected path. Three generated directories (`openspec/changes/`, `openspec/changes/archive/`, `openspec/specs/`) are empty and therefore untracked — `git add -n openspec` confirmed exactly one path would stage. `.claude/CLAUDE.md` is **not** staged: `openspec init` left it byte-identical (`git diff --quiet` → UNCHANGED), and it belongs to `ADOPT-00`, not here. | YES — declared with the exact 15-path staged list before the gate | **auto: standing authorization** (Landaone, 2026-08-25T18:12:48Z); subset test YES; branch matches. | `.claude/commands/opsx/{apply,archive,explore,propose,sync,update}.md` (A ×6); `.claude/skills/openspec-{apply-change,archive-change,explore,propose,sync-specs,update-change}/SKILL.md` (A ×6); `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (M); `.specboot/adoption/ADOPTION-RUN-LOG.md` (M); `openspec/config.yaml` (A) — 15 paths | `5873e28f9421f1fa477150052f232350ae1d88d9` — filled after the commit; delta carries into checkpoint 4 | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T18:34:15Z per §Amendment 1: `workflows=0 hooks=0 rulesets=0 branch-rules=[] keys=0 envs=0`. Identical to row 1's baseline. Fast-forward confirmed: `git rev-list --left-right --count @{u}...HEAD` → `0/0` (behind/ahead), zero behind. | **PUSHED — auto-approved** under §Amendment 1 (fast-forward YES, baseline unchanged YES). No force, no other branch, **no pull request**. | none new. **One correction recorded**, not a proposal: the `ADOPT-01` evidence block committed in `bad06cc` spelled two tool locations as absolute paths under the operator's home directory. Not the prohibited leak — a scan confirms the resolved **canonical source path** appears nowhere in this log — but unnecessary machine detail in a file committed to a **public** repository, and inconsistent with the `<node-prefix>` form already used on the adjacent npm line. Both were normalized to placeholders in this checkpoint; the evidentiary claim (each version command invoked through its resolved absolute path, so no alias could shadow a tool) is unchanged and still true. |
 | 4 | `ADOPT-03` (single step, not a group) | n/a — not a group | `ADOPT-03` = **PASS**. 30 files mirrored from the payload; `diff -r` against both source trees reports **no differences**, so the closed rule's "byte-for-byte mirror" is verified, not asserted. Zero files skipped (target had no colliding path). `.cursor/` correctly excluded by the glob — doubly correct, since Cursor is unselected. `CLAUDE.md` symlink resolves to `docs/base-standards.md` and is staged with mode `120000`, i.e. a real symlink rather than a materialized copy. A zero-file copy was treated as the FAIL it is and checked at the moment of copy, not deferred to validation; the count came back 30. | Run log §`ADOPT-03` evidence block; §Improvement proposals row 4 | **YES** — 32 staged paths, all inside `ADOPT-03`'s closed rule: the `docs/` (7) and `ai-specs/` (23) mirrors, the `CLAUDE.md` root symlink (one of the four the rule names), and the always-permitted run log. Nothing outside the two mirrored trees and the named symlinks; no hidden client directory. Three of the four permitted root symlinks were **not** created — writing fewer paths than an allowlist permits is not an allowlist violation, since the field is a ceiling on permitted writes, not a required set. | YES — declared with the exact 32-path staged list before the gate | **LIVE approval, not auto** — Landaone, 2026-08-25T18:39:44Z, approved the exact mutation after being shown the literal `find` counts (31 payload files, 30 copied, 1 glob-excluded, 0 skipped) and the three options for the absent root instruction files; the operator selected "CLAUDE.md only". The step's auto-approval clause applies **only** where the mechanical comparison shows the copy matches the closed rule exactly; it surfaced a deviation (all four root instruction files absent from the payload, and a conflict between the step's allowlist and `00-conventions.md`'s no-unselected-client boundary), so the deviation reached the live gate exactly as documented. Standing authorization was **not** used to wave this through. | `CLAUDE.md` (A, symlink); `docs/*` (A ×7); `ai-specs/**` (A ×23); `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) — 32 paths | `533313ad4c0664912cb553e79b70df2a97f67e42` — filled after the commit; delta carries into checkpoint 5 | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T18:39:44Z per §Amendment 1: `workflows=0 hooks=0 rulesets=0 branch-rules=[] keys=0 envs=0`. Identical to row 1's baseline. Fast-forward confirmed: `git rev-list --left-right --count @{u}...HEAD` → `0/0` (behind/ahead), zero behind. | **PUSHED — auto-approved** under §Amendment 1 (fast-forward YES, baseline unchanged YES). Note the two gates stayed distinct here: the commit gate was **live**, the push gate auto-approved on its own separate conditions; neither approval was read as covering the other. No force, no other branch, **no pull request**. | **1 new — proposal 4** (`01-prerequisites-and-install.md`): `ADOPT-03` instructs the runner to expect all four root instruction symlinks to resolve, but three of them are configuration for unselected clients, which `00-conventions.md` forbids across every step — and this payload ships none of the four, while the step's `On failure` table has no row for the absent case. Proposes per-selected-client creation, an `On failure` row, and an explicit statement that `Allowed modifications` is a ceiling, not a checklist. Proposals 1–3 remain `proposed`. |
 | 5 | `ADOPT-04` (single step, not a group) | n/a — not a group | `ADOPT-04` = **PASS**. Capability selection recorded first, as this phase file requires: CodeGraph selected, availability established by an **executed** command (`codegraph --version` → 1.5.0, exit 0) rather than asserted. `codegraph init` exit 0: **22 files, 295 nodes, 355 edges, 602ms**. Index proven **queryable**, not merely present: `codegraph explore "list entry points"` returned a non-empty structured result (49 symbols across 3 files) naming real symbols at real line numbers in this repository's own Java sources. No "small repository" exemption sought — the repo is small, which is precisely the rationalization the phase file names and refuses. | Run log §`ADOPT-04` evidence block | **YES** — `ADOPT-04`'s `Allowed modifications` is the closed exact list `.codegraph/`, of which only `.codegraph/.gitignore` is ever trackable. `git add -n .codegraph` reports exactly that one path, and `git check-ignore -v .codegraph/codegraph.db` confirms the 860 KB index database is ignored by CodeGraph's own provisioned rule (`*` / `!.gitignore`) — so the version-dependent index cannot reach the commit. Staged set is that one file plus the always-permitted run log. No unexpected path. | YES — declared with the exact staged file list before the gate | **auto: standing authorization** (Landaone, 2026-08-25T18:12:48Z); subset test YES; branch matches. `ADOPT-04`'s own install gate was never reached — 1.5.0 was already present, so nothing was installed. | `.codegraph/.gitignore` (A); `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) — 2 paths | `2ea875f967f27d65a444ad40453348a1859c7863` — filled after the commit; delta carries into checkpoint 6 | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T18:41:50Z per §Amendment 1: `workflows=0 hooks=0 rulesets=0 branch-rules=[] keys=0 envs=0`. Identical to row 1's baseline. Fast-forward confirmed: `0/0` (behind/ahead), zero behind. | **PUSHED — auto-approved** under §Amendment 1. No force, no other branch, **no pull request**. | none new; proposals 1–4 remain `proposed` |
+| 6 | `ADOPT-05` (single step, not a group) | n/a — not a group | `ADOPT-05` = **PASS**, after the earlier block was resolved by the operator running the command directly — which this phase file names as a legitimate response when automation cannot drive the flow. `codegraph install -t claude -l local --no-permissions`, never `-y`. Every scope-relevant choice **verified from artifacts rather than taken on trust**: project scope (`.mcp.json` in-repo; `~/.claude.json` has **zero** codegraph occurrences despite existing at 61 KB); auto-allow off (`.claude/settings.json` **absent** — its absence is the evidence); claude only (no `.kiro/`, `.agents/`, `AGENTS.md`, `codex.md`, `.cursor/`, `.opencode/`, `.hermes/`; the pre-existing `~/.codex/config.toml`, mtime 2026-08-20, has zero codegraph occurrences); no PATH mutation (`~/.local/bin/codegraph` symlink dated **2026-07-25**, a month earlier). Front-loading and Pro were confirmed **No** by the operator and are recorded as operator-confirmed, explicitly distinguished from the artifact-verified findings, since neither leaves a trace. Validation: `codegraph explore "list public interfaces"` exit 0, 52 symbols across 4 files. | Run log §`ADOPT-05` evidence block; `ADOPTION-AUTHORIZATION.md` §Code-graph capability default privilege scope | **YES** — 4 staged paths, all inside `ADOPT-05`'s closed exact list: `.mcp.json`; the additive `CODEGRAPH_START/END` block in `.claude/CLAUDE.md` (the client's root instruction file — **not** the canonical root symlink, which the allowlist forbids and which `git diff` confirms untouched); `ADOPTION-AUTHORIZATION.md` (**update only**); plus the always-permitted run log. `.claude/settings.json` is absent by design and stages nothing. No adapter or configuration for any unselected client. | YES — declared with the exact 4-path staged list before the gate | **auto-approved under `ADOPT-05`'s own gate clause**, not merely under the standing authorization: the gate auto-approves where the actual choices exactly match the least-privilege defaults in the Rules and in `ADOPTION-AUTHORIZATION.md`'s code-graph privilege-scope policy — project scope YES, automatic allow = No YES. **No deviation toward broader scope or automatic allow occurred**, so nothing reached the live gate. The generated files remain fully diff-reviewable evidence rather than a question answered in the moment. | `.mcp.json` (A); `.claude/CLAUDE.md` (M, additive block only); `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (M); `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) — 4 paths | PENDING-FILL — recorded immediately after the commit | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T19:06:50Z per §Amendment 1: `workflows=0 hooks=0 rulesets=0 branch-rules=[] keys=0 envs=0`. Identical to row 1's baseline. Fast-forward confirmed: `0/0` (behind/ahead), zero behind. | **PUSHED — auto-approved** under §Amendment 1. No force, no other branch, **no pull request**. | none new; proposals 1–4 remain `proposed`. **One residual risk carried forward, not closed:** declining the CLI-on-PATH sub-question prints a warning that agents cannot launch the MCP server without it, and that warning does not account for an already-resolvable PATH entry. Deferred to `ADOPT-15`'s fresh-session runtime-discovery gate, whose documented recovery is to re-run `codegraph install` accepting the PATH install. Filesystem configuration passing here establishes **no** runtime discovery. |
 
 > The commit approval and the push approval are **two distinct gates**. Neither carries forward to
 > the next checkpoint. Unknown or unapproved remote impact **blocks** the push; "no CI
