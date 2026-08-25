@@ -28,13 +28,41 @@ workflow `runs-on` values, a Windows-wrapper script, container configuration, CO
 platform statements), record the evidence pointer alongside each confirmed or corrected row.
 
 ```text
-Clients supported:                PENDING — declared at ADOPT-05B, not yet asked
-Stacks supported:                 PENDING — declared at ADOPT-05B, not yet asked
-Shells supported:                 PENDING — declared at ADOPT-05B, not yet asked
-Operating systems supported:      PENDING — declared at ADOPT-05B, not yet asked
-Evidence used to derive this matrix, if any: PENDING — ADOPT-05B derives it; repository evidence
-  observed so far at ADOPT-00 is limited to mvnw / mvnw.cmd (POSIX + Windows wrappers present)
-  and pom.xml, recorded here as a pointer only, not as a declared matrix.
+Declared at ADOPT-05B on 2026-08-25T19:09:35Z. Team-declared, NOT this machine's configuration.
+Clients supported:                claude (Claude Code). kiro and codex remain NOT SELECTED and
+                                  receive no permission file.
+Stacks supported:                 Java 11 + Apache Maven. Derived from repository evidence:
+                                  pom.xml declares <java.version>11</java.version> under
+                                  spring-boot-starter-parent 2.4.5; both the `mvn` on PATH
+                                  (3.9.16) and the `mvnw`/`mvnw.cmd` wrappers are present.
+                                  Node.js/npm are present as adoption *tooling* (OpenSpec,
+                                  CodeGraph) but are not a stack of the product itself.
+Shells supported:                 zsh, bash, PowerShell — the documented broad default,
+                                  deliberately NOT narrowed.
+Operating systems supported:      macOS, Linux, Windows — the documented broad default,
+                                  deliberately NOT narrowed.
+Evidence used to derive this matrix, if any:
+  **Declared broad by default; narrowing would have required stated evidence, and none exists.**
+  This is the direction the guide mandates (default broad, narrow only on stated evidence, never
+  the reverse), and the reasoning is recorded rather than assumed: this matrix governs only
+  read-only, project-scoped, low-risk command patterns, so declaring broadly recognises more
+  command-syntax variants without increasing privilege — while narrowing to the adopting
+  machine's own macOS/zsh would leave a teammate on Linux or Windows hitting an unexplained
+  permission prompt later, far from this step.
+  - Positive repository evidence for Windows: `mvnw.cmd` is present alongside the POSIX `mvnw`,
+    so the repository itself already ships a Windows invocation path. Windows variants
+    (`mvnw.cmd ...`) are therefore RETAINED in the permission file even though this adoption ran
+    on macOS and could not exercise them.
+  - Positive repository evidence for POSIX: `mvnw` (POSIX wrapper), and this adoption ran on
+    macOS 13.7.8 / zsh.
+  - **No evidence either way** for Linux specifically, nor for bash vs zsh vs PowerShell as team
+    choices: the repository has **no CI configuration**, no container definition, no
+    CONTRIBUTING or README platform statement, and no Windows-wrapper script beyond `mvnw.cmd`.
+    Absence of evidence is recorded as absence — it is NOT read as evidence of absence, and it is
+    NOT used to narrow the declaration. No repository or single machine can evidence a team's
+    real heterogeneity; individual developers pick their own OS and shell.
+  - This machine, recorded as context and explicitly NOT as the matrix: macOS 13.7.8
+    (Darwin 22.6.0 x86_64), zsh.
 ```
 
 ## OpenSpec version policy
