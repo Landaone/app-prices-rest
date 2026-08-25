@@ -23,11 +23,18 @@ context: |
     - "docs/data-model.md"              the single table test.PRICES, its entity and migration
     - "docs/development_guide.md"       build, run, and test commands
 
-  Canonical agents live under "ai-specs/agents/". This repository's work is backend-only, so
-  select "ai-specs/agents/backend-developer.md" for implementation work and
-  "ai-specs/agents/product-strategy-analyst.md" for scoping and requirements work.
-  "ai-specs/agents/frontend-developer.md" exists in the canonical set but MUST NOT be selected
-  here, because this repository has no frontend for it to act on.
+  Canonical agents live under "ai-specs/agents/". Select by technology family and work type:
+    - "ai-specs/agents/jvm-spring-backend-developer.md" for all implementation, review, and
+      refactoring work here. This repository is Java 11 on Spring Boot with Maven, which is that
+      agent's family.
+    - "ai-specs/agents/product-strategy-analyst.md" for scoping, use cases, and requirements
+      work. It is technology-agnostic and applies unchanged.
+  Two canonical agents exist but MUST NOT be selected for this repository, and they are named
+  here so the exclusion is deliberate rather than an oversight:
+    - "ai-specs/agents/backend-developer.md" targets TypeScript backends with Domain-Driven
+      Design, Prisma, and Express. It is a different technology family, not a general backend
+      agent, and it is preserved unchanged for repositories that do use that stack.
+    - "ai-specs/agents/frontend-developer.md" targets React. This repository has no frontend.
 
   Canonical skills live under "ai-specs/skills/" and are workflow guidance: when a request
   matches a skill, load and follow its SKILL.md before continuing. Available skills:
