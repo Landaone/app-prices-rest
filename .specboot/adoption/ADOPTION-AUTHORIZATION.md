@@ -69,6 +69,45 @@ Granted when (date/time): 2026-08-25T18:12:48Z
 Revoked when (date/time), if applicable, and why: n/a
 ```
 
+### Amendment 1 — checkpoint-1 push gate, and the baseline the push condition now names
+
+Granted by: Landaone (operator), at the checkpoint-1 push gate
+Granted when: 2026-08-25T18:27:42Z
+
+Two things were granted in one answer, and they are recorded separately because they are separate
+grants:
+
+1. **This push, explicitly.** The operator approved pushing checkpoint 1 (`fb4d2f0`) to
+   `origin`, **creating** the remote branch `experiment/specboot-ai-adoption-v7`, having been shown
+   the determined remote-impact assessment and both findings attached to it — that the remote ref
+   does not yet exist (so the push creates rather than fast-forwards) and that the repository is
+   **public** (so the adoption record becomes public). No force push, no pull request, no other
+   branch.
+
+2. **The standing push authorization is extended to later checkpoints on this branch**, against the
+   assessment recorded in the checkpoint ledger's row 1 as the **`ADOPT-00` remote-impact
+   baseline**. From checkpoint 2 onward the push gate auto-approves only when all of the original
+   conditions hold *and* the assessment is re-checked as unchanged from that baseline:
+
+   - the checkpoint's exact staged file list is a subset of its step's declared
+     `Allowed modifications` (unchanged from the original grant);
+   - the push is **fast-forward** — from checkpoint 2 onward the remote ref exists, so this is a
+     real test again, not a vacuous one;
+   - the remote-impact assessment is **unchanged from the baseline**: still zero Actions workflows,
+     zero webhooks, zero rulesets, no branch protection or required check on this branch, zero
+     deploy keys, zero environments, no Pages site — and no new CI, ruleset, webhook, branch
+     protection, force push, pull request, deployment, or destructive Git operation;
+   - the branch is still `experiment/specboot-ai-adoption-v7`.
+
+   **Re-checking is not optional and reuse is not trust.** Any one of those probes coming back
+   different is not a variance to note and continue past — it is a **changed baseline**, the
+   auto-approval lapses, and the push gate is presented live to the operator again.
+
+   **What this amendment does not grant:** pull-request creation (gated separately by `ADOPT-20`),
+   merges, force pushes, any branch other than the one named, remote or credential configuration,
+   and any write call against the GitHub API. Read-only GitHub inspection is authorized only for
+   the remote-impact assessment this protocol requires.
+
 Both gates (commit and push) are covered. The operator selected "Sí, commit y push" at the
 `ADOPT-00` mutation gate, in the same gate that approved the exact mutation inventory.
 
