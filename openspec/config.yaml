@@ -1,32 +1,84 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Project context, injected into all artifact instructions.
+# Pointers only — the documentation is NOT duplicated here. Read the referenced files.
+context: |
+  Repository: app-prices-rest — a backend-only Spring Boot REST service that resolves which
+  price applies to a product of a brand at a given instant.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Stack: Java 11, Spring Boot 2.4.5, Apache Maven, Spring Data JPA/Hibernate, Flyway, in-memory
+  H2, Lombok, JUnit 5 with Mockito and MockMvc. There is NO frontend, no browser layer, and no
+  end-to-end UI testing in this repository.
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+  Primary source of project rules: "docs/base-standards.md". Read it first; the repository root
+  "CLAUDE.md" is a relative symlink to that same file.
+
+  Supporting documentation, all repository-relative:
+    - "docs/backend-standards.md"       architecture, layering, conventions, testing, and the
+                                        register of known defects D1-D8
+    - "docs/frontend-standards.md"      NOT APPLICABLE to this repository; retained as a
+                                        placeholder and carrying no requirements
+    - "docs/documentation-standards.md" documentation process and the document map
+    - "docs/api-spec.yml"               OpenAPI contract for the single endpoint GET /api/price
+    - "docs/data-model.md"              the single table test.PRICES, its entity and migration
+    - "docs/development_guide.md"       build, run, and test commands
+
+  Canonical agents live under "ai-specs/agents/". This repository's work is backend-only, so
+  select "ai-specs/agents/backend-developer.md" for implementation work and
+  "ai-specs/agents/product-strategy-analyst.md" for scoping and requirements work.
+  "ai-specs/agents/frontend-developer.md" exists in the canonical set but MUST NOT be selected
+  here, because this repository has no frontend for it to act on.
+
+  Canonical skills live under "ai-specs/skills/" and are workflow guidance: when a request
+  matches a skill, load and follow its SKILL.md before continuing. Available skills:
+  adversarial-review, code-auditing, commit, enrich-us, explain, meta-prompt, specboot-verify,
+  update-docs, using-git-worktrees, writing-skills.
+
+  Architecture: three layers under "src/main/java/com/llandaeta/prices" — rest (controllers,
+  DTOs, exception handling), core (services, converters, models, exception types), db (JPA
+  entities and Spring Data repositories). Dependencies point rest to core to db, never back.
+  Entities must never leave the core layer; PriceEntityModelConverter maps them to PriceModel.
+
+  Build and test with the "mvn" on PATH, not "./mvnw" — the wrapper scripts are committed but
+  the .mvn directory is absent, so they cannot bootstrap. Tests run with "mvn test".
+
+# Per-artifact rules, keyed by artifact ID.
+# Valid artifact IDs for the spec-driven schema are: proposal, specs, design, tasks
+# (confirmed via `openspec schemas`).
+rules:
+  proposal:
+    - "Scope every proposal to this backend service only. Never propose frontend, browser, or end-to-end UI work — this repository has none."
+    - "State which of the three layers (rest, core, db) the change touches, and why the dependency direction rest to core to db is preserved."
+    - "When the change relates to a known defect, cite it by its ID from docs/backend-standards.md (D1 through D8) rather than restating it."
+    - "Include a Non-goals section. Fixing an unrelated known defect that happens to sit nearby is a non-goal unless the proposal is explicitly about that defect."
+  specs:
+    - "Express behaviour against the real contract in docs/api-spec.yml. The service exposes exactly one endpoint: GET /api/price with required brandId, productId, and applicationDate."
+    - "The applicationDate format is 'yyyy-MM-dd HH:mm:ss' with a space separator, not ISO-8601. Do not specify a T separator."
+    - "Price selection is: among rows matching brand and product whose window contains the instant (inclusive at both ends), the highest priority wins. Do not restate this rule differently."
+    - "Do not specify a response for a malformed applicationDate without first resolving defects D1 and D2 — the current behaviour is genuinely undefined, and inventing a contract here would make the spec wrong."
+    - "Any change to the request or response shape is a breaking API change and must say so."
+  design:
+    - "Justify any new abstraction. This service is deliberately not domain-driven: there are no aggregates, value objects, or domain events, and adding them needs an explicit reason."
+    - "Respect the existing conventions rather than replacing them: Lombok annotations, constructor injection via @AllArgsConstructor, interface plus impl sub-package, and Spring Data derived queries over @Query."
+    - "Schema changes are Flyway migrations, never entity edits alone — spring.jpa.hibernate.ddl-auto is 'none'."
+    - "New migration files must use a single underscore, for example 'V2_add_index.sql'. The configured sql-migration-separator is '_', so a conventionally named 'V2__add_index.sql' would be silently ignored."
+  tasks:
+    - "Step 0 must be creating and switching to a feature branch named 'feature/[ticket-id]-backend' or 'feature/[change-name]-backend'."
+    - "Include a MANDATORY step to review and update existing unit tests, and a MANDATORY step to run 'mvn test'."
+    - "Include a MANDATORY curl verification step marked 'AGENT MUST EXECUTE' for endpoint work, covering the 200 path and the 404 path."
+    - "Never include a Playwright or end-to-end step. This repository has no frontend, so such a step mandates work that cannot be performed."
+    - "Include a MANDATORY step to update the affected documentation under docs/, per docs/documentation-standards.md."
+    - "Changing the seed INSERT statements in V1_create_tables.sql breaks PriceControllerTest, which asserts against those exact rows. Treat that seed data as a test fixture and include a task to update the affected tests."
+
+# Per-operation advisory guidance. Supported operations in this installed version are
+# apply and archive (confirmed from the installed package's OPERATION_IDS).
+operations:
+  apply:
+    guidance:
+      - "Run 'mvn test' and report the actual result. Permission to run a test never implies its result is PASS."
+      - "Do not fix a known defect (D1 through D8) that the change did not set out to fix, however small the fix looks. Raise it separately."
+      - "Keep docs/api-spec.yml in step with any endpoint change; an endpoint change that does not update it is incomplete."
+  archive:
+    guidance:
+      - "Confirm the documentation under docs/ reflects the shipped behaviour before archiving, including the defect register if the change resolved or introduced one."
+      - "Summarize which validations were actually executed and their exit status, rather than asserting that the change works."
