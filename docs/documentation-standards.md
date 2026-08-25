@@ -14,6 +14,18 @@ AI specs refers to the documents that explain AI agents how to behave, document,
 
 
 
+## The document set in this repository
+
+| File | Covers | Update it when |
+|---|---|---|
+| `docs/base-standards.md` | Cross-cutting rules for all AI agents. **The root `CLAUDE.md` is a symlink to this file.** | Agent-facing conventions change |
+| `docs/backend-standards.md` | Stack, layering, coding conventions, testing, and the known-defect register | Architecture, conventions, or a discovered defect |
+| `docs/frontend-standards.md` | **Not applicable** — this repository is backend-only; retained as a placeholder | A frontend is genuinely added |
+| `docs/api-spec.yml` | OpenAPI contract for `GET /api/price` | Any endpoint, parameter, response, or error change |
+| `docs/data-model.md` | The single `test.PRICES` table, its entity mapping and migrations | Schema, entity, or seed-data change |
+| `docs/development_guide.md` | Build, run, and test commands | Build config, prerequisites, or commands change |
+| `docs/documentation-standards.md` | This document | Documentation process changes |
+
 ## Technical Documentation
 Before making any commit or git push, or if you're asked to document a commit, you must ALWAYS review which technical documentation should be updated.
 
@@ -22,7 +34,8 @@ When updating documentation, I will:
 2. Identify which documentation files need updates based on the changes. Some clear examples:
    - For data model changes: Update data model definition section in data-model.md
    - For API changes: Update api-spec.yml
-   - For changes in libraries, database migrations, or anything that changes the installation process, update *-standards.md
+   - For changes in libraries, database migrations, or anything that changes the installation process, update *-standards.md and `development_guide.md`
+   - For a newly discovered defect, add it to the "Known Risks and Defects" register in `backend-standards.md` **with a file:line citation**. Document the defect; do not fix it as part of the documentation change.
 3. Update each affected documentation file in English, maintaining consistency with existing documentation
 4. Ensure all documentation is properly formatted and follows the established structure
 5. Verify that all changes are accurately reflected in the documentation

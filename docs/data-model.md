@@ -1,372 +1,141 @@
 # Data Model Documentation
 
-This document describes the data model for the LTI (Learning Tracking Initiative) application, including entity descriptions, field definitions, relationships, and an entity-relationship diagram.
+This service has **one table**. Everything below is taken from the Flyway migration
+`src/main/resources/db/migration/V1_create_tables.sql` and the JPA entity
+`src/main/java/com/llandaeta/prices/db/entities/PriceEntity.java`.
+
+The schema is owned by **Flyway, not Hibernate** — `spring.jpa.hibernate.ddl-auto` is `none`
+(`src/main/resources/application.yaml`). A model change is a migration, never an entity edit alone.
+
+## Storage
+
+- Engine: **H2, in-memory** — `jdbc:h2:mem:testdb` by default, overridable via `DATABASE_URL`
+  (`application.yaml`). The database is recreated on every start; **nothing persists across
+  restarts.**
+- Schema name: `test`, created by the migration itself (`V1_create_tables.sql:1`) and configured
+  for Flyway as `spring.flyway.schemas: test`.
+- Credentials default to user `sa` with an empty password, overridable via `DATABASE_USER` /
+  `DATABASE_PASS` (`application.yaml`).
 
 ## Model Descriptions
 
-### 1. Candidate
-Represents a job candidate who can apply for positions within the system.
+### 1. Price
 
-**Fields:**
-- `id`: Unique identifier for the candidate (Primary Key)
-- `firstName`: Candidate's first name (max 100 characters)
-- `lastName`: Candidate's last name (max 100 characters)
-- `email`: Candidate's unique email address (max 255 characters)
-- `phone`: Candidate's phone number (optional, max 15 characters)
-- `address`: Candidate's address (optional, max 100 characters)
+The only entity. It represents **one pricing rule** valid for a brand and product over a time
+window, at a given priority.
 
-**Validation Rules:**
-- First name and last name are required, 2-100 characters, letters only
-- Email is required, must be unique, and follow valid email format
-- Phone is optional but must follow Spanish format (6|7|9)XXXXXXXX if provided
-- Address is optional but cannot exceed 100 characters
-- Maximum of 3 education records per candidate
+| Column | SQL type | Java field | Java type | Notes |
+|---|---|---|---|---|
+| `ID` | `IDENTITY PRIMARY KEY` | `id` | `Long` | `@Id`, **no `@GeneratedValue`** — see D3 below. Never exposed by the API. |
+| `BRAND_ID` | `INTEGER` | `brandId` | `int` | Brand identifier. |
+| `START_DATE` | `TIMESTAMP` | `startDate` | `LocalDateTime` | Inclusive start of validity. |
+| `END_DATE` | `TIMESTAMP` | `endDate` | `LocalDateTime` | Inclusive end of validity. |
+| `PRICE_LIST` | `INTEGER` | `priceList` | `int` | Tariff identifier. |
+| `PRODUCT_ID` | `INTEGER` | `productId` | `int` | Product identifier. |
+| `PRIORITY` | `INTEGER` | `priority` | `int` | Disambiguates overlapping windows; **highest wins**. |
+| `PRICE` | `DECIMAL(4,2)` | `price` | `double` | Amount. The type caps values at **99.99** — see D4. |
+| `CURR` | `VARCHAR(3)` | `curr` | `String` | Currency code; all seeded rows are `EUR`. |
 
-**Relationships:**
-- `educations`: One-to-many relationship with Education model
-- `workExperiences`: One-to-many relationship with WorkExperience model
-- `resumes`: One-to-many relationship with Resume model
-- `applications`: One-to-many relationship with Application model
+Entity mapping details:
+- `@Entity`, `@Table(name = "prices", schema = "test")` (`PriceEntity.java:14-15`).
+- Every column is bound with an explicit `@Column(name = ...)` (`PriceEntity.java:25-47`), so
+  field renames do not silently change the mapping.
+- Lombok supplies `@Data`, `@AllArgsConstructor`, `@NoArgsConstructor` and `@Builder`
+  (`PriceEntity.java:16-19`). The no-args constructor is what JPA requires.
 
-### 2. Education
-Represents educational background information for candidates.
+**There are no relationships.** No `@OneToMany`, `@ManyToOne`, `@JoinColumn`, or foreign key exists
+anywhere in the schema. `BRAND_ID` and `PRODUCT_ID` are plain integers, not references to tables
+this service owns.
 
-**Fields:**
-- `id`: Unique identifier for the education record (Primary Key)
-- `institution`: Name of the educational institution (max 100 characters)
-- `title`: Degree or certification title obtained (max 250 characters)
-- `startDate`: Start date of the education period
-- `endDate`: End date of the education period (optional, null if ongoing)
-- `candidateId`: Foreign key referencing the Candidate
-
-**Validation Rules:**
-- Institution is required and cannot exceed 100 characters
-- Title is required and cannot exceed 250 characters
-- Start date is required and must be in valid date format
-- End date is optional but must be valid if provided
-- Maximum of 3 education records per candidate
-
-**Relationships:**
-- `candidate`: Many-to-one relationship with Candidate model
-
-### 3. WorkExperience
-Represents work history and professional experience for candidates.
-
-**Fields:**
-- `id`: Unique identifier for the work experience record (Primary Key)
-- `company`: Name of the company or organization (max 100 characters)
-- `position`: Job title or position held (max 100 characters)
-- `description`: Description of responsibilities and achievements (optional, max 200 characters)
-- `startDate`: Start date of the work experience
-- `endDate`: End date of the work experience (optional, null if current)
-- `candidateId`: Foreign key referencing the Candidate
-
-**Validation Rules:**
-- Company name is required and cannot exceed 100 characters
-- Position is required and cannot exceed 100 characters
-- Description is optional but cannot exceed 200 characters if provided
-- Start date is required and must be in valid date format
-- End date is optional but must be valid if provided
-
-**Relationships:**
-- `candidate`: Many-to-one relationship with Candidate model
-
-### 4. Resume
-Represents uploaded resume files associated with candidates.
-
-**Fields:**
-- `id`: Unique identifier for the resume record (Primary Key)
-- `filePath`: File system path to the uploaded resume (max 500 characters)
-- `fileType`: MIME type or file extension of the resume (max 50 characters)
-- `uploadDate`: Date and time when the resume was uploaded
-- `candidateId`: Foreign key referencing the Candidate
-
-**Validation Rules:**
-- File path is required and cannot exceed 500 characters
-- File type is required and cannot exceed 50 characters
-- Upload date is automatically set when file is uploaded
-- Supported file types: PDF and DOCX (max 10MB)
-
-**Relationships:**
-- `candidate`: Many-to-one relationship with Candidate model
-
-### 5. Company
-Represents companies that post job positions and employ staff.
-
-**Fields:**
-- `id`: Unique identifier for the company (Primary Key)
-- `name`: Unique company name
-
-**Relationships:**
-- `employees`: One-to-many relationship with Employee model
-- `positions`: One-to-many relationship with Position model
-
-### 6. Employee
-Represents employees within companies who can conduct interviews.
-
-**Fields:**
-- `id`: Unique identifier for the employee (Primary Key)
-- `name`: Employee's full name
-- `email`: Employee's unique email address
-- `role`: Employee's role or job title
-- `isActive`: Boolean indicating if the employee is currently active
-- `companyId`: Foreign key referencing the Company
-
-**Relationships:**
-- `company`: Many-to-one relationship with Company model
-- `interviews`: One-to-many relationship with Interview model
-
-### 7. InterviewType
-Defines different types of interviews that can be conducted.
-
-**Fields:**
-- `id`: Unique identifier for the interview type (Primary Key)
-- `name`: Name of the interview type (e.g., "Technical", "HR", "Behavioral")
-- `description`: Detailed description of the interview type (optional)
-
-**Relationships:**
-- `interviewSteps`: One-to-many relationship with InterviewStep model
-
-### 8. InterviewFlow
-Represents a sequence of interview steps that define the hiring process.
-
-**Fields:**
-- `id`: Unique identifier for the interview flow (Primary Key)
-- `description`: Description of the interview flow process (optional)
-
-**Relationships:**
-- `interviewSteps`: One-to-many relationship with InterviewStep model
-- `positions`: One-to-many relationship with Position model
-
-### 9. InterviewStep
-Represents individual steps within an interview flow.
-
-**Fields:**
-- `id`: Unique identifier for the interview step (Primary Key)
-- `name`: Name of the interview step
-- `orderIndex`: Numeric order of this step within the flow
-- `interviewFlowId`: Foreign key referencing the InterviewFlow
-- `interviewTypeId`: Foreign key referencing the InterviewType
-
-**Relationships:**
-- `interviewFlow`: Many-to-one relationship with InterviewFlow model
-- `interviewType`: Many-to-one relationship with InterviewType model
-- `applications`: One-to-many relationship with Application model
-- `interviews`: One-to-many relationship with Interview model
-
-### 10. Position
-Represents job positions available for application.
-
-**Fields:**
-- `id`: Unique identifier for the position (Primary Key)
-- `companyId`: Foreign key referencing the Company (required)
-- `interviewFlowId`: Foreign key referencing the InterviewFlow (required)
-- `title`: Job title (required, max 100 characters)
-- `description`: Brief description of the position (required)
-- `status`: Current status of the position (default: "Draft", valid values: Open, Contratado, Cerrado, Borrador)
-- `isVisible`: Boolean indicating if the position is publicly visible (default: false)
-- `location`: Job location (required)
-- `jobDescription`: Detailed job description (required)
-- `requirements`: Job requirements and qualifications (optional)
-- `responsibilities`: Job responsibilities (optional)
-- `salaryMin`: Minimum salary range (optional, must be >= 0)
-- `salaryMax`: Maximum salary range (optional, must be >= 0 and >= salaryMin)
-- `employmentType`: Type of employment (e.g., "Full-time", "Part-time", "Contract") (optional)
-- `benefits`: Job benefits description (optional)
-- `companyDescription`: Description of the hiring company (optional)
-- `applicationDeadline`: Deadline for applications (optional, must be a future date)
-- `contactInfo`: Contact information for inquiries (optional)
-
-**Validation Rules:**
-- Title is required and cannot exceed 100 characters
-- Description, location, and jobDescription are required fields
-- Status must be one of: Open, Contratado, Cerrado, Borrador
-- Company and interview flow references must exist in the database
-- Salary values must be non-negative numbers
-- Application deadline must be a future date if provided
-
-**Relationships:**
-- `company`: Many-to-one relationship with Company model
-- `interviewFlow`: Many-to-one relationship with InterviewFlow model
-- `applications`: One-to-many relationship with Application model
-
-### 11. Application
-Represents a candidate's application to a specific position.
-
-**Fields:**
-- `id`: Unique identifier for the application (Primary Key)
-- `applicationDate`: Date when the application was submitted
-- `currentInterviewStep`: Current step in the interview process
-- `notes`: Additional notes about the application (optional)
-- `positionId`: Foreign key referencing the Position
-- `candidateId`: Foreign key referencing the Candidate
-- `interviewStepId`: Foreign key referencing the current InterviewStep
-
-**Relationships:**
-- `position`: Many-to-one relationship with Position model
-- `candidate`: Many-to-one relationship with Candidate model
-- `interviewStep`: Many-to-one relationship with InterviewStep model
-- `interviews`: One-to-many relationship with Interview model
-
-### 12. Interview
-Represents individual interview sessions conducted as part of an application.
-
-**Fields:**
-- `id`: Unique identifier for the interview (Primary Key)
-- `interviewDate`: Date and time of the interview
-- `result`: Interview result or outcome (optional)
-- `score`: Numeric score or rating from the interview (optional)
-- `notes`: Interview notes and feedback (optional)
-- `applicationId`: Foreign key referencing the Application
-- `interviewStepId`: Foreign key referencing the InterviewStep
-- `employeeId`: Foreign key referencing the conducting Employee
-
-**Relationships:**
-- `application`: Many-to-one relationship with Application model
-- `interviewStep`: Many-to-one relationship with InterviewStep model
-- `employee`: Many-to-one relationship with Employee model
+**There are no indexes and no constraints** beyond the primary key. The lookup query filters on
+`BRAND_ID`, `PRODUCT_ID`, `START_DATE` and `END_DATE` with no supporting index — acceptable at the
+current four-row scale, and worth revisiting before any realistic data volume.
 
 ## Entity Relationship Diagram
 
-```mermaid
-erDiagram
-    Candidate {
-        Int id PK
-        String firstName
-        String lastName
-        String email UK
-        String phone
-        String address
-    }
-    Education {
-        Int id PK
-        String institution
-        String title
-        DateTime startDate
-        DateTime endDate
-        Int candidateId FK
-    }
-    WorkExperience {
-        Int id PK
-        String company
-        String position
-        String description
-        DateTime startDate
-        DateTime endDate
-        Int candidateId FK
-    }
-    Resume {
-        Int id PK
-        String filePath
-        String fileType
-        DateTime uploadDate
-        Int candidateId FK
-    }
-    Company {
-        Int id PK
-        String name UK
-    }
-    Employee {
-        Int id PK
-        String name
-        String email UK
-        String role
-        Boolean isActive
-        Int companyId FK
-    }
-    InterviewType {
-        Int id PK
-        String name
-        String description
-    }
-    InterviewFlow {
-        Int id PK
-        String description
-    }
-    InterviewStep {
-        Int id PK
-        String name
-        Int orderIndex
-        Int interviewFlowId FK
-        Int interviewTypeId FK
-    }
-    Position {
-        Int id PK
-        String title
-        String description
-        String status
-        Boolean isVisible
-        String location
-        String jobDescription
-        String requirements
-        String responsibilities
-        Float salaryMin
-        Float salaryMax
-        String employmentType
-        String benefits
-        String companyDescription
-        DateTime applicationDeadline
-        String contactInfo
-        Int companyId FK
-        Int interviewFlowId FK
-    }
-    Application {
-        Int id PK
-        DateTime applicationDate
-        Int currentInterviewStep
-        String notes
-        Int positionId FK
-        Int candidateId FK
-        Int interviewStepId FK
-    }
-    Interview {
-        Int id PK
-        DateTime interviewDate
-        String result
-        Int score
-        String notes
-        Int applicationId FK
-        Int interviewStepId FK
-        Int employeeId FK
-    }
+A single unrelated table:
 
-    Candidate ||--o{ Education : "has"
-    Candidate ||--o{ WorkExperience : "has"
-    Candidate ||--o{ Resume : "has"
-    Candidate ||--o{ Application : "submits"
-    
-    Company ||--o{ Employee : "employs"
-    Company ||--o{ Position : "offers"
-    
-    InterviewType ||--o{ InterviewStep : "defines"
-    InterviewFlow ||--o{ InterviewStep : "includes"
-    InterviewFlow ||--o{ Position : "guides"
-    
-    Position ||--o{ Application : "receives"
-    Application ||--o{ Interview : "includes"
-    
-    InterviewStep ||--o{ Application : "current_step"
-    InterviewStep ||--o{ Interview : "conducted_at"
-    
-    Employee ||--o{ Interview : "conducts"
+```
+┌─────────────────────────────┐
+│        test.PRICES          │
+├─────────────────────────────┤
+│ ID          IDENTITY  PK    │
+│ BRAND_ID    INTEGER         │
+│ START_DATE  TIMESTAMP       │
+│ END_DATE    TIMESTAMP       │
+│ PRICE_LIST  INTEGER         │
+│ PRODUCT_ID  INTEGER         │
+│ PRIORITY    INTEGER         │
+│ PRICE       DECIMAL(4,2)    │
+│ CURR        VARCHAR(3)      │
+└─────────────────────────────┘
 ```
 
-## Key Design Principles
+## Access Pattern
 
-1. **Referential Integrity**: All foreign key relationships ensure data consistency across the system.
+Exactly one query reads this table
+(`src/main/java/com/llandaeta/prices/db/repositories/PriceRepository.java:13`):
 
-2. **Flexibility**: The interview flow system allows for customizable hiring processes per position.
+```java
+Optional<PriceEntity> findFirstByBrandIdAndProductIdAndStartDateIsLessThanEqualAndEndDateGreaterThanEqualOrderByPriorityDesc(
+        int brandId, int productId, LocalDateTime startDate, LocalDateTime endDate);
+```
 
-3. **Audit Trail**: Application and interview dates provide a complete timeline of the hiring process.
+Read as a rule: *of the rows for this brand and product whose window contains the requested instant
+(inclusive at both ends), take the one with the highest priority.* Absence is a normal outcome and
+becomes a 404 (`PriceServiceImpl.java:30`).
 
-4. **Extensibility**: The modular design allows for easy addition of new features and data points.
+The entity never leaves the `core` layer: `PriceEntityModelConverter` maps it to `PriceModel`
+(`src/main/java/com/llandaeta/prices/core/converters/PriceEntityModelConverter.java:12`), dropping
+`id` and carrying the other eight fields through unchanged.
 
-5. **Data Normalization**: The model follows database normalization principles to minimize redundancy and ensure data integrity.
+## Seed Data
 
-## Notes
+`V1_create_tables.sql` inserts **four rows**, all for brand `1` and product `35455`
+(`V1_create_tables.sql:15-25`):
 
-- All `id` fields serve as primary keys with auto-increment functionality
-- Foreign key relationships maintain referential integrity
-- Optional fields allow for flexible data entry while maintaining required core information
-- The interview system supports multi-step hiring processes with different types of interviews
-- Email fields have unique constraints to prevent duplicate accounts 
+| price_list | start_date | end_date | priority | price | curr |
+|---|---|---|---|---|---|
+| 1 | 2020-06-14 00:00:00 | 2020-12-31 23:59:59 | 0 | 35.50 | EUR |
+| 2 | 2020-06-14 15:00:00 | 2020-06-14 18:30:00 | 1 | 25.45 | EUR |
+| 3 | 2020-06-15 00:00:00 | 2020-06-15 11:00:00 | 1 | 30.50 | EUR |
+| 4 | 2020-06-16 00:00:00 | 2020-12-31 23:59:59 | 1 | 38.95 | EUR |
+
+These rows deliberately overlap with price list 1 so that the priority rule is exercised.
+
+**This seed data is a test fixture.** All five tests in
+`src/test/java/com/llandaeta/prices/rest/controllers/PriceControllerTest.java` assert against these
+exact values. Changing an `INSERT` will break them.
+
+Note the literal timestamps use **dots** as the time separator — `'2020-06-14 00.00.00'`, not
+`00:00:00` (`V1_create_tables.sql:16`). H2 accepts this; it is unusual and is recorded here so it is
+not "corrected" without checking.
+
+## Migration Conventions
+
+- Migrations live in `src/main/resources/db/migration` and are located by Flyway through a
+  **filesystem** path, not the classpath (`application.yaml`) — see defect D5 in
+  [Backend Standards](./backend-standards.md#known-risks-and-defects).
+- `spring.flyway.sql-migration-separator` is `_` (a single underscore), overriding Flyway's default
+  `__`. That is why the existing file is `V1_create_tables.sql`. **A new migration named
+  `V2__add_index.sql` will not be recognised under this configuration** — use `V2_add_index.sql`.
+- `baseline-on-migrate: true` is set (`application.yaml`).
+
+## Known Risks and Defects
+
+Each is stated with its citation, and each is documented rather than fixed here.
+
+- **D3 — no identifier generation strategy.** `@Id` appears without `@GeneratedValue`
+  (`PriceEntity.java:22-23`) while the column is `IDENTITY` (`V1_create_tables.sql:5`). Reads are
+  unaffected; inserting through JPA would need a hand-assigned id.
+- **D4 — money as `double`, capped at 99.99.** `price` is a primitive `double`
+  (`PriceEntity.java:44`) over a `DECIMAL(4,2)` column (`V1_create_tables.sql:12`). Binary floating
+  point is a poor fit for currency, and the column silently bounds the domain to two integer
+  digits — a product constraint documented nowhere in the code.
+- **D6 — case mismatch between mapping and migration.** The entity maps lowercase
+  `prices`/`test` (`PriceEntity.java:15`); the migration creates quoted uppercase
+  `` `test`.`PRICES` `` (`V1_create_tables.sql:3`). Tolerated by H2 as configured; a hazard on a
+  case-sensitive engine.
+- **No uniqueness guarantee.** Nothing prevents two rows with the same brand, product, window and
+  priority. `findFirst` would then return an arbitrary one of them, and which one is not defined by
+  the query.

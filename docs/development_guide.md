@@ -1,153 +1,176 @@
 # Development Guide
 
-This guide provides step-by-step instructions for setting up the development environment and running tests for the LTI ATS system.
+How to build, run, and test `app-prices-rest`. Every command below was verified against this
+repository's actual configuration, not carried over from a template.
 
-## 🚀 Setup Instructions
+## Setup Instructions
 
 ### Prerequisites
 
-Ensure you have the following installed:
-- **Node.js** (v16 or higher)
-- **npm** (v8 or higher)
-- **Docker** and **Docker Compose**
-- **Git**
+| Tool | Requirement | Where it comes from |
+|---|---|---|
+| **JDK 11** | Required | `pom.xml:17` declares `<java.version>11</java.version>` |
+| **Apache Maven** | Required (3.6+) | `pom.xml`; see the wrapper note below |
+| **Git** | Required | — |
+
+No database server is needed. The application uses an **in-memory H2** database
+(`spring.datasource.url` defaults to `jdbc:h2:mem:testdb`, `src/main/resources/application.yaml`)
+and Flyway creates the schema at startup. There is nothing to install, provision, or run in Docker.
+
+> **Use the `mvn` on your `PATH`, not `./mvnw`.**
+> `mvnw` and `mvnw.cmd` are committed at the repository root, but `.mvn/` is absent, so
+> `.mvn/wrapper/maven-wrapper.properties` does not exist and the wrapper has no `distributionUrl`
+> to bootstrap from. Tracked as defect D7 in
+> [Backend Standards](./backend-standards.md#known-risks-and-defects). Every command in this guide
+> therefore uses `mvn`.
+
+Verify your toolchain:
+
+```bash
+java -version
+mvn -v
+```
 
 ### 1. Clone the Repository
 
 ```bash
-git clone git@github.com:LIDR-academy/AI4Devs-LTI-extended.git
-cd AI4Devs-LTI-extended
+git clone git@github.com:Landaone/app-prices-rest.git
+cd app-prices-rest
 ```
 
 ### 2. Environment Configuration
 
-Create environment files for both backend and frontend:
+**No configuration file needs to be created.** Every setting has a working default in
+`src/main/resources/application.yaml`. Override any of them through environment variables only if
+you need to point at a different database:
 
-**Backend Environment** (`backend/.env`):
-```env
-# Database Configuration
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=LTIdbUser
-DB_PASSWORD=<DB_PASSWORD>
-DB_NAME=LTIdb
+| Variable | Default | Meaning |
+|---|---|---|
+| `DATABASE_URL` | `jdbc:h2:mem:testdb` | JDBC URL |
+| `DATABASE_USER` | `sa` | Database user |
+| `DATABASE_PASS` | *(empty)* | Database password |
 
-# Application Configuration
-PORT=3000
-NODE_ENV=development
+The application listens on the Spring Boot default port **8080** — `application.yaml` sets no
+`server.port`.
 
-# Prisma Database URL
-DATABASE_URL="postgresql://LTIdbUser:<DB_PASSWORD>@localhost:5432/LTIdb"
-```
+### 3. Build
 
-**Frontend Environment** (`frontend/.env`):
-```env
-REACT_APP_API_URL=http://localhost:3000
-```
-
-### 3. Database Setup (PostgreSQL with Docker)
-
-Start the PostgreSQL database using Docker Compose:
+From the repository root, on a fresh clone:
 
 ```bash
-# Start PostgreSQL container
-docker-compose up -d
-
-# Verify the database is running
-docker-compose ps
+mvn clean package
 ```
 
-The PostgreSQL database will be available at:
-- **Host**: `localhost`
-- **Port**: `5432`
-- **Database**: `LTIdb`
-- **Username**: `LTIdbUser`
-- **Password**: `<DB_PASSWORD>`
-
-### 4. Backend Setup
+The first run downloads dependencies from Maven Central, so it needs network access. Once your
+local repository is populated, `-o` (offline) is available as an optional speed-up:
 
 ```bash
-# Navigate to backend directory
-cd backend
-
-# Install dependencies
-npm install
-
-# Generate Prisma client
-npm run prisma:generate
-
-# Run database migrations
-npx prisma migrate deploy
-
-# (Optional) Seed the database with sample data
-npx prisma db seed
-
-# Start the development server
-npm run dev
+mvn -o clean package
 ```
 
-The backend API will be available at `http://localhost:3000`
+Do not use `-o` on a fresh clone — there is nothing cached yet for it to resolve against.
 
-### 5. Frontend Setup
+### 4. Run
 
 ```bash
-# Navigate to frontend directory (from project root)
-cd frontend
-
-# Install dependencies
-npm install
-
-# Start the development server
-npm start
+mvn spring-boot:run
 ```
 
-The frontend application will be available at `http://localhost:3001`
-
-### 6. Cypress Testing Suite Setup
+Or, after packaging:
 
 ```bash
-# From the frontend directory
-cd frontend
-
-# Install Cypress (if not already installed)
-npm install
-
-# Open Cypress Test Runner (Interactive)
-npm run cypress:open
-
-# Or run tests headlessly
-npm run cypress:run
+java -jar target/prices-0.0.1-SNAPSHOT.jar
 ```
 
-## 🧪 Testing
+> Running the jar from a directory other than the project root will fail to apply migrations:
+> `spring.flyway.locations` is a **filesystem-relative** path
+> (`filesystem:src/main/resources/db/migration`, `application.yaml`), not a classpath one. Defect
+> D5 in [Backend Standards](./backend-standards.md#known-risks-and-defects).
 
-### Backend Testing
+On startup Flyway applies `V1_create_tables.sql`, which creates the `test` schema, the `PRICES`
+table, and four seed rows. The H2 web console is enabled
+(`spring.h2.console.enabled: true`) and is reachable at `http://localhost:8080/h2-console` using
+the JDBC URL and credentials above.
+
+### 5. Call the API
+
+The service exposes one endpoint. Note that `applicationDate` uses a **space** separator and must
+be URL-encoded:
 
 ```bash
-cd backend
-
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage
-npm run test:coverage
+curl -s "http://localhost:8080/api/price?brandId=1&productId=35455&applicationDate=2020-06-14%2010:00:00"
 ```
 
-### Frontend Testing
+```json
+{"brandId":1,"startDate":"2020-06-14T00:00:00","endDate":"2020-12-31T23:59:59","productId":35455,"priceList":1,"priority":0,"price":35.5,"curr":"EUR"}
+```
+
+The overlapping-window case, where the higher priority wins:
 
 ```bash
-cd frontend
-
-# Run unit tests
-npm test
-
-# Run E2E tests with Cypress
-npm run cypress:run
-
-# Open Cypress Test Runner
-npm run cypress:open
+curl -s "http://localhost:8080/api/price?brandId=1&productId=35455&applicationDate=2020-06-14%2016:00:00"
 ```
 
+The not-found case returns HTTP 404 with an `Error` body:
+
+```bash
+curl -s -i "http://localhost:8080/api/price?brandId=99&productId=99&applicationDate=2020-06-14%2010:00:00"
+```
+
+See [`api-spec.yml`](./api-spec.yml) for the full contract, and note that the response for a
+**malformed** `applicationDate` is deliberately unspecified — defects D1 and D2.
+
+## Testing
+
+The suite is JUnit 5 (`spring-boot-starter-test`, with the JUnit 4 vintage engine excluded at
+`pom.xml:66-68`).
+
+```bash
+mvn test
+```
+
+A single test class:
+
+```bash
+mvn test -Dtest=PriceControllerTest
+```
+
+There is **no coverage plugin configured** in `pom.xml` — no JaCoCo, no Surefire report
+configuration beyond the Spring Boot parent's defaults. `mvn test -Dtest=...` and the console
+output are what is available; do not document a coverage command this build cannot run.
+
+### What the tests cover
+
+| Test class | Scope |
+|---|---|
+| `AppPricesRestApplicationTests` | Context loads (smoke test) |
+| `PriceEntityModelConverterTest` | Entity → model field mapping |
+| `PriceServiceImplTest` | Service logic with a `@MockBean` repository |
+| `PriceControllerTest` | Five HTTP cases through `MockMvc`, against the real Flyway-seeded data |
+
+Every existing test is annotated `@SpringBootTest`, so the full context starts for each class.
+`PriceControllerTest` asserts against the exact seed rows in `V1_create_tables.sql` — changing that
+seed data will break it.
+
+Known gaps, recorded rather than implied: the 404 path, the malformed-date path, and
+`HttpErrorHandler` have **no** test coverage. See
+[Backend Standards → Coverage Gaps](./backend-standards.md#coverage-gaps).
+
+## Project Layout
+
+```
+.
+├── pom.xml                      Maven build
+├── mvnw, mvnw.cmd               wrappers (non-functional, see D7)
+├── docs/                        this documentation set
+├── ai-specs/                    agents and skills for AI tooling
+├── openspec/                    OpenSpec configuration and changes
+└── src/
+    ├── main/java/com/llandaeta/prices/   rest / core / db layers
+    ├── main/resources/application.yaml
+    ├── main/resources/db/migration/      Flyway scripts
+    └── test/java/com/llandaeta/prices/   test suite
+```
+
+For architecture and conventions see [Backend Standards](./backend-standards.md); for the schema
+see [Data Model](./data-model.md).

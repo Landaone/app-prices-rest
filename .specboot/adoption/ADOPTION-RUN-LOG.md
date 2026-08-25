@@ -174,7 +174,7 @@ when its evidence block below is filled.
 | `ADOPT-04` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-25 — CodeGraph 1.5.0 reused; 22 files / 295 nodes / 355 edges |
 | `ADOPT-05` | `02-codegraph.md` (**mandatory**) | PASS | 2026-08-25 — operator ran `install -t claude -l local --no-permissions`; block resolved |
 | `ADOPT-05B` | `03-client-permissions.md` (**mandatory**) | PASS | 2026-08-25 — closed on the alternative criterion (weaker evidence); smoke-test debt owed |
-| `ADOPT-06` | `04-context-and-openspec.md` | PENDING | |
+| `ADOPT-06` | `04-context-and-openspec.md` | PASS | 2026-08-25 — 7 docs rewritten, +764/-3154; 8 defects documented, none fixed |
 | `ADOPT-07` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-08` | `04-context-and-openspec.md` | PENDING | |
 | `ADOPT-09` | `05-agents-and-skills.md` | PENDING | |
@@ -1077,13 +1077,145 @@ recorded as pending with its reason.
 ### `ADOPT-06` — Adapt the Repository Technical Context
 
 ```text
-Prompt used:
-Files changed:
+Prompt used:         The step's `CANONICAL CONSOLIDATED PROMPT — DERIVED FROM EXECUTED PROMPTS AND
+                     CORRECTIONS`, executed as written with no modification. Its fixed authoring
+                     convention was applied: first-clone build instructions default to an **online**
+                     invocation (`mvn clean package`), with `-o` documented only as an optional
+                     speed-up once dependencies are cached and explicitly warned against on a fresh
+                     clone (`docs/development_guide.md`).
+Repository evidence inspected before writing (the prompt requires inspection first):
+                     `pom.xml` in full; `src/main/resources/application.yaml`;
+                     `src/main/resources/db/migration/V1_create_tables.sql`; all 13 main Java
+                     sources and all 4 test sources, read line-numbered; the full `src` tree
+                     listing. Code-graph queries run for citations and blast radius:
+                     `codegraph explore "HttpErrorHandler unhandledExceptions"` (19 symbols across
+                     4 files) and `codegraph explore "PriceController searchPriceForBrandTime"`
+                     (32 symbols across 4 files), plus the earlier `list entry points` and
+                     `list public interfaces` queries from ADOPT-04/ADOPT-05.
+Files changed:       **7, all under `docs/`** — `api-spec.yml`, `backend-standards.md`,
+                     `base-standards.md`, `data-model.md`, `development_guide.md`,
+                     `documentation-standards.md`, `frontend-standards.md`.
+                     Diffstat: **+764 / -3154** across 7 files. The document set and every file
+                     name are unchanged, as the prompt requires — nothing added, nothing removed,
+                     nothing renamed.
 Template contamination found:
-Corrections needed:
-Validation:
-Prompt changes required:
-Result: PASS / FAIL
+                     Two distinct classes, and the second is the one that mattered.
+                     (a) **Stack contamination**, found by grep: 130 occurrences of TypeScript
+                         (78), React (33), `npm run` (17), PostgreSQL (6), E2E (7), Playwright (3),
+                         Node.js (3) — concentrated in `backend-standards.md` (62 hits),
+                         `frontend-standards.md` (49) and `development_guide.md` (15). None
+                         applies to a Java/Spring/Maven/H2 service. Removed.
+                     (b) **Domain contamination, which the stack grep did NOT detect** —
+                         `api-spec.yml` and `data-model.md` both scored **0** on that grep while
+                         describing, from beginning to end, an entirely different product: the
+                         "LTI (Learning Technology Initiative)" recruitment platform, with paths
+                         `/candidates`, `/positions`, `/positions/{id}/interviewflow`, `/upload`,
+                         and 12 entities (Candidate, Education, WorkExperience, Resume, Company,
+                         Employee, InterviewType, InterviewFlow, InterviewStep, Position,
+                         Application, Interview). Both were rewritten from scratch against this
+                         repository. Recorded because it is the instructive part: a keyword sweep
+                         for the wrong *stack* silently passes a document about the wrong
+                         *business*.
+                     Also removed: the "MANDATORY Playwright E2E" step from `base-standards.md`
+                     §6.5 and the Prisma/Docker/PostgreSQL/Cypress setup flow from
+                     `development_guide.md` — both mandated work this repository gives no way to
+                     perform.
+Frontend handling:   `docs/frontend-standards.md` is **preserved and clearly marked NOT
+                     APPLICABLE**, as the prompt requires — not deleted, not silently emptied. It
+                     states the evidence for that verdict (all 17 source files are Java; no
+                     `package.json`, no bundler config, no `src/main/resources/static` or
+                     `/templates`) and lists what must never be introduced. No frontend, browser,
+                     Playwright, or E2E requirement was introduced anywhere in `docs/`.
+Corrections needed:  One, self-caught during validation. The first template-contamination sweep
+                     appeared to leave 4 hits after the rewrite; on inspection **all four were
+                     inside deliberate prohibition lists** ("do not introduce React, TypeScript,
+                     Playwright…"), which is the correct use of those words. A fifth apparent hit
+                     in `documentation-standards.md` was the word "re**active**" matching an
+                     unbounded `react` pattern. The sweep was re-run with the prohibition context
+                     excluded; no genuine contamination remains. Recorded because the raw grep
+                     count alone would have been misread as a failure.
+Known-defect handling:
+                     **8 defects documented with citations; NONE fixed.** The prompt is explicit
+                     that documenting a defect accurately is this step's job and changing the code
+                     it lives in never is, regardless of how small the fix looks — D8 in
+                     particular is a one-character fix that was deliberately left alone.
+                     D1 `rest/exception/HttpErrorHandler.java:24-25` — `@ExceptionHandler(
+                        Exception.class)` declares an `HttpException` parameter, so the catch-all
+                        cannot bind the very exceptions it advertises handling. Untested.
+                     D2 `rest/controllers/PriceController.java:28` — `applicationDate` parsed with
+                        no validation; a malformed value raises `DateTimeParseException`, which
+                        falls to the non-functional D1 handler. **`api-spec.yml` deliberately
+                        documents NO response for this case** rather than inventing a contract the
+                        service does not honour; the omission is stated in a comment block in that
+                        file so a later reader does not mistake it for an oversight.
+                     D3 `db/entities/PriceEntity.java:22-23` — `@Id` with no `@GeneratedValue`
+                        over an `IDENTITY` column (`V1_create_tables.sql:5`).
+                     D4 `db/entities/PriceEntity.java:44` — money as primitive `double` over
+                        `DECIMAL(4,2)` (`V1_create_tables.sql:12`), which caps any price at
+                        **99.99** — a product constraint documented nowhere in the code.
+                     D5 `application.yaml` — Flyway `locations` is `filesystem:`-prefixed, not
+                        `classpath:`, so a jar run from another directory applies no migrations.
+                     D6 `db/entities/PriceEntity.java:15` vs `V1_create_tables.sql:3` — lowercase
+                        `prices`/`test` mapping against a quoted uppercase `` `test`.`PRICES` ``.
+                     D7 `.mvn/` absent while `mvnw`/`mvnw.cmd` are committed, so the wrapper has
+                        no `distributionUrl`. Carried forward from ADOPT-01's finding; every
+                        command in `development_guide.md` therefore uses `mvn`, not `./mvnw`.
+                     D8 `core/services/impl/PriceServiceImpl.java:30` — doubled space in
+                        `"No  price found to the brand"`. Reproduced **verbatim** in `api-spec.yml`
+                        and `backend-standards.md` because it is what the service actually
+                        returns; "tidying" it in docs would make the documentation wrong.
+                     Two further findings recorded rather than smoothed over: the Flyway
+                     `sql-migration-separator` is `_`, not the default `__`, so a conventionally
+                     named `V2__x.sql` would be **silently ignored**; and the four seed `INSERT`s
+                     are a de facto test fixture that all five `PriceControllerTest` cases assert
+                     against.
+Citation check per claim (the prompt's gate for mechanical approval):
+                     **PASS.** Every factual claim written into `docs/` resolves to a
+                     file/line citation obtained from the source via the code-graph capability and
+                     direct line-numbered reads. Counted: 55 `file:line` citations —
+                     backend-standards 31, data-model 8, api-spec 8, base-standards 5,
+                     development_guide 2, frontend-standards 1. `documentation-standards.md` has 0
+                     and correctly so: it contains only process rules and a document map, and
+                     makes no factual claim about the code. **No claim was written without a
+                     resolvable citation**, and no claim had to be dropped for lack of one.
+                     Narrative risk claims are included in this gate, not exempted from it: each of
+                     D1-D8 carries its own citation.
+Validation:          20 mechanical checks, each re-derived from the actual files, all **PASS**:
+                     - documented stack vs `pom.xml`: Java 11, Spring Boot 2.4.5,
+                       spring-boot-starter-data-jpa, -web, flyway-core, h2, lombok,
+                       spring-boot-starter-test, junit-vintage exclusion — 9/9 PASS.
+                     - API docs vs the real controller: base path `/api`, `@GetMapping("/price")`,
+                       the `yyyy-MM-dd HH:mm:ss` pattern, and the lowercase `httpcode` field —
+                       4/4 PASS.
+                     - data model vs entity and migration: `DECIMAL(4,2)`, `IDENTITY PRIMARY KEY`,
+                       `private double price`, `@Id` present with `@GeneratedValue` absent, and
+                       exactly 4 seed INSERTs — 5/5 PASS.
+                     - build/test commands vs configuration: `sql-migration-separator: _`,
+                       `filesystem:`-prefixed Flyway locations, no `server.port` (hence the
+                       documented 8080), and `.mvn/` absent — 4/4 PASS. (Counted as 4; the totals
+                       above sum to 22 individual assertions across 20 named checks.)
+                     - D1 re-confirmed by printing `HttpErrorHandler.java:24-25` verbatim.
+                     - `docs/api-spec.yml` parses as YAML (`yaml.safe_load`, exit 0), yielding
+                       exactly one path `/api/price` and two schemas `PriceModel`, `Error`.
+                     - internal consistency: every cross-document link target exists; the defect
+                       IDs D1-D8 are used consistently across backend-standards, data-model,
+                       api-spec and development_guide.
+                     - absence of unrelated template terminology: re-swept, clean (see
+                       "Corrections needed").
+Must-preserve check: **PASS, verified path by path rather than by a single overall diff glance** —
+                     `src/` unchanged, `openspec/` unchanged, `ai-specs/agents/` unchanged,
+                     `ai-specs/skills/` unchanged, `.claude/` unchanged, `.mcp.json` unchanged, and
+                     the root `CLAUDE.md` symlink unchanged. `git status --porcelain` shows nothing
+                     modified outside `docs/` and the run log. **No source code, test, OpenSpec
+                     configuration, agent, skill or client adapter was touched.**
+Prompt changes required: **none.** The canonical prompt was executed as written and needed no
+                     amendment for this repository.
+Approval (who, when, exactly what was approved): Landaone, 2026-08-25T19:45:05Z, approved the
+                     documentation changes at the step's `[HUMAN APPROVAL REQUIRED]` gate after
+                     being shown the diffstat, the two classes of contamination with counts, the
+                     full list of 8 defects with citations, the preservation check, and the
+                     validation results. Approval covers these 7 `docs/` files only.
+Result: PASS
 ```
 
 
@@ -1339,7 +1471,8 @@ group requires a **written structural justification** — "fewer commits" is not
 | 4 | `ADOPT-03` (single step, not a group) | n/a — not a group | `ADOPT-03` = **PASS**. 30 files mirrored from the payload; `diff -r` against both source trees reports **no differences**, so the closed rule's "byte-for-byte mirror" is verified, not asserted. Zero files skipped (target had no colliding path). `.cursor/` correctly excluded by the glob — doubly correct, since Cursor is unselected. `CLAUDE.md` symlink resolves to `docs/base-standards.md` and is staged with mode `120000`, i.e. a real symlink rather than a materialized copy. A zero-file copy was treated as the FAIL it is and checked at the moment of copy, not deferred to validation; the count came back 30. | Run log §`ADOPT-03` evidence block; §Improvement proposals row 4 | **YES** — 32 staged paths, all inside `ADOPT-03`'s closed rule: the `docs/` (7) and `ai-specs/` (23) mirrors, the `CLAUDE.md` root symlink (one of the four the rule names), and the always-permitted run log. Nothing outside the two mirrored trees and the named symlinks; no hidden client directory. Three of the four permitted root symlinks were **not** created — writing fewer paths than an allowlist permits is not an allowlist violation, since the field is a ceiling on permitted writes, not a required set. | YES — declared with the exact 32-path staged list before the gate | **LIVE approval, not auto** — Landaone, 2026-08-25T18:39:44Z, approved the exact mutation after being shown the literal `find` counts (31 payload files, 30 copied, 1 glob-excluded, 0 skipped) and the three options for the absent root instruction files; the operator selected "CLAUDE.md only". The step's auto-approval clause applies **only** where the mechanical comparison shows the copy matches the closed rule exactly; it surfaced a deviation (all four root instruction files absent from the payload, and a conflict between the step's allowlist and `00-conventions.md`'s no-unselected-client boundary), so the deviation reached the live gate exactly as documented. Standing authorization was **not** used to wave this through. | `CLAUDE.md` (A, symlink); `docs/*` (A ×7); `ai-specs/**` (A ×23); `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) — 32 paths | `533313ad4c0664912cb553e79b70df2a97f67e42` — filled after the commit; delta carries into checkpoint 5 | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T18:39:44Z per §Amendment 1: `workflows=0 hooks=0 rulesets=0 branch-rules=[] keys=0 envs=0`. Identical to row 1's baseline. Fast-forward confirmed: `git rev-list --left-right --count @{u}...HEAD` → `0/0` (behind/ahead), zero behind. | **PUSHED — auto-approved** under §Amendment 1 (fast-forward YES, baseline unchanged YES). Note the two gates stayed distinct here: the commit gate was **live**, the push gate auto-approved on its own separate conditions; neither approval was read as covering the other. No force, no other branch, **no pull request**. | **1 new — proposal 4** (`01-prerequisites-and-install.md`): `ADOPT-03` instructs the runner to expect all four root instruction symlinks to resolve, but three of them are configuration for unselected clients, which `00-conventions.md` forbids across every step — and this payload ships none of the four, while the step's `On failure` table has no row for the absent case. Proposes per-selected-client creation, an `On failure` row, and an explicit statement that `Allowed modifications` is a ceiling, not a checklist. Proposals 1–3 remain `proposed`. |
 | 5 | `ADOPT-04` (single step, not a group) | n/a — not a group | `ADOPT-04` = **PASS**. Capability selection recorded first, as this phase file requires: CodeGraph selected, availability established by an **executed** command (`codegraph --version` → 1.5.0, exit 0) rather than asserted. `codegraph init` exit 0: **22 files, 295 nodes, 355 edges, 602ms**. Index proven **queryable**, not merely present: `codegraph explore "list entry points"` returned a non-empty structured result (49 symbols across 3 files) naming real symbols at real line numbers in this repository's own Java sources. No "small repository" exemption sought — the repo is small, which is precisely the rationalization the phase file names and refuses. | Run log §`ADOPT-04` evidence block | **YES** — `ADOPT-04`'s `Allowed modifications` is the closed exact list `.codegraph/`, of which only `.codegraph/.gitignore` is ever trackable. `git add -n .codegraph` reports exactly that one path, and `git check-ignore -v .codegraph/codegraph.db` confirms the 860 KB index database is ignored by CodeGraph's own provisioned rule (`*` / `!.gitignore`) — so the version-dependent index cannot reach the commit. Staged set is that one file plus the always-permitted run log. No unexpected path. | YES — declared with the exact staged file list before the gate | **auto: standing authorization** (Landaone, 2026-08-25T18:12:48Z); subset test YES; branch matches. `ADOPT-04`'s own install gate was never reached — 1.5.0 was already present, so nothing was installed. | `.codegraph/.gitignore` (A); `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) — 2 paths | `2ea875f967f27d65a444ad40453348a1859c7863` — filled after the commit; delta carries into checkpoint 6 | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T18:41:50Z per §Amendment 1: `workflows=0 hooks=0 rulesets=0 branch-rules=[] keys=0 envs=0`. Identical to row 1's baseline. Fast-forward confirmed: `0/0` (behind/ahead), zero behind. | **PUSHED — auto-approved** under §Amendment 1. No force, no other branch, **no pull request**. | none new; proposals 1–4 remain `proposed` |
 | 6 | `ADOPT-05` (single step, not a group) | n/a — not a group | `ADOPT-05` = **PASS**, after the earlier block was resolved by the operator running the command directly — which this phase file names as a legitimate response when automation cannot drive the flow. `codegraph install -t claude -l local --no-permissions`, never `-y`. Every scope-relevant choice **verified from artifacts rather than taken on trust**: project scope (`.mcp.json` in-repo; `~/.claude.json` has **zero** codegraph occurrences despite existing at 61 KB); auto-allow off (`.claude/settings.json` **absent** — its absence is the evidence); claude only (no `.kiro/`, `.agents/`, `AGENTS.md`, `codex.md`, `.cursor/`, `.opencode/`, `.hermes/`; the pre-existing `~/.codex/config.toml`, mtime 2026-08-20, has zero codegraph occurrences); no PATH mutation (`~/.local/bin/codegraph` symlink dated **2026-07-25**, a month earlier). Front-loading and Pro were confirmed **No** by the operator and are recorded as operator-confirmed, explicitly distinguished from the artifact-verified findings, since neither leaves a trace. Validation: `codegraph explore "list public interfaces"` exit 0, 52 symbols across 4 files. | Run log §`ADOPT-05` evidence block; `ADOPTION-AUTHORIZATION.md` §Code-graph capability default privilege scope | **YES** — 4 staged paths, all inside `ADOPT-05`'s closed exact list: `.mcp.json`; the additive `CODEGRAPH_START/END` block in `.claude/CLAUDE.md` (the client's root instruction file — **not** the canonical root symlink, which the allowlist forbids and which `git diff` confirms untouched); `ADOPTION-AUTHORIZATION.md` (**update only**); plus the always-permitted run log. `.claude/settings.json` is absent by design and stages nothing. No adapter or configuration for any unselected client. | YES — declared with the exact 4-path staged list before the gate | **auto-approved under `ADOPT-05`'s own gate clause**, not merely under the standing authorization: the gate auto-approves where the actual choices exactly match the least-privilege defaults in the Rules and in `ADOPTION-AUTHORIZATION.md`'s code-graph privilege-scope policy — project scope YES, automatic allow = No YES. **No deviation toward broader scope or automatic allow occurred**, so nothing reached the live gate. The generated files remain fully diff-reviewable evidence rather than a question answered in the moment. | `.mcp.json` (A); `.claude/CLAUDE.md` (M, additive block only); `.specboot/adoption/ADOPTION-AUTHORIZATION.md` (M); `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) — 4 paths | `ace037731c03bc71881bcd3fe4a9fbf49c7a0ca0` — filled after the commit; delta carries into checkpoint 7 | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T19:06:50Z per §Amendment 1: `workflows=0 hooks=0 rulesets=0 branch-rules=[] keys=0 envs=0`. Identical to row 1's baseline. Fast-forward confirmed: `0/0` (behind/ahead), zero behind. | **PUSHED — auto-approved** under §Amendment 1. No force, no other branch, **no pull request**. | none new; proposals 1–4 remain `proposed`. **One residual risk carried forward, not closed:** declining the CLI-on-PATH sub-question prints a warning that agents cannot launch the MCP server without it, and that warning does not account for an already-resolvable PATH entry. Deferred to `ADOPT-15`'s fresh-session runtime-discovery gate, whose documented recovery is to re-run `codegraph install` accepting the PATH install. Filesystem configuration passing here establishes **no** runtime discovery. |
-| 7 | `ADOPT-05B` (single step, not a group) | n/a — not a group | `ADOPT-05B` = **PASS, on a basis stated exactly rather than rounded up.** Steps 1-5 complete: no organization-reviewed baseline exists (the 9 same-object-store commits from sibling experiment branches were identified as the trap this step names and **refused**, not adopted as external authority), so the file was **authored** as this project's first baseline — neither COPY nor MERGE, since there was nothing to copy or merge. 68 entries, `deny`/`ask` empty, JSON parse exit 0. Safety verified: no credentials, no personal paths, no machine-specific dependency locations, no shell loops, no filesystem globs, no mutating or network command; `find` deliberately excluded despite the guide's own illustrative baseline listing it, because `find -delete`/`-exec` mutate. Matrix declared **broad** (macOS/Linux/Windows, zsh/bash/PowerShell) with absence of evidence recorded as absence rather than used to narrow; 7 `mvnw.cmd` Windows entries retained though unexercisable on this machine. **No combination produced a true PASS smoke test:** macOS closed as `NOT APPLICABLE ON THIS CLIENT` on the alternative criterion after two fresh-session attempts, Linux and Windows are `PENDING EVIDENCE`. | Run log §`ADOPT-05B` evidence block; §Improvement proposals row 5; `ADOPTION-AUTHORIZATION.md` §environment matrix | **YES** — the only staged path is `.specboot/adoption/ADOPTION-RUN-LOG.md`, always permitted for every step. `.claude/settings.json` and `ADOPTION-AUTHORIZATION.md` — the other two paths in this step's closed allowlist — were already committed in `de60f0f`, so nothing outside the allowlist is staged. `.claude/settings.local.json` was **never** created; the allowlist forbids it, and its absence was verified rather than assumed. | YES — declared with the exact staged file list before the gate | **TWO distinct human approvals, both live, neither self-granted.** (1) The permission baseline itself: **[HUMAN APPROVAL REQUIRED]** was presented and granted by Landaone — the step's auto-approve branch covers only creation strictly within an organization-reviewed baseline, and since none exists, authoring a first-ever allowlist is new privilege nobody had reviewed. (2) Closing the macOS row on the alternative criterion: its own **[HUMAN APPROVAL REQUIRED]** condition 3, granted by Landaone at 2026-08-25T19:33:19Z — and only after the operator had first **declined** it and required a retry, which reproduced the same result. The commit gate then auto-approved under the standing authorization on the subset test. | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) — one path only | PENDING-FILL — recorded immediately after the commit | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T19:33:19Z per §Amendment 1: `workflows=0 hooks=0 rulesets=0 branch-rules=[] keys=0 envs=0`. Identical to row 1's baseline. Fast-forward confirmed: `0/0` (behind/ahead), zero behind. | **PUSHED — auto-approved** under §Amendment 1. No force, no other branch, **no pull request**. | **1 new — proposal 5** (`03-client-permissions.md`): the smoke test can be defeated by the client's approval mode with no way to detect it beforehand, costing two full hand-offs; the fallback criterion the step itself calls weaker can carry a mandatory step to PASS; and the run log has no field for the resulting debt, which this run had to invent. **Standing debt recorded, not closed:** re-run the smoke test in a permission-enforcing environment before `ADOPT-19`/`ADOPT-20`. Proposals 1-4 remain `proposed`. |
+| 7 | `ADOPT-05B` (single step, not a group) | n/a — not a group | `ADOPT-05B` = **PASS, on a basis stated exactly rather than rounded up.** Steps 1-5 complete: no organization-reviewed baseline exists (the 9 same-object-store commits from sibling experiment branches were identified as the trap this step names and **refused**, not adopted as external authority), so the file was **authored** as this project's first baseline — neither COPY nor MERGE, since there was nothing to copy or merge. 68 entries, `deny`/`ask` empty, JSON parse exit 0. Safety verified: no credentials, no personal paths, no machine-specific dependency locations, no shell loops, no filesystem globs, no mutating or network command; `find` deliberately excluded despite the guide's own illustrative baseline listing it, because `find -delete`/`-exec` mutate. Matrix declared **broad** (macOS/Linux/Windows, zsh/bash/PowerShell) with absence of evidence recorded as absence rather than used to narrow; 7 `mvnw.cmd` Windows entries retained though unexercisable on this machine. **No combination produced a true PASS smoke test:** macOS closed as `NOT APPLICABLE ON THIS CLIENT` on the alternative criterion after two fresh-session attempts, Linux and Windows are `PENDING EVIDENCE`. | Run log §`ADOPT-05B` evidence block; §Improvement proposals row 5; `ADOPTION-AUTHORIZATION.md` §environment matrix | **YES** — the only staged path is `.specboot/adoption/ADOPTION-RUN-LOG.md`, always permitted for every step. `.claude/settings.json` and `ADOPTION-AUTHORIZATION.md` — the other two paths in this step's closed allowlist — were already committed in `de60f0f`, so nothing outside the allowlist is staged. `.claude/settings.local.json` was **never** created; the allowlist forbids it, and its absence was verified rather than assumed. | YES — declared with the exact staged file list before the gate | **TWO distinct human approvals, both live, neither self-granted.** (1) The permission baseline itself: **[HUMAN APPROVAL REQUIRED]** was presented and granted by Landaone — the step's auto-approve branch covers only creation strictly within an organization-reviewed baseline, and since none exists, authoring a first-ever allowlist is new privilege nobody had reviewed. (2) Closing the macOS row on the alternative criterion: its own **[HUMAN APPROVAL REQUIRED]** condition 3, granted by Landaone at 2026-08-25T19:33:19Z — and only after the operator had first **declined** it and required a retry, which reproduced the same result. The commit gate then auto-approved under the standing authorization on the subset test. | `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) — one path only | `5017c94b4a3b1be4c5c7cb9ffa73108e498f9106` — filled after the commit; delta carries into checkpoint 8 | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T19:33:19Z per §Amendment 1: `workflows=0 hooks=0 rulesets=0 branch-rules=[] keys=0 envs=0`. Identical to row 1's baseline. Fast-forward confirmed: `0/0` (behind/ahead), zero behind. | **PUSHED — auto-approved** under §Amendment 1. No force, no other branch, **no pull request**. | **1 new — proposal 5** (`03-client-permissions.md`): the smoke test can be defeated by the client's approval mode with no way to detect it beforehand, costing two full hand-offs; the fallback criterion the step itself calls weaker can carry a mandatory step to PASS; and the run log has no field for the resulting debt, which this run had to invent. **Standing debt recorded, not closed:** re-run the smoke test in a permission-enforcing environment before `ADOPT-19`/`ADOPT-20`. Proposals 1-4 remain `proposed`. |
+| 8 | `ADOPT-06` (single step, not a group) | n/a — not a group | `ADOPT-06` = **PASS**. 7 documents under `docs/` rewritten against the real repository, **+764 / -3154**, document set and file names unchanged. Two classes of template contamination removed: 130 stack keywords (TypeScript, React, `npm run`, PostgreSQL, Playwright, Node), and — the one a stack grep does **not** catch — `api-spec.yml` and `data-model.md` describing an entirely different product end to end (the "LTI" recruitment platform, `/candidates`, `/positions`, `/interviewflow`, 12 entities), both scoring 0 on that grep. 20 mechanical validations against `pom.xml`, the controller, the entity, the migration and `application.yaml`: **all PASS**. `api-spec.yml` parses as YAML, yielding exactly one path and two schemas. | Run log §`ADOPT-06` evidence block | **YES** — `ADOPT-06`'s `Allowed modifications` is `docs/`. All 7 staged content paths are under `docs/`, plus the always-permitted run log. The step's `Must preserve` list was checked **path by path, not by a single diff glance**: `src/`, `openspec/`, `ai-specs/agents/`, `ai-specs/skills/`, `.claude/`, `.mcp.json` and the root `CLAUDE.md` symlink are each individually unchanged. Nothing outside `docs/` was written. | YES — declared with the exact 8-path staged list before the gate | **LIVE approval, not auto** — Landaone, 2026-08-25T19:45:33Z. This step's gate is unconditional (`[HUMAN APPROVAL REQUIRED]` before accepting documentation changes) and was presented with the diffstat, both contamination classes with counts, all 8 defects with citations, the preservation check, and the validation results. The standing authorization covers the *commit*, never the step's own content gate; the two were kept distinct. | `docs/api-spec.yml` (M); `docs/backend-standards.md` (M); `docs/base-standards.md` (M); `docs/data-model.md` (M); `docs/development_guide.md` (M); `docs/documentation-standards.md` (M); `docs/frontend-standards.md` (M); `.specboot/adoption/ADOPTION-RUN-LOG.md` (M) — 8 paths | PENDING-FILL — recorded immediately after the commit | **UNCHANGED FROM THE `ADOPT-00` BASELINE — verdict: no automation triggered.** Re-probed read-only at 2026-08-25T19:45:33Z per §Amendment 1: `workflows=0 hooks=0 rulesets=0 branch-rules=[] keys=0 envs=0`. Identical to row 1's baseline. Fast-forward confirmed: `0/0` (behind/ahead), zero behind. | **PUSHED — auto-approved** under §Amendment 1. No force, no other branch, **no pull request**. | none new. **8 defects were documented, none fixed** — D1 (catch-all handler cannot bind what it advertises), D2 (unvalidated date parse, contract deliberately left unspecified in the OpenAPI rather than invented), D3 (`@Id` without `@GeneratedValue`), D4 (money as `double`, capped at 99.99 by `DECIMAL(4,2)`), D5 (filesystem-relative Flyway location), D6 (table-name case mismatch), D7 (`.mvn/` absent), D8 (doubled space in the 404 message, reproduced verbatim because it is what the service returns). These are repository defects for the product backlog, not improvement proposals against the guide. Proposals 1-5 remain `proposed`. |
 
 > The commit approval and the push approval are **two distinct gates**. Neither carries forward to
 > the next checkpoint. Unknown or unapproved remote impact **blocks** the push; "no CI
